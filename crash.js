@@ -208,7 +208,7 @@
 (() => {
     try {
         const MEP = (window.MEP = window.MEP || {});
-        MEP.ver = "0.1.4.80";
+        MEP.ver = "0.1.4.81";
 
         // -------------------------
         // Settings module
@@ -2696,10 +2696,10 @@
                     diffSvg: panel.querySelector("svg.mep-diff"),
                     twoWrap: panel.querySelector(".mep-two-stat-wrap"),
                     twoLastN: panel.querySelector("input.mep-two-lastn"),
-					diffDensityInput: panel.querySelector("input.mep-diff-density"),
+                    diffDensityInput: panel.querySelector("input.mep-diff-density"),
 					diffSyncInput: panel.querySelector("input.mep-diff-sync"),
-					diffPosLevelInput: panel.querySelector("input.mep-diff-lvl-pos"),
-					diffNegLevelInput: panel.querySelector("input.mep-diff-lvl-neg"),
+					diffPosInput: panel.querySelector("input.mep-diff-lvl-pos"),
+					diffNegInput: panel.querySelector("input.mep-diff-lvl-neg"),
                     twoAll: panel.querySelector("input.mep-two-all"),
                     twoTotal: panel.querySelector(".mep-two-total"),
                     twoTotalN: panel.querySelector(".mep-two-total-n"),
