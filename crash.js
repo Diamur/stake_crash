@@ -2828,26 +2828,26 @@
                         ui.diffDensityInput.disabled = false;
                     }
 
-                    if (ui.diffPosInput) ui.diffPosInput.value = String(Math.max(0, Math.floor(Number(MEP.State.diffPosLevel) || 0)));
-                    if (ui.diffNegInput) ui.diffNegInput.value = String(Math.max(0, Math.floor(Number(MEP.State.diffNegLevel) || 0)));
+                    if (ui.diffPosLevelInput) ui.diffPosLevelInput.value = String(Math.max(0, Math.floor(Number(MEP.State.diffPosLevel) || 0)));
+                    if (ui.diffNegLevelInput) ui.diffNegLevelInput.value = String(Math.max(0, Math.floor(Number(MEP.State.diffNegLevel) || 0)));
                 };
 
                 applyDiffDensityUi();
 
-                if (ui.diffPosInput) {
-                    ui.diffPosInput.addEventListener("input", () => {
-                        const v = Math.max(0, Math.floor(Number(ui.diffPosInput.value) || 0));
-                        ui.diffPosInput.value = String(v);
+                if (ui.diffPosLevelInput) {
+                    ui.diffPosLevelInput.addEventListener("input", () => {
+                        const v = Math.max(0, Math.floor(Number(ui.diffPosLevelInput.value) || 0));
+                        ui.diffPosLevelInput.value = String(v);
                         MEP.State.diffPosLevel = v;
                         MEP.Storage.save();
                         MEP.DiffGraph?.render?.();
                     });
                 }
 
-                if (ui.diffNegInput) {
-                    ui.diffNegInput.addEventListener("input", () => {
-                        const v = Math.max(0, Math.floor(Number(ui.diffNegInput.value) || 0));
-                        ui.diffNegInput.value = String(v);
+                if (ui.diffNegLevelInput) {
+                    ui.diffNegLevelInput.addEventListener("input", () => {
+                        const v = Math.max(0, Math.floor(Number(ui.diffNegLevelInput.value) || 0));
+                        ui.diffNegLevelInput.value = String(v);
                         MEP.State.diffNegLevel = v;
                         MEP.Storage.save();
                         MEP.DiffGraph?.render?.();
