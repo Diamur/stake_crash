@@ -1,0 +1,654 @@
+/*== CSS ver 0.1.4.42 ==*/
+/* === MEP: Tracking section === */
+
+#mep-control-panel .mep-divider{
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 14px 0;
+}
+
+#mep-control-panel .mep-section-title{
+  font-size: 13px;
+  font-weight: 400;
+  margin: 0 0 10px;
+  opacity: 0.95;
+}
+
+#mep-control-panel .mep-track-wrap{
+  border: 1px dashed rgba(255,255,255,0.18);
+  border-radius: unset;
+  padding: 10px;
+  background: rgba(255,255,255,0.03);
+}
+
+#mep-control-panel .mep-track-table{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+#mep-control-panel .mep-track-table th,
+#mep-control-panel .mep-track-table td{
+  padding: 8px 6px;
+  text-align: left;
+}
+
+#mep-control-panel .mep-track-table thead th{
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+#mep-control-panel .mep-track-table .col-idx{
+  width: 34px;
+  text-align: center;
+}
+
+#mep-control-panel .mep-track-table .col-x{
+  width: 86px;
+}
+
+#mep-control-panel .mep-track-table .col-streak{
+  width: 60px;
+  color: #a0f0ff;
+}
+
+#mep-control-panel input.mep-x{
+  width: 100%;
+  height: 34px;
+  box-sizing: border-box;
+
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+
+  padding: 0 10px;
+  font-size: 14px;
+  outline: none;
+}
+
+#mep-control-panel input.mep-x:focus{
+  border-color: rgba(255,255,255,0.20);
+}
+
+#mep-control-panel .mep-streak{
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+/* === MEP: Tracking section === */
+#mep-control-panel .mep-divider{
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 14px 0;
+}
+
+#mep-control-panel .mep-section-title{
+  font-size: 13px;
+  font-weight: 400;
+  margin: 0 0 10px;
+  opacity: 0.95;
+}
+
+#mep-control-panel .mep-track-wrap{
+  border: 1px dashed rgba(255,255,255,0.18);
+  border-radius: unset;
+  padding: 10px;
+  background: rgba(255,255,255,0.03);
+}
+
+#mep-control-panel .mep-track-table{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+#mep-control-panel .mep-track-table th,
+#mep-control-panel .mep-track-table td{
+  padding: 8px 6px;
+  text-align: left;
+}
+
+#mep-control-panel .mep-track-table thead th{
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+#mep-control-panel .mep-track-table .col-idx{
+  width: 34px;
+  text-align: center;
+}
+
+#mep-control-panel .mep-track-table .col-x{
+  width: 86px;
+}
+
+#mep-control-panel .mep-track-table .col-streak{
+  width: auto;
+}
+
+#mep-control-panel input.mep-x{
+  width: 100%;
+  height: 34px;
+  box-sizing: border-box;
+
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+
+  padding: 0 10px;
+  font-size: 14px;
+  outline: none;
+}
+
+#mep-control-panel input.mep-x:focus{
+  border-color: rgba(255,255,255,0.20);
+}
+
+#mep-control-panel .mep-streak{
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.2px;
+}
+
+
+/* === MEP: Tracking section === */
+#mep-control-panel .mep-divider{
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 14px 0;
+}
+
+#mep-control-panel .mep-section-title{
+  display: inline-block;
+  font-size: 16px;
+  font-weight: 400;
+  // padding: 6px 10px;
+  // border-radius: 10px;
+  // border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  margin: 6px 0 10px;
+}
+
+#mep-control-panel .mep-track-wrap{
+  border: 1px dashed rgba(255,255,255,0.22);
+  border-radius: unset;
+  padding: 12px;
+  background: rgba(255,255,255,0.03);
+  padding-top: 0px;
+  padding-bottom: 3px;;
+}
+
+#mep-control-panel .mep-track-table{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+#mep-control-panel .mep-track-table th,
+#mep-control-panel .mep-track-table td{
+  padding: 1px 2px;
+  text-align: center;
+}
+
+#mep-control-panel .mep-track-table thead th{
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+#mep-control-panel .mep-track-table .col-idx{
+  width: 14px;
+  text-align: center;
+  font-weight: 100;
+  font-size: 17px;
+}
+
+#mep-control-panel .mep-track-table .col-color{
+  width: 38px;
+}
+
+/* цвет: компактный квадрат */
+#mep-control-panel input.mep-color{
+  width: 15px;
+  height: 18px;
+  padding: 0;
+  // border-radius: 4px;
+  // border: 1px solid rgba(255,255,255,0.35);
+  background: transparent;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* X — уже */
+#mep-control-panel .mep-track-table .col-x{
+  width: 56px;
+}
+
+/* новые колонки */
+#mep-control-panel .mep-track-table .col-limit{
+  width: 64px;
+}
+
+#mep-control-panel .mep-track-table .col-sound{
+  width: 86px;
+}
+
+#mep-control-panel input.mep-x{
+  width: 100%;
+  height: 20px;
+  box-sizing: border-box;
+  border-radius: unset;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  padding: 0 1px;
+  font-size: 18px;
+  font-weight: 400;
+  outline: none;
+  text-align: center;
+}
+
+/* порог */
+#mep-control-panel input.mep-limit{
+  width: 100%;
+  height: 20px;
+  box-sizing: border-box;
+  border-radius: unset;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  padding: 0 1px;
+  font-size: 16px;
+  font-weight: 400;
+  outline: none;
+  text-align: center;
+}
+
+/* селект звука в таблице (первая опция = "—") */
+#mep-control-panel select.mep-soundkey{
+  width: auto;
+  height: 20px;
+  box-sizing: border-box;
+  border-radius: unset;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 400;
+  outline: none;
+  text-align: center;
+}
+
+/* чтобы пункты были видны в Chrome */
+#mep-control-panel select.mep-soundkey option{
+  background: #ffffff;
+  color: #000000;
+}
+
+/* подсветка строки, которая выиграла приоритет и проиграла звук
+   (класс держит JS столько, сколько нужно) */
+#mep-control-panel .mep-track-table tbody tr.mep-hit td{
+  animation: mepHitPulse 900ms ease-in-out infinite;
+  border-radius: 10px;
+}
+
+@keyframes mepHitPulse{
+  0%   { background: rgba(120,255,160,0.00); }
+  35%  { background: rgba(120,255,160,0.22); }
+  70%  { background: rgba(120,255,160,0.08); }
+  100% { background: rgba(120,255,160,0.00); }
+}
+
+/* отмечено */
+#mep-control-panel input.mep-sound:checked{
+  background: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.45);
+}
+
+/* галочка */
+#mep-control-panel input.mep-sound:checked::after{
+  content: "✓";
+  font-size: 14px;
+  line-height: 1;
+  color: rgba(255,255,255,0.92);
+  font-weight: 400;
+}
+
+#mep-control-panel input.mep-x:focus{
+  border-color: rgba(255,255,255,0.22);
+}
+
+#mep-control-panel .mep-streak{
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0.2px;
+}
+
+/* Заголовок + счётчик в одну строку */
+#mep-control-panel .mep-section-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  // padding: 20px;              /* ← ВАЖНО */
+  gap: 12px;
+}
+
+/* Заголовок */
+#mep-control-panel .mep-section-title{
+  font-size: 13px;
+  font-weight: 400;
+  opacity: 0.95;
+}
+
+/* Число (кол-во x) */
+#mep-control-panel .mep-track-count{
+  width: 56px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: unset;
+
+  text-align: center;
+  font-size: 14px;
+  font-weight: 400;
+
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  outline: none;
+}
+
+#mep-control-panel .mep-track-count:focus{
+  border-color: rgba(255,255,255,0.22);
+}
+
+
+#mep-control-panel textarea.mep-stats{
+  width: 100%;
+  height: 100px;
+  resize: none;
+  box-sizing: border-box;
+
+  /* ВАЖНО ↓ */
+  white-space: normal;        /* разрешаем перенос по словам */
+  word-break: break-word;     /* перенос если длинные числа */
+  overflow-x: hidden;         /* убираем горизонтальный скролл */
+  overflow-y: auto;           /* вертикальный — можно */
+
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  padding: 10px;
+  font-size: 13px;
+  line-height: 1.35;
+  outline: none;
+  font-weight: 400;
+}
+
+
+
+/* По умолчанию: панель поверх (НЕ ужимаем игру) */
+body.mep-panel-open #main-content{
+  margin-right: 0;
+  transition: margin-right 0.25s ease;
+}
+
+/* Если экран достаточно широкий — тогда сдвигаем игру */
+@media (min-width: 1500px){
+  body.mep-panel-open #main-content{
+    margin-right: 10px;
+  }
+}
+
+.mep-history-row {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 12px;
+   margin-bottom: 5px;
+}
+
+
+
+input.mep-history-steps {
+
+     width: 56px;
+    height: 28px;
+    padding: 0 6px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 400;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    outline: none;
+}
+
+button.mep-history-load {
+    flex: 1 1 auto;
+    height: 27px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgb(46 98 219 / 40%);
+    color: #fff;
+    cursor: pointer;
+    font-weight: 400;
+}
+
+#mep-control-panel .mep-actions-row{
+  display:flex;
+  gap:8px;
+  margin-top: 8px;
+}
+
+#mep-control-panel button.mep-action-btn{
+  flex: 1 1 0;
+  height: 24px;
+  padding: 1px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgb(46 98 219 / 40%);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1;
+}
+
+#mep-control-panel button.mep-history-toggle{
+  width: 100%;
+  height: 24px;
+  margin-top: 6px;
+  padding: 1px 8px;
+  border-radius: unset;
+  border: 1px dashed rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.95);
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#mep-control-panel button.mep-history-toggle:hover{
+  background: rgba(255,255,255,0.05);
+}
+
+#mep-control-panel .mep-stats-wrap{
+  margin-top: 6px;
+}
+#mep-control-panel .mep-divider {
+    height: 1px;
+    background: rgb(255 255 255 / 24%);
+    margin: 8px 3px 0px 3px;
+}
+
+/*------< Шестеренка >--------- */
+
+/* === MEP: Settings (gear + modal) === */
+#mep-control-panel .mep-gear{
+  width:32px;
+  height:32px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  color:#fff;
+  cursor:pointer;
+  font-size:16px;
+  line-height:1;
+  display:grid;
+  place-items:center;
+  font-weight:400;
+}
+#mep-control-panel .mep-gear:hover{
+  background: rgba(255,255,255,0.10);
+}
+
+#mep-control-panel .mep-modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 2147483647;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+#mep-control-panel .mep-modal{
+  width: min(420px, calc(100vw - 24px));
+  background: rgba(16,22,30,0.98);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 16px;
+  box-shadow: 0 16px 60px rgba(0,0,0,0.55);
+  padding: 12px;
+  font-weight: 400;
+}
+
+#mep-control-panel .mep-modal-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+#mep-control-panel .mep-modal-title{
+  font-size: 13px;
+  font-weight: 400;
+  opacity: .95;
+}
+
+#mep-control-panel .mep-modal-close{
+  width:32px;
+  height:32px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  color:#fff;
+  cursor:pointer;
+  font-size:18px;
+  line-height:1;
+  font-weight:400;
+}
+
+#mep-control-panel .mep-form-row{
+  display:flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+#mep-control-panel .mep-label{
+  font-size: 12px;
+  opacity: .85;
+  font-weight: 400;
+}
+
+#mep-control-panel input.mep-input,
+#mep-control-panel textarea.mep-input,
+#mep-control-panel select.mep-input{
+  width: 100%;
+  height: 32px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 400;
+  outline: none;
+}
+
+/* FIX: выпадающий список звуков (options) */
+#mep-control-panel select.mep-input option{
+  background: #ffffff;
+  color: #000000;
+}
+
+#mep-control-panel textarea.mep-input{
+  height: 90px;
+  resize: none;
+}
+
+#mep-control-panel .mep-modal-actions{
+  display:flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+#mep-control-panel button.mep-btn{
+  flex: 1 1 auto;
+  height: 32px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 400;
+}
+
+
+/*--сдвиг игры от панели --*/
+
+body.mep-panel-open .w-full { width: 90%; }
+body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
+#main-content > div:nth-child(3) {
+    width: 90%;
+    display: flex;
+    align-content: flex-end;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+#navigation-container-header > section > div {
+    justify-content: flex-start;
+}
+
+#navigation-container-header > div.w-full.flex.justify-center > div > div > div > div {
+    width: 300px;
+}
+
+
+/**/
+.mep-graph-wrap {
+    border: 1px dashed rgba(255, 255, 255, 0.22);
+    border-radius: unset;
+    padding: 10px;
+    margin-top: 12px;
+    margin: 12px;
+}
+
+.mep-graph-label input {
+    text-align: center;
+    width: 40px;
+}
