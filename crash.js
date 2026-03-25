@@ -534,6 +534,7 @@
                     graphMax: MEP.State.graphMax,
                     graphDensity: MEP.State.graphDensity,
                     graphLine: MEP.State.graphLine,
+                    graphLine2: MEP.State.graphLine2,
 
                     diffDensity: MEP.State.diffDensity,
                     diffDensityManual: MEP.State.diffDensityManual,
@@ -569,6 +570,7 @@
                         if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                         if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
                         if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
+                        if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
 
                         if (typeof data.diffDensity === "number") MEP.State.diffDensity = data.diffDensity;
                         if (typeof data.diffDensityManual === "number") MEP.State.diffDensityManual = data.diffDensityManual;
@@ -593,6 +595,7 @@
                     if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                     if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
                     if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
+                    if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
 
                     if (typeof data.diffDensity === "number") MEP.State.diffDensity = data.diffDensity;
                     if (typeof data.diffDensityManual === "number") MEP.State.diffDensityManual = data.diffDensityManual;
@@ -1324,6 +1327,7 @@
             graphMax: typeof MEP.graphMax === "number" ? MEP.graphMax : 10,
             graphDensity: typeof MEP.graphDensity === "number" ? MEP.graphDensity : 100,
             graphLine: typeof MEP.graphLine === "number" ? MEP.graphLine : 0,
+            graphLine2: typeof MEP.graphLine2 === "number" ? MEP.graphLine2 : 0,
             lastAddedKey: MEP._lastAddedKey || "",
             initialLoaded: MEP._initialLoaded || false,
 
@@ -1798,6 +1802,28 @@
                     ln.setAttribute("stroke-width", "0.35");
                     ln.setAttribute("stroke-dasharray", "1.6 1.6");
                     ui.graphSvg.appendChild(ln);
+                }
+
+                // second horizontal line (threshold)
+                const line2V0 = Number(MEP.State.graphLine2 ?? 0);
+                const line2V =
+                    Number.isFinite(line2V0) && line2V0 > 0
+                        ? Number.isFinite(maxClip) && maxClip > 0
+                            ? Math.min(line2V0, maxClip)
+                            : line2V0
+                        : 0;
+
+                if (line2V > 0) {
+                    const yLine2 = vbH - (line2V / maxVal) * (vbH - 1);
+                    const ln2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    ln2.setAttribute("x1", "0");
+                    ln2.setAttribute("x2", String(vbW));
+                    ln2.setAttribute("y1", String(yLine2));
+                    ln2.setAttribute("y2", String(yLine2));
+                    ln2.setAttribute("stroke", "rgba(80,210,255,0.92)");
+                    ln2.setAttribute("stroke-width", "0.35");
+                    ln2.setAttribute("stroke-dasharray", "3 1.4");
+                    ui.graphSvg.appendChild(ln2);
                 }
             },
         };
@@ -2643,6 +2669,10 @@
                 >Гор.линия
                 <input class="mep-graph-line" type="number" min="0" step="0.1" />
             </label>
+            <label class="mep-graph-label"
+                >Гор.линия 2
+                <input class="mep-graph-line2" type="number" min="0" step="0.1" />
+            </label>
         </div>
     </div>
     <div class="mep-graph-box">
@@ -2741,6 +2771,7 @@
                     graphMaxInput: panel.querySelector("input.mep-graph-max"),
                     graphDensityInput: panel.querySelector("input.mep-graph-density"),
                     graphLineInput: panel.querySelector("input.mep-graph-line"),
+                    graphLine2Input: panel.querySelector("input.mep-graph-line2"),
                     graphSvg: panel.querySelector("svg.mep-graph"),
                     graphTip: panel.querySelector(".mep-graph-tip"),
 
@@ -2827,6 +2858,17 @@
                         const n = Number(ui.graphLineInput.value);
                         MEP.State.graphLine = Number.isFinite(n) ? Math.max(0, n) : 0;
                         ui.graphLineInput.value = String(MEP.State.graphLine);
+                        MEP.Storage.save();
+                        MEP.Graph?.render?.();
+                    };
+                }
+
+                if (ui.graphLine2Input) {
+                    ui.graphLine2Input.value = String(MEP.State.graphLine2 ?? 0);
+                    ui.graphLine2Input.oninput = () => {
+                        const n = Number(ui.graphLine2Input.value);
+                        MEP.State.graphLine2 = Number.isFinite(n) ? Math.max(0, n) : 0;
+                        ui.graphLine2Input.value = String(MEP.State.graphLine2);
                         MEP.Storage.save();
                         MEP.Graph?.render?.();
                     };
