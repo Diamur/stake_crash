@@ -208,7 +208,7 @@
 (() => {
     try {
         const MEP = (window.MEP = window.MEP || {});
-        MEP.ver = "0.1.4.80";
+        MEP.ver = "0.1.4.82";
 
         // -------------------------
         // Settings module
@@ -541,6 +541,7 @@
 
                     diffPosLevel: MEP.State.diffPosLevel,
                     diffNegLevel: MEP.State.diffNegLevel,
+                    diffStartIndex: MEP.State.diffStartIndex,
                 };
 
                 const str = JSON.stringify(data);
@@ -575,6 +576,7 @@
 
                         if (typeof data.diffPosLevel === "number") MEP.State.diffPosLevel = data.diffPosLevel;
                         if (typeof data.diffNegLevel === "number") MEP.State.diffNegLevel = data.diffNegLevel;
+                        if (typeof data.diffStartIndex === "number") MEP.State.diffStartIndex = data.diffStartIndex;
 
                         return true;
                     }
@@ -598,6 +600,7 @@
 
                     if (typeof data.diffPosLevel === "number") MEP.State.diffPosLevel = data.diffPosLevel;
                     if (typeof data.diffNegLevel === "number") MEP.State.diffNegLevel = data.diffNegLevel;
+                    if (typeof data.diffStartIndex === "number") MEP.State.diffStartIndex = data.diffStartIndex;
 
                     return true;
                 } catch (e) {
@@ -1064,7 +1067,21 @@
 				font-size: 13px;
 				width: 60px;
 				}
+				#${PANEL_ID} .mep-two-head-label.start{
+				width: 60px;
+				}
 				#${PANEL_ID} input.mep-two-lastn{
+				width: 80px;
+				border-radius: 10px;
+				border: 1px solid rgba(255,255,255,0.10);
+				background: rgba(255,255,255,0.06);
+				color: #fff;
+				padding: 0 10px;
+				outline: none;
+				box-sizing: border-box;
+				font-size: 13px;
+				}
+				#${PANEL_ID} input.mep-two-start{
 				width: 80px;
 				border-radius: 10px;
 				border: 1px solid rgba(255,255,255,0.10);
@@ -1337,6 +1354,10 @@
             // уровни пунктирных линий (+ / -) на Diff-графике
             diffPosLevel: typeof MEP.diffPosLevel === "number" ? MEP.diffPosLevel : 0,
             diffNegLevel: typeof MEP.diffNegLevel === "number" ? MEP.diffNegLevel : 0,
+
+            // фиксированная стартовая точка этапа для diff-расчёта (1-based от начала истории)
+            // 0 = выключено (используется режим "Последние N")
+            diffStartIndex: typeof MEP.diffStartIndex === "number" ? MEP.diffStartIndex : 0,
         };
 
         // -------------------------
@@ -1773,7 +1794,7 @@
                     ln.setAttribute("x2", String(vbW));
                     ln.setAttribute("y1", String(yLine));
                     ln.setAttribute("y2", String(yLine));
-                    ln.setAttribute("stroke", "rgba(255,255,255,0.55)");
+                    ln.setAttribute("stroke", "rgba(255,255,255,0.95)");
                     ln.setAttribute("stroke-width", "0.35");
                     ln.setAttribute("stroke-dasharray", "1.6 1.6");
                     ui.graphSvg.appendChild(ln);
@@ -1938,7 +1959,7 @@
                 axis.setAttribute("x2", String(vbW));
                 axis.setAttribute("y1", String(midY));
                 axis.setAttribute("y2", String(midY));
-                axis.setAttribute("stroke", "rgba(255,255,255,0.65)");
+                axis.setAttribute("stroke", "rgba(255,255,255,0.95)");
                 axis.setAttribute("stroke-width", "0.45");
                 ui.diffSvg.appendChild(axis);
 
@@ -1955,7 +1976,7 @@
 					g1.setAttribute("x2", String(vbW));
 					g1.setAttribute("y1", String(yPos));
 					g1.setAttribute("y2", String(yPos));
-					g1.setAttribute("stroke", "rgba(255,255,255,0.42)");
+					g1.setAttribute("stroke", "rgba(255,255,255,0.95)");
 					g1.setAttribute("stroke-width", "0.7");
 					g1.setAttribute("stroke-dasharray", "3 3");
 					g1.setAttribute("class", "mep-diff-lvl-pos");
@@ -1970,7 +1991,7 @@
 					g2.setAttribute("x2", String(vbW));
 					g2.setAttribute("y1", String(yNeg));
 					g2.setAttribute("y2", String(yNeg));
-					g2.setAttribute("stroke", "rgba(255,255,255,0.42)");
+					g2.setAttribute("stroke", "rgba(255,255,255,0.95)");
 					g2.setAttribute("stroke-width", "0.7");
 					g2.setAttribute("stroke-dasharray", "3 3");
 					g2.setAttribute("class", "mep-diff-lvl-neg");
@@ -2577,6 +2598,11 @@
         </div>
 
         <div class="mep-two-subrow">
+            <span class="mep-two-head-label start">Старт</span>
+            <input class="mep-two-start" type="number" min="0" step="1" value="0" />
+        </div>
+
+        <div class="mep-two-subrow">
             <span class="mep-two-dens-label">плотность</span>
             <input class="mep-diff-density" type="number" min="10" step="1" value="81" />
             <label class="mep-diff-sync-label">
@@ -2696,10 +2722,11 @@
                     diffSvg: panel.querySelector("svg.mep-diff"),
                     twoWrap: panel.querySelector(".mep-two-stat-wrap"),
                     twoLastN: panel.querySelector("input.mep-two-lastn"),
-					diffDensityInput: panel.querySelector("input.mep-diff-density"),
+                    twoStartInput: panel.querySelector("input.mep-two-start"),
+                    diffDensityInput: panel.querySelector("input.mep-diff-density"),
 					diffSyncInput: panel.querySelector("input.mep-diff-sync"),
-					diffPosLevelInput: panel.querySelector("input.mep-diff-lvl-pos"),
-					diffNegLevelInput: panel.querySelector("input.mep-diff-lvl-neg"),
+					diffPosInput: panel.querySelector("input.mep-diff-lvl-pos"),
+					diffNegInput: panel.querySelector("input.mep-diff-lvl-neg"),
                     twoAll: panel.querySelector("input.mep-two-all"),
                     twoTotal: panel.querySelector(".mep-two-total"),
                     twoTotalN: panel.querySelector(".mep-two-total-n"),
@@ -3204,6 +3231,25 @@
                         MEP.UI.updateTwoStats();
                     });
                 }
+                if (ui.twoStartInput) {
+                    ui.twoStartInput.value = String(Math.max(0, Math.floor(Number(MEP.State.diffStartIndex) || 0)));
+                    ui.twoStartInput.addEventListener("input", () => {
+                        const raw = (ui.twoStartInput.value || "").trim();
+                        if (!raw) {
+                            MEP.State.diffStartIndex = 0;
+                            MEP.Storage.save();
+                            MEP.UI.updateTwoStats();
+                            return;
+                        }
+
+                        let v = Math.floor(Number(raw) || 0);
+                        if (!Number.isFinite(v) || v < 0) v = 0;
+                        ui.twoStartInput.value = String(v);
+                        MEP.State.diffStartIndex = v;
+                        MEP.Storage.save();
+                        MEP.UI.updateTwoStats();
+                    });
+                }
                 if (ui.twoAll) {
                     ui.twoAll.addEventListener("change", () => {
                         MEP.UI.updateTwoStats();
@@ -3301,27 +3347,63 @@
 
                 const list = Array.isArray(MEP.State.list) ? MEP.State.list : [];
 
-                // UI: последние N или вся история
+                // UI: приоритет диапазона
+                // 1) вся история
+                // 2) фиксированный стартовый этап (от начала истории, 1-based)
+                // 3) последние N
                 let sampleN = 250;
-
                 const isAll = !!ui.twoAll?.checked;
+                const prevFixedStart = Math.max(0, Math.floor(Number(MEP.State.diffStartIndex) || 0));
+                let fixedStartStage = prevFixedStart;
+                let fixedStartActive = false;
+                let slice = [];
 
                 if (isAll) {
                     sampleN = list.length;
                     if (ui.twoLastN) ui.twoLastN.disabled = true;
+                    if (ui.twoStartInput) ui.twoStartInput.disabled = true;
+                    slice = sampleN > 0 ? list.slice(0, sampleN) : [];
                 } else {
                     if (ui.twoLastN) ui.twoLastN.disabled = false;
+                    if (ui.twoStartInput) ui.twoStartInput.disabled = false;
 
-                    if (ui.twoLastN) {
+                    if (list.length > 0 && fixedStartStage > 0) {
+                        if (fixedStartStage > list.length) fixedStartStage = list.length;
+                        fixedStartActive = true;
+                    }
+
+                    if (ui.twoStartInput) {
+                        if (fixedStartActive) ui.twoStartInput.value = String(fixedStartStage);
+                        else if (fixedStartStage === 0) ui.twoStartInput.value = "0";
+                    }
+                    const nextFixedStart = fixedStartActive ? fixedStartStage : 0;
+                    MEP.State.diffStartIndex = nextFixedStart;
+
+                    if (!fixedStartActive && ui.twoLastN) {
                         let v = parseInt(ui.twoLastN.value || "250", 10);
                         if (!Number.isFinite(v) || v < 1) v = 1;
                         ui.twoLastN.value = String(v);
                         sampleN = v;
                     }
+                    if (ui.twoLastN) ui.twoLastN.disabled = !!fixedStartActive;
+
+                    if (fixedStartActive) {
+                        // list = newest-first, поэтому от старта "от начала истории"
+                        // переводим в диапазон oldest-first и обратно.
+                        const fullOldest = list.slice().reverse(); // oldest -> newest
+                        const startZeroBased = fixedStartStage - 1; // пользователь задаёт 1-based этап
+                        const fixedOldest = fullOldest.slice(startZeroBased); // от фикс. старта до конца
+                        slice = fixedOldest.reverse(); // обратно в newest-first для текущего пайплайна
+                    } else {
+                        // старая логика последних N
+                        slice = sampleN > 0 ? list.slice(0, sampleN) : [];
+                    }
                 }
 
-                // берём последние sampleN (list = newest-first)
-                const slice = sampleN > 0 ? list.slice(0, sampleN) : [];
+                // persist возможного clamp в UI/state
+                if (Math.max(0, Math.floor(Number(MEP.State.diffStartIndex) || 0)) !== prevFixedStart) {
+                    MEP.Storage.save();
+                }
 
                 let ge = 0; // >=2
                 let lt = 0; // <2
