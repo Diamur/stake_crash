@@ -1016,7 +1016,7 @@
 				gap: 8px;
 				margin: 2px 0 10px;
 				}
-				#${PANEL_ID} .mep-two-head.mep-collapsed .mep-two-params{
+				#${PANEL_ID} .mep-two-stat-wrap.mep-collapsed .mep-two-body{
 				display:none;
 				}
 				#${PANEL_ID} .mep-two-collapse{
@@ -2977,19 +2977,21 @@
         </div>
 
     </div>
-    <div class="mep-two-row">
-        <div class="mep-two-left">&gt;= 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt ge">0</span></div>
-        <div class="mep-two-bar">
-            <div class="mep-two-fill ge" style="width: 0%"></div>
+    <div class="mep-two-body">
+        <div class="mep-two-row">
+            <div class="mep-two-left">&gt;= 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt ge">0</span></div>
+            <div class="mep-two-bar">
+                <div class="mep-two-fill ge" style="width: 0%"></div>
+            </div>
+            <div class="mep-two-right"><span class="mep-two-pct ge">0%</span></div>
         </div>
-        <div class="mep-two-right"><span class="mep-two-pct ge">0%</span></div>
-    </div>
-    <div class="mep-two-row">
-        <div class="mep-two-left">&lt; 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt lt">0</span></div>
-        <div class="mep-two-bar">
-            <div class="mep-two-fill lt" style="width: 0%"></div>
+        <div class="mep-two-row">
+            <div class="mep-two-left">&lt; 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt lt">0</span></div>
+            <div class="mep-two-bar">
+                <div class="mep-two-fill lt" style="width: 0%"></div>
+            </div>
+            <div class="mep-two-right"><span class="mep-two-pct lt">0%</span></div>
         </div>
-        <div class="mep-two-right"><span class="mep-two-pct lt">0%</span></div>
     </div>
 </div>
 <div class="mep-stake-graph-wrap">
@@ -3270,9 +3272,9 @@
                 MEP.StakeGraph?.init?.(ui);
 
                 const applyTwoParamsCollapse = () => {
-                    if (!ui.twoHead || !ui.twoCollapseBtn) return;
+                    if (!ui.twoWrap || !ui.twoCollapseBtn) return;
                     const collapsed = !!ui._twoParamsCollapsed;
-                    ui.twoHead.classList.toggle("mep-collapsed", collapsed);
+                    ui.twoWrap.classList.toggle("mep-collapsed", collapsed);
                     ui.twoCollapseBtn.textContent = collapsed ? "▼" : "▲";
                     ui.twoCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
                 };
