@@ -535,6 +535,8 @@
                     graphDensity: MEP.State.graphDensity,
                     stakeGraphDensity: MEP.State.stakeGraphDensity,
                     stakeGraphDensitySync: MEP.State.stakeGraphDensitySync,
+                    stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
+                    stakeGraphShowBet: MEP.State.stakeGraphShowBet,
                     graphLine: MEP.State.graphLine,
                     graphLine2: MEP.State.graphLine2,
 
@@ -573,6 +575,8 @@
                         if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
                         if (typeof data.stakeGraphDensity === "number") MEP.State.stakeGraphDensity = data.stakeGraphDensity;
                         if (typeof data.stakeGraphDensitySync === "boolean") MEP.State.stakeGraphDensitySync = data.stakeGraphDensitySync;
+                        if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
+                        if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                         if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                         if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
 
@@ -600,6 +604,8 @@
                     if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
                     if (typeof data.stakeGraphDensity === "number") MEP.State.stakeGraphDensity = data.stakeGraphDensity;
                     if (typeof data.stakeGraphDensitySync === "boolean") MEP.State.stakeGraphDensitySync = data.stakeGraphDensitySync;
+                    if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
+                    if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                     if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                     if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
 
@@ -1344,6 +1350,11 @@
 				display:inline-flex;
 				align-items:center;
 				gap:6px;
+				cursor:pointer;
+				}
+				#${PANEL_ID} .mep-stake-legend-item input{
+				margin:0;
+				cursor:pointer;
 				}
 				#${PANEL_ID} .mep-stake-legend-line{
 				display:inline-block;
@@ -1459,6 +1470,8 @@
             graphDensity: typeof MEP.graphDensity === "number" ? MEP.graphDensity : 100,
             stakeGraphDensity: typeof MEP.stakeGraphDensity === "number" ? MEP.stakeGraphDensity : 81,
             stakeGraphDensitySync: !!MEP.stakeGraphDensitySync,
+            stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
+            stakeGraphShowBet: ("stakeGraphShowBet" in MEP) ? !!MEP.stakeGraphShowBet : true,
             graphLine: typeof MEP.graphLine === "number" ? MEP.graphLine : 0,
             graphLine2: typeof MEP.graphLine2 === "number" ? MEP.graphLine2 : 0,
             lastAddedKey: MEP._lastAddedKey || "",
@@ -2566,6 +2579,8 @@
 
                 const playersPts = this._buildPoints(playersView, stageCount, yMax, vbW, vbH);
                 const betsPts = this._buildPoints(betsScaledView, stageCount, yMax, vbW, vbH);
+                const showPlayers = MEP.State.stakeGraphShowPlayers !== false;
+                const showBet = MEP.State.stakeGraphShowBet !== false;
 
                 const makePolyline = (pts, color) => {
                     if (!pts.length) return;
@@ -2579,13 +2594,13 @@
                     svg.appendChild(pl);
                 };
 
-                makePolyline(playersPts, "rgba(112,206,255,0.95)");
-                makePolyline(betsPts, "rgba(255,170,60,0.95)");
+                if (showPlayers) makePolyline(playersPts, "rgba(112,206,255,0.95)");
+                if (showBet) makePolyline(betsPts, "rgba(255,170,60,0.95)");
 
                 // tooltip hit targets per series
                 const bPad = new Array(Math.max(0, stageCount - betsRealView.length)).fill(null).concat(betsRealView);
 
-                for (const p of playersPts) {
+                if (showPlayers) for (const p of playersPts) {
                     const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                     dot.setAttribute("cx", String(p.x));
                     dot.setAttribute("cy", String(p.y));
@@ -2616,7 +2631,7 @@
                     svg.appendChild(hit);
                 }
 
-                for (const b of betsPts) {
+                if (showBet) for (const b of betsPts) {
                     const realBet = bPad[b.stage];
                     const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                     dot.setAttribute("cx", String(b.x));
@@ -3032,14 +3047,16 @@
         </div>
     </div>
     <div class="mep-stake-legend">
-        <span class="mep-stake-legend-item">
+        <label class="mep-stake-legend-item">
+            <input class="mep-stake-show-players" type="checkbox" checked />
             <span class="mep-stake-legend-line mep-stake-legend-players"></span>
             <span>Клиенты</span>
-        </span>
-        <span class="mep-stake-legend-item">
+        </label>
+        <label class="mep-stake-legend-item">
+            <input class="mep-stake-show-bet" type="checkbox" checked />
             <span class="mep-stake-legend-line mep-stake-legend-bets"></span>
             <span>Ставка x10</span>
-        </span>
+        </label>
         </div>
     <div class="mep-stake-graph-box">
         <svg class="mep-stake-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
@@ -3172,6 +3189,8 @@
                     stakeGraphSvg: panel.querySelector("svg.mep-stake-graph"),
                     stakeDensityInput: panel.querySelector("input.mep-stake-density"),
                     stakeSyncInput: panel.querySelector("input.mep-stake-sync"),
+                    stakeShowPlayersInput: panel.querySelector("input.mep-stake-show-players"),
+                    stakeShowBetInput: panel.querySelector("input.mep-stake-show-bet"),
 
                     xInputs: [...panel.querySelectorAll("input.mep-x")],
                     colorInputs: [...panel.querySelectorAll("input.mep-color")],
@@ -3291,6 +3310,24 @@
                     ui.stakeSyncInput.addEventListener("change", () => {
                         MEP.State.stakeGraphDensitySync = !!ui.stakeSyncInput.checked;
                         if (ui.stakeDensityInput) ui.stakeDensityInput.disabled = !!MEP.State.stakeGraphDensitySync;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakeShowPlayersInput) {
+                    ui.stakeShowPlayersInput.checked = MEP.State.stakeGraphShowPlayers !== false;
+                    ui.stakeShowPlayersInput.addEventListener("change", () => {
+                        MEP.State.stakeGraphShowPlayers = !!ui.stakeShowPlayersInput.checked;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakeShowBetInput) {
+                    ui.stakeShowBetInput.checked = MEP.State.stakeGraphShowBet !== false;
+                    ui.stakeShowBetInput.addEventListener("change", () => {
+                        MEP.State.stakeGraphShowBet = !!ui.stakeShowBetInput.checked;
                         MEP.Storage.save();
                         MEP.StakeGraph?.render?.();
                     });

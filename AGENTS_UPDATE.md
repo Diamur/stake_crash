@@ -15,3 +15,4 @@
 - 2026-03-26: Контейнер `.mep-two-params` перенесён в `.mep-two-body`, чтобы toggle скрывал весь нижний блок «Разницы».
 - 2026-03-26: В `MEP.StakeGraph` линии `Клиенты` и `Ставка x10` сделаны в 2 раза тоньше; tooltip разделён по сериям (без смешанных значений).
 - 2026-03-26: Для `MEP.StakeGraph` добавлены отдельные hit-targets/точки по сериям `players` и `bets` (radius 2.8), tooltip остаётся строго series-specific.
+- 2026-03-26: В легенду `График ставок` добавлены чекбоксы показа серий (`stakeGraphShowPlayers`, `stakeGraphShowBet`) с persistence и условным рендером линий/hit-targets.
