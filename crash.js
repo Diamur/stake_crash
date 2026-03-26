@@ -1362,6 +1362,10 @@
             // фиксированная стартовая точка этапа для diff-расчёта (1-based от начала истории)
             // 0 = выключено (используется режим "Последние N")
             diffStartIndex: typeof MEP.diffStartIndex === "number" ? MEP.diffStartIndex : 0,
+
+            // История агрегатов ставок по раундам (oldest -> newest), runtime-only (SAFE MODE / MVP)
+            roundPlayersCountHistory: Array.isArray(MEP.roundPlayersCountHistory) ? MEP.roundPlayersCountHistory : [],
+            roundBetSumHistory: Array.isArray(MEP.roundBetSumHistory) ? MEP.roundBetSumHistory : [],
         };
 
         // -------------------------
@@ -4177,6 +4181,176 @@
         };
 
         // -------------------------
+        // Round stake capture module (SAFE MODE / MVP)
+        // -------------------------
+        MEP.RoundStakeCapture = {
+            state: {
+                observer: null,
+                rebindTimer: null,
+                captureInProgress: false,
+                handledStartKey: "",
+                lastStartSeen: false,
+            },
+
+            parseLocaleNumber(rawText) {
+                const text = (rawText ?? "").toString().replace(/\u00a0/g, " ").trim();
+                if (!text) return null;
+
+                const cleaned = text.replace(/\s+/g, "").replace(/[^0-9,.\-]/g, "");
+                if (!cleaned) return null;
+
+                const hasComma = cleaned.includes(",");
+                const hasDot = cleaned.includes(".");
+                let normalized = cleaned;
+
+                if (hasComma && hasDot) {
+                    const lastComma = cleaned.lastIndexOf(",");
+                    const lastDot = cleaned.lastIndexOf(".");
+                    if (lastComma > lastDot) normalized = cleaned.replace(/\./g, "").replace(",", ".");
+                    else normalized = cleaned.replace(/,/g, "");
+                } else if (hasComma) {
+                    normalized = cleaned.replace(",", ".");
+                }
+
+                const n = Number.parseFloat(normalized);
+                return Number.isFinite(n) ? n : null;
+            },
+
+            readSnapshot() {
+                const out = { playersCount: null, betSum: null };
+
+                const header = document.querySelector(".dropdown-container .player-count-header");
+                if (!header) return out;
+
+                const playerEl = header.querySelector("span.ml-1");
+                const playersText = playerEl?.textContent || "";
+                out.playersCount = MEP.RoundStakeCapture.parseLocaleNumber(playersText);
+
+                const fullText = (header.textContent || "").replace(/\u00a0/g, " ");
+                const numMatches = fullText.match(/-?\d+(?:[.,]\d+)?/g) || [];
+                const parsed = numMatches
+                    .map((v) => MEP.RoundStakeCapture.parseLocaleNumber(v))
+                    .filter((v) => Number.isFinite(v));
+
+                if (parsed.length >= 2) out.betSum = parsed[parsed.length - 1];
+                else if (parsed.length === 1 && playerEl) {
+                    const only = parsed[0];
+                    const p = out.playersCount;
+                    if (p === null || Math.abs(only - p) > 0.0000001) out.betSum = only;
+                }
+
+                return out;
+            },
+
+            getStartMarkerActive() {
+                const btn = document.querySelector('button[data-testid="bet-button"]');
+                const text = MEP.Utils.normText(btn?.textContent || "");
+                return text === "Начинается...";
+            },
+
+            async captureAfterStart(startKey) {
+                if (MEP.RoundStakeCapture.state.captureInProgress) return;
+                MEP.RoundStakeCapture.state.captureInProgress = true;
+
+                const stableNeed = 5;
+                const pollMs = 120;
+                const timeoutMs = 5000;
+
+                let stableCount = 0;
+                let prevKey = "";
+                let lastValid = null;
+                const t0 = Date.now();
+
+                while (Date.now() - t0 < timeoutMs) {
+                    const snap = MEP.RoundStakeCapture.readSnapshot();
+                    const hasBoth = snap.playersCount !== null && snap.betSum !== null;
+
+                    if (hasBoth) {
+                        lastValid = snap;
+                        const nowKey = `${snap.playersCount ?? "na"}|${snap.betSum ?? "na"}`;
+                        if (nowKey === prevKey) stableCount += 1;
+                        else {
+                            prevKey = nowKey;
+                            stableCount = 1;
+                        }
+                        if (stableCount >= stableNeed) break;
+                    }
+                    await MEP.Utils.sleep(pollMs);
+                }
+
+                if (MEP.RoundStakeCapture.state.handledStartKey !== startKey) {
+                    const finalSnap = lastValid;
+                    if (finalSnap) {
+                        const playersCount = Number(finalSnap.playersCount);
+                        const betSum = Number(finalSnap.betSum);
+                        if (Number.isFinite(playersCount) && Number.isFinite(betSum)) {
+                            MEP.State.roundPlayersCountHistory.push(playersCount);
+                            MEP.State.roundBetSumHistory.push(betSum);
+
+                            console.log("[MEP][round-stake-snapshot]", {
+                                playersCount,
+                                betSum,
+                                roundPlayersCountHistory: MEP.State.roundPlayersCountHistory,
+                                roundBetSumHistory: MEP.State.roundBetSumHistory,
+                            });
+                        }
+                    }
+                    MEP.RoundStakeCapture.state.handledStartKey = startKey;
+                }
+
+                MEP.RoundStakeCapture.state.captureInProgress = false;
+            },
+
+            onMutationTick() {
+                const active = MEP.RoundStakeCapture.getStartMarkerActive();
+                if (active && !MEP.RoundStakeCapture.state.lastStartSeen) {
+                    const wsRound = window.MEP?.WS?.last?.roundLikeId ?? "no-round";
+                    const startKey = `${wsRound}|${Date.now()}`;
+                    MEP.RoundStakeCapture.captureAfterStart(startKey);
+                }
+                MEP.RoundStakeCapture.state.lastStartSeen = active;
+            },
+
+            stopIfRunning() {
+                if (MEP.RoundStakeCapture.state.observer) {
+                    try {
+                        MEP.RoundStakeCapture.state.observer.disconnect();
+                    } catch (e) {}
+                    MEP.RoundStakeCapture.state.observer = null;
+                }
+                if (MEP.RoundStakeCapture.state.rebindTimer) {
+                    clearInterval(MEP.RoundStakeCapture.state.rebindTimer);
+                    MEP.RoundStakeCapture.state.rebindTimer = null;
+                }
+                MEP.RoundStakeCapture.state.captureInProgress = false;
+                MEP.RoundStakeCapture.state.lastStartSeen = false;
+            },
+
+            start() {
+                MEP.RoundStakeCapture.stopIfRunning();
+
+                const body = document.body;
+                if (!body) return;
+
+                MEP.RoundStakeCapture.state.observer = new MutationObserver(() => {
+                    queueMicrotask(MEP.RoundStakeCapture.onMutationTick);
+                });
+                MEP.RoundStakeCapture.state.observer.observe(body, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                });
+
+                MEP.RoundStakeCapture.onMutationTick();
+
+                // fallback на случай полной замены контейнеров без мутаций текста
+                MEP.RoundStakeCapture.state.rebindTimer = setInterval(() => {
+                    MEP.RoundStakeCapture.onMutationTick();
+                }, 600);
+            },
+        };
+
+        // -------------------------
         // Main module
         // -------------------------
         MEP.Main = {
@@ -4212,6 +4386,7 @@
 
                 // остановим старые версии наблюдателей
                 MEP.Tracker.stopIfRunning();
+                MEP.RoundStakeCapture.stopIfRunning();
 
                 // CSS всегда
                 MEP.Style.injectMinCss();
@@ -4246,6 +4421,7 @@
                 MEP.UI.rebuildTrackingTable();
                 MEP.UI.render();
                 MEP.Tracker.start();
+                MEP.RoundStakeCapture.start();
 
                 // экспорт совместимого API
                 MEP.tracker = {
