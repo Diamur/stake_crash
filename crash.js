@@ -533,6 +533,8 @@
                     track: MEP.State.track,
                     graphMax: MEP.State.graphMax,
                     graphDensity: MEP.State.graphDensity,
+                    stakeGraphDensity: MEP.State.stakeGraphDensity,
+                    stakeGraphDensitySync: MEP.State.stakeGraphDensitySync,
                     graphLine: MEP.State.graphLine,
                     graphLine2: MEP.State.graphLine2,
 
@@ -569,6 +571,8 @@
                         if (data.track && typeof data.track === "object") MEP.State.track = data.track;
                         if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                         if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
+                        if (typeof data.stakeGraphDensity === "number") MEP.State.stakeGraphDensity = data.stakeGraphDensity;
+                        if (typeof data.stakeGraphDensitySync === "boolean") MEP.State.stakeGraphDensitySync = data.stakeGraphDensitySync;
                         if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                         if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
 
@@ -594,6 +598,8 @@
                     if (data.track && typeof data.track === "object") MEP.State.track = data.track;
                     if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                     if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
+                    if (typeof data.stakeGraphDensity === "number") MEP.State.stakeGraphDensity = data.stakeGraphDensity;
+                    if (typeof data.stakeGraphDensitySync === "boolean") MEP.State.stakeGraphDensitySync = data.stakeGraphDensitySync;
                     if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                     if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
 
@@ -1284,6 +1290,56 @@
 				font-size: 12px;
 				opacity: 0.92;
 				}
+				#${PANEL_ID} .mep-stake-controls{
+				display:inline-flex;
+				align-items:center;
+				gap:10px;
+				font-size:12px;
+				}
+				#${PANEL_ID} .mep-stake-density-label{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				}
+				#${PANEL_ID} input.mep-stake-density{
+				width:52px;
+				border-radius:8px;
+				border: 1px solid rgba(255,255,255,0.10);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding: 0 8px;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} .mep-stake-sync-label{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				cursor:pointer;
+				user-select:none;
+				}
+				#${PANEL_ID} input.mep-stake-sync{
+				width:16px;
+				height:16px;
+				-webkit-appearance:none;
+				appearance:none;
+				border-radius:4px;
+				border:1px solid rgba(255,255,255,0.28);
+				background: rgba(255,255,255,0.06);
+				display:inline-grid;
+				place-items:center;
+				cursor:pointer;
+				}
+				#${PANEL_ID} input.mep-stake-sync:checked{
+				background: rgba(255,255,255,0.22);
+				border-color: rgba(255,255,255,0.45);
+				}
+				#${PANEL_ID} input.mep-stake-sync:checked::after{
+				content: "✓";
+				font-size:12px;
+				line-height:1;
+				color: rgba(255,255,255,0.92);
+				}
 				#${PANEL_ID} .mep-stake-legend-item{
 				display:inline-flex;
 				align-items:center;
@@ -1312,6 +1368,21 @@
 				width:100%;
 				height:100%;
 				display:block;
+				}
+				#${PANEL_ID} .mep-stake-tip{
+				position:absolute;
+				left:10px;
+				top:6px;
+				max-width:240px;
+				white-space:pre-line;
+				font-size:12px;
+				background: rgba(0,0,0,0.75);
+				border:1px solid rgba(255,255,255,0.15);
+				border-radius:10px;
+				padding:6px 8px;
+				pointer-events:none;
+				display:none;
+				z-index:3;
 				}
 				.mep-graph-controls{
 				display:flex;
@@ -1386,6 +1457,8 @@
             maxItems: MEP.maxItems ?? MEP.Config.MAX_ITEMS_DEFAULT,
             graphMax: typeof MEP.graphMax === "number" ? MEP.graphMax : 10,
             graphDensity: typeof MEP.graphDensity === "number" ? MEP.graphDensity : 100,
+            stakeGraphDensity: typeof MEP.stakeGraphDensity === "number" ? MEP.stakeGraphDensity : 81,
+            stakeGraphDensitySync: !!MEP.stakeGraphDensitySync,
             graphLine: typeof MEP.graphLine === "number" ? MEP.graphLine : 0,
             graphLine2: typeof MEP.graphLine2 === "number" ? MEP.graphLine2 : 0,
             lastAddedKey: MEP._lastAddedKey || "",
@@ -2358,51 +2431,115 @@
                 return arr.map((v) => Number(v)).filter((v) => Number.isFinite(v));
             },
 
-            _polylinePoints(values, yMax, vbW, vbH) {
-                if (!values.length || yMax <= 0) return "";
-                if (values.length === 1) {
-                    const y = vbH - (values[0] / yMax) * (vbH - 2) - 1;
-                    return `0,${Math.max(1, Math.min(vbH - 1, y))} ${vbW},${Math.max(1, Math.min(vbH - 1, y))}`;
+            _getDiffVisibleLength() {
+                const history = Array.isArray(MEP.State.diffHistory) ? MEP.State.diffHistory : [];
+                const effDensity = MEP.State.diffDensitySync
+                    ? Math.max(10, Math.floor(Number(MEP.State.graphDensity || 100) || 100))
+                    : Math.max(10, Math.floor(Number(MEP.State.diffDensity || MEP.State.diffDensityManual || 81) || 81));
+                if (!history.length) return 0;
+                return Math.min(history.length, effDensity);
+            },
+
+            _tailWithDensity(arr, density) {
+                if (!arr.length) return [];
+                const d = Math.max(10, Math.floor(Number(density || 81) || 81));
+                return arr.slice(Math.max(0, arr.length - d));
+            },
+
+            _syncToMasterLen(arr, masterLen) {
+                if (!Array.isArray(arr) || !arr.length || masterLen <= 0) return [];
+                if (arr.length >= masterLen) return arr.slice(arr.length - masterLen);
+                const pad = new Array(masterLen - arr.length).fill(arr[0]);
+                return pad.concat(arr);
+            },
+
+            _buildPoints(values, totalStages, yMax, vbW, vbH) {
+                if (!values.length || totalStages <= 0 || yMax <= 0) return [];
+                const out = [];
+                const stepX = totalStages <= 1 ? 0 : vbW / (totalStages - 1);
+                const startStage = Math.max(0, totalStages - values.length); // right-align
+                for (let i = 0; i < values.length; i++) {
+                    const stage = startStage + i;
+                    const x = stepX * stage;
+                    const y = vbH - (values[i] / yMax) * (vbH - 2) - 1;
+                    out.push({ stage, x, y: Math.max(1, Math.min(vbH - 1, y)), value: values[i] });
+                }
+                return out;
+            },
+
+            _ensureTip() {
+                const ui = this._ui;
+                if (!ui?.stakeGraphSvg) return null;
+                if (ui.stakeTip) return ui.stakeTip;
+                const host = ui.stakeGraphSvg.parentElement;
+                if (!host) return null;
+                const tip = document.createElement("div");
+                tip.className = "mep-stake-tip";
+                host.appendChild(tip);
+                ui.stakeTip = tip;
+                return tip;
+            },
+
+            _setTip(text, xPx) {
+                const ui = this._ui;
+                const tip = this._ensureTip();
+                if (!ui?.stakeGraphSvg || !tip) return;
+                if (!text) {
+                    tip.style.display = "none";
+                    return;
                 }
 
-                const stepX = vbW / (values.length - 1);
-                const pts = [];
-                for (let i = 0; i < values.length; i++) {
-                    const x = i * stepX;
-                    const y = vbH - (values[i] / yMax) * (vbH - 2) - 1;
-                    const ySafe = Math.max(1, Math.min(vbH - 1, y));
-                    pts.push(`${x},${ySafe}`);
+                tip.textContent = text;
+                tip.style.display = "block";
+                tip.style.top = "6px";
+                const host = ui.stakeGraphSvg.parentElement;
+                const hostW = host?.clientWidth || 0;
+                const safeX = Number.isFinite(xPx) ? Math.max(6, xPx) : 6;
+                tip.style.left = `${safeX}px`;
+                const tipW = tip.offsetWidth || 0;
+                if (hostW > 0 && tipW > 0) {
+                    const maxLeft = Math.max(6, hostW - tipW - 6);
+                    tip.style.left = `${Math.min(safeX, maxLeft)}px`;
                 }
-                return pts.join(" ");
+            },
+
+            _fmtBet(v) {
+                if (!Number.isFinite(v)) return "—";
+                return v.toFixed(8).replace(/\.?0+$/, "");
             },
 
             render() {
                 const ui = this._ui;
                 if (!ui?.stakeGraphSvg) return;
-
                 const svg = ui.stakeGraphSvg;
                 svg.innerHTML = "";
+                this._setTip("");
 
-                const players = this._toFiniteArray(MEP.State.roundPlayersCountHistory);
-                const betsScaled = this._toFiniteArray(MEP.State.roundBetSumHistory).map((v) => v * 10);
+                const playersRaw = this._toFiniteArray(MEP.State.roundPlayersCountHistory);
+                const betsRealRaw = this._toFiniteArray(MEP.State.roundBetSumHistory);
 
+                let playersView = [];
+                let betsRealView = [];
+                const syncOn = !!MEP.State.stakeGraphDensitySync;
+
+                if (syncOn) {
+                    const masterLen = this._getDiffVisibleLength();
+                    playersView = this._syncToMasterLen(playersRaw, masterLen);
+                    betsRealView = this._syncToMasterLen(betsRealRaw, masterLen);
+                } else {
+                    playersView = this._tailWithDensity(playersRaw, MEP.State.stakeGraphDensity);
+                    betsRealView = this._tailWithDensity(betsRealRaw, MEP.State.stakeGraphDensity);
+                }
+
+                const betsScaledView = betsRealView.map((v) => v * 10); // только для рендера
                 const vbW = 100;
                 const vbH = 60;
-                const all = players.concat(betsScaled);
+                const stageCount = Math.max(playersView.length, betsRealView.length);
+                const all = playersView.concat(betsScaledView);
                 const yMax = Math.max(1, ...all, 1);
+                const stepX = stageCount <= 1 ? 0 : vbW / (stageCount - 1);
 
-                const makePolyline = (points, color) => {
-                    if (!points) return;
-                    const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-                    pl.setAttribute("points", points);
-                    pl.setAttribute("fill", "none");
-                    pl.setAttribute("stroke", color);
-                    pl.setAttribute("stroke-width", "1.1");
-                    pl.setAttribute("stroke-linejoin", "round");
-                    pl.setAttribute("stroke-linecap", "round");
-                    svg.appendChild(pl);
-                };
-
+                // baseline
                 const base = document.createElementNS("http://www.w3.org/2000/svg", "line");
                 base.setAttribute("x1", "0");
                 base.setAttribute("x2", String(vbW));
@@ -2412,11 +2549,70 @@
                 base.setAttribute("stroke-width", "0.4");
                 svg.appendChild(base);
 
-                const playersPoints = this._polylinePoints(players, yMax, vbW, vbH);
-                const betsPoints = this._polylinePoints(betsScaled, yMax, vbW, vbH);
+                // vertical dashed stage lines
+                for (let i = 0; i < stageCount; i++) {
+                    const x = stepX * i;
+                    const ln = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    ln.setAttribute("x1", String(x));
+                    ln.setAttribute("x2", String(x));
+                    ln.setAttribute("y1", "0");
+                    ln.setAttribute("y2", String(vbH));
+                    ln.setAttribute("stroke", "rgba(255,255,255,0.13)");
+                    ln.setAttribute("stroke-width", "0.25");
+                    ln.setAttribute("stroke-dasharray", "1.4 1.4");
+                    ln.setAttribute("pointer-events", "none");
+                    svg.appendChild(ln);
+                }
 
-                makePolyline(playersPoints, "rgba(112,206,255,0.95)");
-                makePolyline(betsPoints, "rgba(255,170,60,0.95)");
+                const playersPts = this._buildPoints(playersView, stageCount, yMax, vbW, vbH);
+                const betsPts = this._buildPoints(betsScaledView, stageCount, yMax, vbW, vbH);
+
+                const makePolyline = (pts, color) => {
+                    if (!pts.length) return;
+                    const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    pl.setAttribute("points", pts.map((p) => `${p.x},${p.y}`).join(" "));
+                    pl.setAttribute("fill", "none");
+                    pl.setAttribute("stroke", color);
+                    pl.setAttribute("stroke-width", "1.1");
+                    pl.setAttribute("stroke-linejoin", "round");
+                    pl.setAttribute("stroke-linecap", "round");
+                    svg.appendChild(pl);
+                };
+
+                makePolyline(playersPts, "rgba(112,206,255,0.95)");
+                makePolyline(betsPts, "rgba(255,170,60,0.95)");
+
+                // tooltip hit targets per stage
+                const pPad = new Array(Math.max(0, stageCount - playersView.length)).fill(null).concat(playersView);
+                const bPad = new Array(Math.max(0, stageCount - betsRealView.length)).fill(null).concat(betsRealView);
+
+                for (let i = 0; i < stageCount; i++) {
+                    const x = stepX * i;
+                    const p = pPad[i];
+                    const b = bPad[i];
+                    const anchorV = Number.isFinite(p) ? p : Number.isFinite(b) ? b * 10 : 0;
+                    const y = vbH - (anchorV / yMax) * (vbH - 2) - 1;
+
+                    const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    hit.setAttribute("cx", String(x));
+                    hit.setAttribute("cy", String(Math.max(1, Math.min(vbH - 1, y))));
+                    hit.setAttribute("r", "1.8");
+                    hit.setAttribute("fill", "rgba(255,255,255,0.001)");
+                    hit.setAttribute("stroke", "none");
+                    hit.style.cursor = "crosshair";
+
+                    hit.addEventListener("mouseenter", (ev) => {
+                        const box = svg.getBoundingClientRect();
+                        const txt = `Этап: ${i + 1}\nКлиенты: ${Number.isFinite(p) ? p : "—"}\nСтавка: ${this._fmtBet(b)}`;
+                        this._setTip(txt, ev.clientX - box.left + 10);
+                    });
+                    hit.addEventListener("mousemove", (ev) => {
+                        const box = svg.getBoundingClientRect();
+                        this._setTip(ui.stakeTip?.textContent || "", ev.clientX - box.left + 10);
+                    });
+                    hit.addEventListener("mouseleave", () => this._setTip(""));
+                    svg.appendChild(hit);
+                }
             },
         };
 
@@ -2799,17 +2995,21 @@
 <div class="mep-stake-graph-wrap">
     <div class="mep-graph-head">
         <div class="mep-block-title">График ставок</div>
-        <div class="mep-stake-legend">
-            <span class="mep-stake-legend-item">
-                <span class="mep-stake-legend-line mep-stake-legend-players"></span>
-                <span>Клиенты</span>
-            </span>
-            <span class="mep-stake-legend-item">
-                <span class="mep-stake-legend-line mep-stake-legend-bets"></span>
-                <span>Ставка x10</span>
-            </span>
+        <div class="mep-stake-controls">
+            <label class="mep-stake-density-label">плотн.<input class="mep-stake-density" type="number" min="10" step="1" value="81" /></label>
+            <label class="mep-stake-sync-label"><input class="mep-stake-sync" type="checkbox" /><span>Синхр.</span></label>
         </div>
     </div>
+    <div class="mep-stake-legend">
+        <span class="mep-stake-legend-item">
+            <span class="mep-stake-legend-line mep-stake-legend-players"></span>
+            <span>Клиенты</span>
+        </span>
+        <span class="mep-stake-legend-item">
+            <span class="mep-stake-legend-line mep-stake-legend-bets"></span>
+            <span>Ставка x10</span>
+        </span>
+        </div>
     <div class="mep-stake-graph-box">
         <svg class="mep-stake-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
     </div>
@@ -2939,6 +3139,8 @@
                     graphSvg: panel.querySelector("svg.mep-graph"),
                     graphTip: panel.querySelector(".mep-graph-tip"),
                     stakeGraphSvg: panel.querySelector("svg.mep-stake-graph"),
+                    stakeDensityInput: panel.querySelector("input.mep-stake-density"),
+                    stakeSyncInput: panel.querySelector("input.mep-stake-sync"),
 
                     xInputs: [...panel.querySelectorAll("input.mep-x")],
                     colorInputs: [...panel.querySelectorAll("input.mep-color")],
@@ -3010,6 +3212,7 @@
                             MEP.State.diffDensity = v;
                             if (ui.diffDensityInput) ui.diffDensityInput.value = String(v);
                             MEP.DiffGraph?.render?.();
+                            if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                         }
 
                         MEP.Storage.save();
@@ -3037,6 +3240,29 @@
                         MEP.Storage.save();
                         MEP.Graph?.render?.();
                     };
+                }
+
+                if (ui.stakeDensityInput) {
+                    ui.stakeDensityInput.value = String(Math.max(10, Math.floor(Number(MEP.State.stakeGraphDensity || 81) || 81)));
+                    ui.stakeDensityInput.oninput = () => {
+                        let v = Math.floor(Number(ui.stakeDensityInput.value) || 0);
+                        if (!Number.isFinite(v) || v < 10) v = 10;
+                        ui.stakeDensityInput.value = String(v);
+                        MEP.State.stakeGraphDensity = v;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    };
+                }
+
+                if (ui.stakeSyncInput) {
+                    ui.stakeSyncInput.checked = !!MEP.State.stakeGraphDensitySync;
+                    if (ui.stakeDensityInput) ui.stakeDensityInput.disabled = !!MEP.State.stakeGraphDensitySync;
+                    ui.stakeSyncInput.addEventListener("change", () => {
+                        MEP.State.stakeGraphDensitySync = !!ui.stakeSyncInput.checked;
+                        if (ui.stakeDensityInput) ui.stakeDensityInput.disabled = !!MEP.State.stakeGraphDensitySync;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
                 }
 
                 MEP.Graph?.init?.(ui);
@@ -3122,10 +3348,12 @@
                             applyDiffDensityUi();
                             MEP.Graph?.render?.();
                             MEP.DiffGraph?.render?.();
+                            if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                         } else {
                             // синхра OFF: меняем только 2-й
                             MEP.State.diffDensity = v;
                             MEP.DiffGraph?.render?.();
+                            if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                         }
 
                         MEP.Storage.save();
@@ -3154,11 +3382,13 @@
 
                             MEP.Graph?.render?.();
                             MEP.DiffGraph?.render?.();
+                            if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                         } else {
                             // выключили синхру — возвращаем ручное значение 2-го
                             const v = Math.max(10, Math.floor(Number(MEP.State.diffDensityManual || 81) || 81));
                             MEP.State.diffDensity = v;
                             MEP.DiffGraph?.render?.();
+                            if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                         }
 
                         applyDiffDensityUi();
