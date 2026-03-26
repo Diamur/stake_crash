@@ -2941,25 +2941,23 @@
 </div>
 <div class="mep-two-stat-wrap">
     <div class="mep-two-head">
-
         <div class="mep-two-topbar">
             <div class="mep-two-toprow">
                 <span class="mep-two-head-label">Последние</span>
                 <input class="mep-two-lastn" type="number" min="1" step="1" value="250" />
             </div>
-
             <div class="mep-two-total">
                 <span class="mep-two-total-n">0</span><span class="mep-two-total-sep">|</span
                 ><span class="mep-two-diff zero">0</span>
             </div>
-
             <label class="mep-two-head-right">
                 <input class="mep-two-all" type="checkbox" />
                 <span>вся история</span>
             </label>
             <button class="mep-two-collapse" type="button" title="Свернуть параметры">▲</button>
         </div>
-
+    </div>
+    <div class="mep-two-body">
         <div class="mep-two-params">
             <div class="mep-two-subrow">
                 <span class="mep-two-head-label start">Старт</span>
@@ -2975,9 +2973,6 @@
                 </label>
             </div>
         </div>
-
-    </div>
-    <div class="mep-two-body">
         <div class="mep-two-row">
             <div class="mep-two-left">&gt;= 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt ge">0</span></div>
             <div class="mep-two-bar">
