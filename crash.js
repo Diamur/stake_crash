@@ -1356,6 +1356,31 @@
 				margin:0;
 				cursor:pointer;
 				}
+				#${PANEL_ID} input.mep-stake-show-players,
+				#${PANEL_ID} input.mep-stake-show-bet{
+				width:16px;
+				height:16px;
+				-webkit-appearance:none;
+				appearance:none;
+				border-radius:4px;
+				border:1px solid rgba(255,255,255,0.28);
+				background: rgba(255,255,255,0.06);
+				display:inline-grid;
+				place-items:center;
+				cursor:pointer;
+				}
+				#${PANEL_ID} input.mep-stake-show-players:checked,
+				#${PANEL_ID} input.mep-stake-show-bet:checked{
+				background: rgba(255,255,255,0.22);
+				border-color: rgba(255,255,255,0.45);
+				}
+				#${PANEL_ID} input.mep-stake-show-players:checked::after,
+				#${PANEL_ID} input.mep-stake-show-bet:checked::after{
+				content: "✓";
+				font-size:12px;
+				line-height:1;
+				color: rgba(255,255,255,0.92);
+				}
 				#${PANEL_ID} .mep-stake-legend-line{
 				display:inline-block;
 				width:14px;
