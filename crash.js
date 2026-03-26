@@ -535,6 +535,7 @@
                     graphDensity: MEP.State.graphDensity,
                     stakeGraphDensity: MEP.State.stakeGraphDensity,
                     stakeGraphDensitySync: MEP.State.stakeGraphDensitySync,
+                    stakeGraphAutoHeight: MEP.State.stakeGraphAutoHeight,
                     stakeGraphPlayersScale: MEP.State.stakeGraphPlayersScale,
                     stakeGraphBetScale: MEP.State.stakeGraphBetScale,
                     stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
@@ -577,6 +578,7 @@
                         if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
                         if (typeof data.stakeGraphDensity === "number") MEP.State.stakeGraphDensity = data.stakeGraphDensity;
                         if (typeof data.stakeGraphDensitySync === "boolean") MEP.State.stakeGraphDensitySync = data.stakeGraphDensitySync;
+                        if (typeof data.stakeGraphAutoHeight === "boolean") MEP.State.stakeGraphAutoHeight = data.stakeGraphAutoHeight;
                         if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
                         if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                         if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
@@ -608,6 +610,7 @@
                     if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
                     if (typeof data.stakeGraphDensity === "number") MEP.State.stakeGraphDensity = data.stakeGraphDensity;
                     if (typeof data.stakeGraphDensitySync === "boolean") MEP.State.stakeGraphDensitySync = data.stakeGraphDensitySync;
+                    if (typeof data.stakeGraphAutoHeight === "boolean") MEP.State.stakeGraphAutoHeight = data.stakeGraphAutoHeight;
                     if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
                     if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                     if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
@@ -1355,11 +1358,33 @@
 				place-items:center;
 				cursor:pointer;
 				}
+				#${PANEL_ID} input.mep-stake-auto-height{
+				width:16px;
+				height:16px;
+				-webkit-appearance:none;
+				appearance:none;
+				border-radius:4px;
+				border:1px solid rgba(255,255,255,0.28);
+				background: rgba(255,255,255,0.06);
+				display:inline-grid;
+				place-items:center;
+				cursor:pointer;
+				}
 				#${PANEL_ID} input.mep-stake-sync:checked{
 				background: rgba(255,255,255,0.22);
 				border-color: rgba(255,255,255,0.45);
 				}
+				#${PANEL_ID} input.mep-stake-auto-height:checked{
+				background: rgba(255,255,255,0.22);
+				border-color: rgba(255,255,255,0.45);
+				}
 				#${PANEL_ID} input.mep-stake-sync:checked::after{
+				content: "✓";
+				font-size:12px;
+				line-height:1;
+				color: rgba(255,255,255,0.92);
+				}
+				#${PANEL_ID} input.mep-stake-auto-height:checked::after{
 				content: "✓";
 				font-size:12px;
 				line-height:1;
@@ -1514,6 +1539,7 @@
             graphDensity: typeof MEP.graphDensity === "number" ? MEP.graphDensity : 100,
             stakeGraphDensity: typeof MEP.stakeGraphDensity === "number" ? MEP.stakeGraphDensity : 81,
             stakeGraphDensitySync: !!MEP.stakeGraphDensitySync,
+            stakeGraphAutoHeight: !!MEP.stakeGraphAutoHeight,
             stakeGraphPlayersScale: typeof MEP.stakeGraphPlayersScale === "number" ? MEP.stakeGraphPlayersScale : 1,
             stakeGraphBetScale: typeof MEP.stakeGraphBetScale === "number" ? MEP.stakeGraphBetScale : 10,
             stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
@@ -2512,15 +2538,27 @@
                 return pad.concat(arr);
             },
 
-            _buildPoints(values, totalStages, yMax, vbW, vbH) {
+            _buildPoints(values, totalStages, yMax, vbW, vbH, autoHeight = false) {
                 if (!values.length || totalStages <= 0 || yMax <= 0) return [];
                 const out = [];
                 const stepX = totalStages <= 1 ? 0 : vbW / (totalStages - 1);
                 const startStage = Math.max(0, totalStages - values.length); // right-align
+                let sMin = 0;
+                let sMax = 0;
+                if (autoHeight) {
+                    sMin = Math.min(...values);
+                    sMax = Math.max(...values);
+                }
                 for (let i = 0; i < values.length; i++) {
                     const stage = startStage + i;
                     const x = stepX * stage;
-                    const y = vbH - (values[i] / yMax) * (vbH - 2) - 1;
+                    let y = 0;
+                    if (autoHeight) {
+                        if (sMax === sMin) y = vbH / 2;
+                        else y = 1 + ((sMax - values[i]) / (sMax - sMin)) * (vbH - 2);
+                    } else {
+                        y = vbH - (values[i] / yMax) * (vbH - 2) - 1;
+                    }
                     out.push({ stage, x, y: Math.max(1, Math.min(vbH - 1, y)), value: values[i] });
                 }
                 return out;
@@ -2599,6 +2637,7 @@
                 const betsScaledView = betsRealView.map((v) => v * betScale); // только для рендера
                 const showPlayers = MEP.State.stakeGraphShowPlayers !== false;
                 const showBet = MEP.State.stakeGraphShowBet !== false;
+                const autoHeight = !!MEP.State.stakeGraphAutoHeight;
                 const vbW = 100;
                 const vbH = 60;
                 const stageCount = Math.max(playersView.length, betsRealView.length);
@@ -2633,8 +2672,8 @@
                     svg.appendChild(ln);
                 }
 
-                const playersPts = this._buildPoints(playersScaledView, stageCount, yMax, vbW, vbH);
-                const betsPts = this._buildPoints(betsScaledView, stageCount, yMax, vbW, vbH);
+                const playersPts = this._buildPoints(playersScaledView, stageCount, yMax, vbW, vbH, autoHeight);
+                const betsPts = this._buildPoints(betsScaledView, stageCount, yMax, vbW, vbH, autoHeight);
 
                 const makePolyline = (pts, color) => {
                     if (!pts.length) return;
@@ -3099,6 +3138,7 @@
         <div class="mep-stake-controls">
             <label class="mep-stake-density-label">плотн.<input class="mep-stake-density" type="number" min="10" step="1" value="81" /></label>
             <label class="mep-stake-sync-label"><input class="mep-stake-sync" type="checkbox" /><span>Синхр.</span></label>
+            <label class="mep-stake-sync-label"><input class="mep-stake-auto-height" type="checkbox" /><span>Автовысота</span></label>
             <label class="mep-stake-density-label">Клиенты масштаб<input class="mep-stake-scale-players" type="number" min="0" step="0.1" value="1" /></label>
             <label class="mep-stake-density-label">Ставки масштаб<input class="mep-stake-scale-bet" type="number" min="0" step="0.1" value="10" /></label>
         </div>
@@ -3246,6 +3286,7 @@
                     stakeGraphSvg: panel.querySelector("svg.mep-stake-graph"),
                     stakeDensityInput: panel.querySelector("input.mep-stake-density"),
                     stakeSyncInput: panel.querySelector("input.mep-stake-sync"),
+                    stakeAutoHeightInput: panel.querySelector("input.mep-stake-auto-height"),
                     stakePlayersScaleInput: panel.querySelector("input.mep-stake-scale-players"),
                     stakeBetScaleInput: panel.querySelector("input.mep-stake-scale-bet"),
                     stakeShowPlayersInput: panel.querySelector("input.mep-stake-show-players"),
@@ -3369,6 +3410,15 @@
                     ui.stakeSyncInput.addEventListener("change", () => {
                         MEP.State.stakeGraphDensitySync = !!ui.stakeSyncInput.checked;
                         if (ui.stakeDensityInput) ui.stakeDensityInput.disabled = !!MEP.State.stakeGraphDensitySync;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakeAutoHeightInput) {
+                    ui.stakeAutoHeightInput.checked = !!MEP.State.stakeGraphAutoHeight;
+                    ui.stakeAutoHeightInput.addEventListener("change", () => {
+                        MEP.State.stakeGraphAutoHeight = !!ui.stakeAutoHeightInput.checked;
                         MEP.Storage.save();
                         MEP.StakeGraph?.render?.();
                     });
