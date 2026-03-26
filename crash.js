@@ -2573,7 +2573,7 @@
                     pl.setAttribute("points", pts.map((p) => `${p.x},${p.y}`).join(" "));
                     pl.setAttribute("fill", "none");
                     pl.setAttribute("stroke", color);
-                    pl.setAttribute("stroke-width", "1.1");
+                    pl.setAttribute("stroke-width", "0.55");
                     pl.setAttribute("stroke-linejoin", "round");
                     pl.setAttribute("stroke-linecap", "round");
                     svg.appendChild(pl);
@@ -2582,20 +2582,13 @@
                 makePolyline(playersPts, "rgba(112,206,255,0.95)");
                 makePolyline(betsPts, "rgba(255,170,60,0.95)");
 
-                // tooltip hit targets per stage
-                const pPad = new Array(Math.max(0, stageCount - playersView.length)).fill(null).concat(playersView);
+                // tooltip hit targets per series
                 const bPad = new Array(Math.max(0, stageCount - betsRealView.length)).fill(null).concat(betsRealView);
 
-                for (let i = 0; i < stageCount; i++) {
-                    const x = stepX * i;
-                    const p = pPad[i];
-                    const b = bPad[i];
-                    const anchorV = Number.isFinite(p) ? p : Number.isFinite(b) ? b * 10 : 0;
-                    const y = vbH - (anchorV / yMax) * (vbH - 2) - 1;
-
+                for (const p of playersPts) {
                     const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                    hit.setAttribute("cx", String(x));
-                    hit.setAttribute("cy", String(Math.max(1, Math.min(vbH - 1, y))));
+                    hit.setAttribute("cx", String(p.x));
+                    hit.setAttribute("cy", String(p.y));
                     hit.setAttribute("r", "1.8");
                     hit.setAttribute("fill", "rgba(255,255,255,0.001)");
                     hit.setAttribute("stroke", "none");
@@ -2603,7 +2596,30 @@
 
                     hit.addEventListener("mouseenter", (ev) => {
                         const box = svg.getBoundingClientRect();
-                        const txt = `Этап: ${i + 1}\nКлиенты: ${Number.isFinite(p) ? p : "—"}\nСтавка: ${this._fmtBet(b)}`;
+                        const txt = `Этап: ${p.stage + 1}\nКлиенты: ${p.value}`;
+                        this._setTip(txt, ev.clientX - box.left + 10);
+                    });
+                    hit.addEventListener("mousemove", (ev) => {
+                        const box = svg.getBoundingClientRect();
+                        this._setTip(ui.stakeTip?.textContent || "", ev.clientX - box.left + 10);
+                    });
+                    hit.addEventListener("mouseleave", () => this._setTip(""));
+                    svg.appendChild(hit);
+                }
+
+                for (const b of betsPts) {
+                    const realBet = bPad[b.stage];
+                    const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    hit.setAttribute("cx", String(b.x));
+                    hit.setAttribute("cy", String(b.y));
+                    hit.setAttribute("r", "1.8");
+                    hit.setAttribute("fill", "rgba(255,255,255,0.001)");
+                    hit.setAttribute("stroke", "none");
+                    hit.style.cursor = "crosshair";
+
+                    hit.addEventListener("mouseenter", (ev) => {
+                        const box = svg.getBoundingClientRect();
+                        const txt = `Этап: ${b.stage + 1}\nСтавка: ${this._fmtBet(realBet)}`;
                         this._setTip(txt, ev.clientX - box.left + 10);
                     });
                     hit.addEventListener("mousemove", (ev) => {
