@@ -20,3 +20,4 @@
 - 2026-03-26: В `График ставок` добавлены ручные масштабы `stakeGraphPlayersScale` (default 1) и `stakeGraphBetScale` (default 10) с persistence и применением только в рендере.
 - 2026-03-26: В `MEP.StakeGraph` `yMax` теперь считается только по включённым сериям (`showPlayers`/`showBet`), fallback при обеих выключенных — `1`.
 - 2026-03-26: Добавлен чекбокс `Автовысота` (`stakeGraphAutoHeight`) для `MEP.StakeGraph` с persistence; при включении каждая видимая серия нормализуется по собственным min/max.
+- 2026-03-26: Для первого графика (`MEP.Graph`) добавлена `Гор.линия 3` (`graphLine3`) с UI, persistence и независимым рендером третьей пунктирной горизонтальной линии.
