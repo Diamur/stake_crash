@@ -18,3 +18,4 @@
 - 2026-03-26: В легенду `График ставок` добавлены чекбоксы показа серий (`stakeGraphShowPlayers`, `stakeGraphShowBet`) с persistence и условным рендером линий/hit-targets.
 - 2026-03-26: Добавлены видимые стили для `mep-stake-show-players` и `mep-stake-show-bet` (как у `mep-stake-sync`) без изменения логики переключения.
 - 2026-03-26: В `График ставок` добавлены ручные масштабы `stakeGraphPlayersScale` (default 1) и `stakeGraphBetScale` (default 10) с persistence и применением только в рендере.
+- 2026-03-26: В `MEP.StakeGraph` `yMax` теперь считается только по включённым сериям (`showPlayers`/`showBet`), fallback при обеих выключенных — `1`.

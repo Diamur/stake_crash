@@ -2597,11 +2597,15 @@
 
                 const playersScaledView = playersView.map((v) => v * playersScale); // только для рендера
                 const betsScaledView = betsRealView.map((v) => v * betScale); // только для рендера
+                const showPlayers = MEP.State.stakeGraphShowPlayers !== false;
+                const showBet = MEP.State.stakeGraphShowBet !== false;
                 const vbW = 100;
                 const vbH = 60;
                 const stageCount = Math.max(playersView.length, betsRealView.length);
-                const all = playersScaledView.concat(betsScaledView);
-                const yMax = Math.max(1, ...all, 1);
+                const scaleSeries = [];
+                if (showPlayers) scaleSeries.push(...playersScaledView);
+                if (showBet) scaleSeries.push(...betsScaledView);
+                const yMax = Math.max(1, ...scaleSeries, 1);
                 const stepX = stageCount <= 1 ? 0 : vbW / (stageCount - 1);
 
                 // baseline
@@ -2631,8 +2635,6 @@
 
                 const playersPts = this._buildPoints(playersScaledView, stageCount, yMax, vbW, vbH);
                 const betsPts = this._buildPoints(betsScaledView, stageCount, yMax, vbW, vbH);
-                const showPlayers = MEP.State.stakeGraphShowPlayers !== false;
-                const showBet = MEP.State.stakeGraphShowBet !== false;
 
                 const makePolyline = (pts, color) => {
                     if (!pts.length) return;
