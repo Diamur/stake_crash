@@ -533,8 +533,16 @@
                     track: MEP.State.track,
                     graphMax: MEP.State.graphMax,
                     graphDensity: MEP.State.graphDensity,
+                    stakeGraphDensity: MEP.State.stakeGraphDensity,
+                    stakeGraphDensitySync: MEP.State.stakeGraphDensitySync,
+                    stakeGraphAutoHeight: MEP.State.stakeGraphAutoHeight,
+                    stakeGraphPlayersScale: MEP.State.stakeGraphPlayersScale,
+                    stakeGraphBetScale: MEP.State.stakeGraphBetScale,
+                    stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
+                    stakeGraphShowBet: MEP.State.stakeGraphShowBet,
                     graphLine: MEP.State.graphLine,
                     graphLine2: MEP.State.graphLine2,
+                    graphLine3: MEP.State.graphLine3,
 
                     diffDensity: MEP.State.diffDensity,
                     diffDensityManual: MEP.State.diffDensityManual,
@@ -569,8 +577,16 @@
                         if (data.track && typeof data.track === "object") MEP.State.track = data.track;
                         if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                         if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
+                        if (typeof data.stakeGraphDensity === "number") MEP.State.stakeGraphDensity = data.stakeGraphDensity;
+                        if (typeof data.stakeGraphDensitySync === "boolean") MEP.State.stakeGraphDensitySync = data.stakeGraphDensitySync;
+                        if (typeof data.stakeGraphAutoHeight === "boolean") MEP.State.stakeGraphAutoHeight = data.stakeGraphAutoHeight;
+                        if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
+                        if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
+                        if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
+                        if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                         if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                         if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
+                        if (typeof data.graphLine3 === "number") MEP.State.graphLine3 = data.graphLine3;
 
                         if (typeof data.diffDensity === "number") MEP.State.diffDensity = data.diffDensity;
                         if (typeof data.diffDensityManual === "number") MEP.State.diffDensityManual = data.diffDensityManual;
@@ -594,8 +610,16 @@
                     if (data.track && typeof data.track === "object") MEP.State.track = data.track;
                     if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                     if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
+                    if (typeof data.stakeGraphDensity === "number") MEP.State.stakeGraphDensity = data.stakeGraphDensity;
+                    if (typeof data.stakeGraphDensitySync === "boolean") MEP.State.stakeGraphDensitySync = data.stakeGraphDensitySync;
+                    if (typeof data.stakeGraphAutoHeight === "boolean") MEP.State.stakeGraphAutoHeight = data.stakeGraphAutoHeight;
+                    if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
+                    if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
+                    if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
+                    if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                     if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                     if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
+                    if (typeof data.graphLine3 === "number") MEP.State.graphLine3 = data.graphLine3;
 
                     if (typeof data.diffDensity === "number") MEP.State.diffDensity = data.diffDensity;
                     if (typeof data.diffDensityManual === "number") MEP.State.diffDensityManual = data.diffDensityManual;
@@ -883,6 +907,7 @@
 				/* === Unsupported game mode (hide everything except message) === */
 				#${PANEL_ID}.mep-unsupported .mep-diff-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-two-stat-wrap,
+				#${PANEL_ID}.mep-unsupported .mep-stake-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-modal-overlay{
 				display:none !important;
@@ -1008,6 +1033,22 @@
 				align-items: stretch;
 				gap: 8px;
 				margin: 2px 0 10px;
+				}
+				#${PANEL_ID} .mep-two-stat-wrap.mep-collapsed .mep-two-body{
+				display:none;
+				}
+				#${PANEL_ID} .mep-two-collapse{
+				border: 1px solid rgba(255,255,255,0.16);
+				background: rgba(255,255,255,0.07);
+				color:#fff;
+				border-radius: 8px;
+				padding: 1px 8px 2px;
+				font-size: 13px;
+				line-height: 1.1;
+				cursor: pointer;
+				}
+				#${PANEL_ID} .mep-two-collapse:hover{
+				background: rgba(255,255,255,0.14);
 				}
 
 				#${PANEL_ID} .mep-two-topbar{
@@ -1253,6 +1294,200 @@
 				gap:10px;
 				margin-bottom:8px;
 				}
+				#${PANEL_ID} .mep-stake-graph-wrap{
+				margin: 12px;
+				margin-bottom: 0;
+				padding: 10px 12px 12px;
+				border: 1px dashed rgba(255,255,255,0.22);
+				background: rgba(255,255,255,0.03);
+				}
+				#${PANEL_ID} .mep-stake-graph-wrap.mep-collapsed .mep-stake-params{
+				display:none;
+				}
+				#${PANEL_ID} .mep-graph-wrap.mep-collapsed .mep-graph-controls{
+				display:none;
+				}
+				#${PANEL_ID} .mep-stake-collapse,
+				#${PANEL_ID} .mep-main-graph-collapse{
+				border: 1px solid rgba(255,255,255,0.16);
+				background: rgba(255,255,255,0.07);
+				color:#fff;
+				border-radius: 8px;
+				padding: 1px 8px 2px;
+				font-size: 13px;
+				line-height: 1.1;
+				cursor: pointer;
+				}
+				#${PANEL_ID} .mep-stake-collapse:hover,
+				#${PANEL_ID} .mep-main-graph-collapse:hover{
+				background: rgba(255,255,255,0.14);
+				}
+				#${PANEL_ID} .mep-stake-legend{
+				display:flex;
+				align-items:center;
+				gap:12px;
+				font-size: 12px;
+				opacity: 0.92;
+				}
+				#${PANEL_ID} .mep-stake-controls{
+				display:inline-flex;
+				align-items:center;
+				gap:10px;
+				font-size:12px;
+				flex-wrap: wrap;
+				justify-content: flex-end;
+				}
+				#${PANEL_ID} .mep-stake-density-label{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				}
+				#${PANEL_ID} input.mep-stake-density{
+				width:52px;
+				border-radius:8px;
+				border: 1px solid rgba(255,255,255,0.10);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding: 0 8px;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} input.mep-stake-scale-players,
+				#${PANEL_ID} input.mep-stake-scale-bet{
+				width:58px;
+				border-radius:8px;
+				border: 1px solid rgba(255,255,255,0.10);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding: 0 8px;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} .mep-stake-sync-label{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				cursor:pointer;
+				user-select:none;
+				}
+				#${PANEL_ID} input.mep-stake-sync{
+				width:16px;
+				height:16px;
+				-webkit-appearance:none;
+				appearance:none;
+				border-radius:4px;
+				border:1px solid rgba(255,255,255,0.28);
+				background: rgba(255,255,255,0.06);
+				display:inline-grid;
+				place-items:center;
+				cursor:pointer;
+				}
+				#${PANEL_ID} input.mep-stake-auto-height{
+				width:16px;
+				height:16px;
+				-webkit-appearance:none;
+				appearance:none;
+				border-radius:4px;
+				border:1px solid rgba(255,255,255,0.28);
+				background: rgba(255,255,255,0.06);
+				display:inline-grid;
+				place-items:center;
+				cursor:pointer;
+				}
+				#${PANEL_ID} input.mep-stake-sync:checked{
+				background: rgba(255,255,255,0.22);
+				border-color: rgba(255,255,255,0.45);
+				}
+				#${PANEL_ID} input.mep-stake-auto-height:checked{
+				background: rgba(255,255,255,0.22);
+				border-color: rgba(255,255,255,0.45);
+				}
+				#${PANEL_ID} input.mep-stake-sync:checked::after{
+				content: "✓";
+				font-size:12px;
+				line-height:1;
+				color: rgba(255,255,255,0.92);
+				}
+				#${PANEL_ID} input.mep-stake-auto-height:checked::after{
+				content: "✓";
+				font-size:12px;
+				line-height:1;
+				color: rgba(255,255,255,0.92);
+				}
+				#${PANEL_ID} .mep-stake-legend-item{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				cursor:pointer;
+				}
+				#${PANEL_ID} .mep-stake-legend-item input{
+				margin:0;
+				cursor:pointer;
+				}
+				#${PANEL_ID} input.mep-stake-show-players,
+				#${PANEL_ID} input.mep-stake-show-bet{
+				width:16px;
+				height:16px;
+				-webkit-appearance:none;
+				appearance:none;
+				border-radius:4px;
+				border:1px solid rgba(255,255,255,0.28);
+				background: rgba(255,255,255,0.06);
+				display:inline-grid;
+				place-items:center;
+				cursor:pointer;
+				}
+				#${PANEL_ID} input.mep-stake-show-players:checked,
+				#${PANEL_ID} input.mep-stake-show-bet:checked{
+				background: rgba(255,255,255,0.22);
+				border-color: rgba(255,255,255,0.45);
+				}
+				#${PANEL_ID} input.mep-stake-show-players:checked::after,
+				#${PANEL_ID} input.mep-stake-show-bet:checked::after{
+				content: "✓";
+				font-size:12px;
+				line-height:1;
+				color: rgba(255,255,255,0.92);
+				}
+				#${PANEL_ID} .mep-stake-legend-line{
+				display:inline-block;
+				width:14px;
+				height:2px;
+				border-radius: 4px;
+				}
+				#${PANEL_ID} .mep-stake-legend-line.mep-stake-legend-players{
+				background: rgba(112,206,255,0.95);
+				}
+				#${PANEL_ID} .mep-stake-legend-line.mep-stake-legend-bets{
+				background: rgba(255,170,60,0.95);
+				}
+				#${PANEL_ID} .mep-stake-graph-box{
+				position:relative;
+				height:120px;
+				border-top:1px solid rgba(255,255,255,0.10);
+				padding-top:8px;
+				margin-top:6px;
+				}
+				#${PANEL_ID} .mep-stake-graph{
+				width:100%;
+				height:100%;
+				display:block;
+				}
+				#${PANEL_ID} .mep-stake-tip{
+				position:absolute;
+				left:10px;
+				top:6px;
+				max-width:240px;
+				white-space:pre-line;
+				font-size:12px;
+				background: rgba(0,0,0,0.75);
+				border:1px solid rgba(255,255,255,0.15);
+				border-radius:10px;
+				padding:6px 8px;
+				pointer-events:none;
+				display:none;
+				z-index:3;
+				}
 				.mep-graph-controls{
 				display:flex;
 				flex-direction: column;      /* как на втором скрине */
@@ -1326,8 +1561,16 @@
             maxItems: MEP.maxItems ?? MEP.Config.MAX_ITEMS_DEFAULT,
             graphMax: typeof MEP.graphMax === "number" ? MEP.graphMax : 10,
             graphDensity: typeof MEP.graphDensity === "number" ? MEP.graphDensity : 100,
+            stakeGraphDensity: typeof MEP.stakeGraphDensity === "number" ? MEP.stakeGraphDensity : 81,
+            stakeGraphDensitySync: !!MEP.stakeGraphDensitySync,
+            stakeGraphAutoHeight: !!MEP.stakeGraphAutoHeight,
+            stakeGraphPlayersScale: typeof MEP.stakeGraphPlayersScale === "number" ? MEP.stakeGraphPlayersScale : 1,
+            stakeGraphBetScale: typeof MEP.stakeGraphBetScale === "number" ? MEP.stakeGraphBetScale : 10,
+            stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
+            stakeGraphShowBet: ("stakeGraphShowBet" in MEP) ? !!MEP.stakeGraphShowBet : true,
             graphLine: typeof MEP.graphLine === "number" ? MEP.graphLine : 0,
             graphLine2: typeof MEP.graphLine2 === "number" ? MEP.graphLine2 : 0,
+            graphLine3: typeof MEP.graphLine3 === "number" ? MEP.graphLine3 : 0,
             lastAddedKey: MEP._lastAddedKey || "",
             initialLoaded: MEP._initialLoaded || false,
 
@@ -1362,6 +1605,10 @@
             // фиксированная стартовая точка этапа для diff-расчёта (1-based от начала истории)
             // 0 = выключено (используется режим "Последние N")
             diffStartIndex: typeof MEP.diffStartIndex === "number" ? MEP.diffStartIndex : 0,
+
+            // История агрегатов ставок по раундам (oldest -> newest), runtime-only (SAFE MODE / MVP)
+            roundPlayersCountHistory: Array.isArray(MEP.roundPlayersCountHistory) ? MEP.roundPlayersCountHistory : [],
+            roundBetSumHistory: Array.isArray(MEP.roundBetSumHistory) ? MEP.roundBetSumHistory : [],
         };
 
         // -------------------------
@@ -1825,6 +2072,28 @@
                     ln2.setAttribute("stroke-dasharray", "3 1.4");
                     ui.graphSvg.appendChild(ln2);
                 }
+
+                // third horizontal line (threshold)
+                const line3V0 = Number(MEP.State.graphLine3 ?? 0);
+                const line3V =
+                    Number.isFinite(line3V0) && line3V0 > 0
+                        ? Number.isFinite(maxClip) && maxClip > 0
+                            ? Math.min(line3V0, maxClip)
+                            : line3V0
+                        : 0;
+
+                if (line3V > 0) {
+                    const yLine3 = vbH - (line3V / maxVal) * (vbH - 1);
+                    const ln3 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    ln3.setAttribute("x1", "0");
+                    ln3.setAttribute("x2", String(vbW));
+                    ln3.setAttribute("y1", String(yLine3));
+                    ln3.setAttribute("y2", String(yLine3));
+                    ln3.setAttribute("stroke", "rgba(255,120,220,0.9)");
+                    ln3.setAttribute("stroke-width", "0.35");
+                    ln3.setAttribute("stroke-dasharray", "1.4 2.2");
+                    ui.graphSvg.appendChild(ln3);
+                }
             },
         };
 
@@ -2281,6 +2550,263 @@
         };
 
         // -------------------------
+        // Stake graph (players + bet*10)
+        // -------------------------
+        MEP.StakeGraph = {
+            _ui: null,
+            init(ui) {
+                this._ui = ui || null;
+            },
+
+            _toFiniteArray(arr) {
+                if (!Array.isArray(arr)) return [];
+                return arr.map((v) => Number(v)).filter((v) => Number.isFinite(v));
+            },
+
+            _getDiffVisibleLength() {
+                const history = Array.isArray(MEP.State.diffHistory) ? MEP.State.diffHistory : [];
+                const effDensity = MEP.State.diffDensitySync
+                    ? Math.max(10, Math.floor(Number(MEP.State.graphDensity || 100) || 100))
+                    : Math.max(10, Math.floor(Number(MEP.State.diffDensity || MEP.State.diffDensityManual || 81) || 81));
+                if (!history.length) return 0;
+                return Math.min(history.length, effDensity);
+            },
+
+            _tailWithDensity(arr, density) {
+                if (!arr.length) return [];
+                const d = Math.max(10, Math.floor(Number(density || 81) || 81));
+                return arr.slice(Math.max(0, arr.length - d));
+            },
+
+            _syncToMasterLen(arr, masterLen) {
+                if (!Array.isArray(arr) || !arr.length || masterLen <= 0) return [];
+                if (arr.length >= masterLen) return arr.slice(arr.length - masterLen);
+                const pad = new Array(masterLen - arr.length).fill(arr[0]);
+                return pad.concat(arr);
+            },
+
+            _buildPoints(values, totalStages, yMax, vbW, vbH, autoHeight = false) {
+                if (!values.length || totalStages <= 0 || yMax <= 0) return [];
+                const out = [];
+                const stepX = totalStages <= 1 ? 0 : vbW / (totalStages - 1);
+                const startStage = Math.max(0, totalStages - values.length); // right-align
+                let sMin = 0;
+                let sMax = 0;
+                if (autoHeight) {
+                    sMin = Math.min(...values);
+                    sMax = Math.max(...values);
+                }
+                for (let i = 0; i < values.length; i++) {
+                    const stage = startStage + i;
+                    const x = stepX * stage;
+                    let y = 0;
+                    if (autoHeight) {
+                        if (sMax === sMin) y = vbH / 2;
+                        else y = 1 + ((sMax - values[i]) / (sMax - sMin)) * (vbH - 2);
+                    } else {
+                        y = vbH - (values[i] / yMax) * (vbH - 2) - 1;
+                    }
+                    out.push({ stage, x, y: Math.max(1, Math.min(vbH - 1, y)), value: values[i] });
+                }
+                return out;
+            },
+
+            _ensureTip() {
+                const ui = this._ui;
+                if (!ui?.stakeGraphSvg) return null;
+                if (ui.stakeTip) return ui.stakeTip;
+                const host = ui.stakeGraphSvg.parentElement;
+                if (!host) return null;
+                const tip = document.createElement("div");
+                tip.className = "mep-stake-tip";
+                host.appendChild(tip);
+                ui.stakeTip = tip;
+                return tip;
+            },
+
+            _setTip(text, xPx) {
+                const ui = this._ui;
+                const tip = this._ensureTip();
+                if (!ui?.stakeGraphSvg || !tip) return;
+                if (!text) {
+                    tip.style.display = "none";
+                    return;
+                }
+
+                tip.textContent = text;
+                tip.style.display = "block";
+                tip.style.top = "6px";
+                const host = ui.stakeGraphSvg.parentElement;
+                const hostW = host?.clientWidth || 0;
+                const safeX = Number.isFinite(xPx) ? Math.max(6, xPx) : 6;
+                tip.style.left = `${safeX}px`;
+                const tipW = tip.offsetWidth || 0;
+                if (hostW > 0 && tipW > 0) {
+                    const maxLeft = Math.max(6, hostW - tipW - 6);
+                    tip.style.left = `${Math.min(safeX, maxLeft)}px`;
+                }
+            },
+
+            _fmtBet(v) {
+                if (!Number.isFinite(v)) return "—";
+                return v.toFixed(8).replace(/\.?0+$/, "");
+            },
+
+            render() {
+                const ui = this._ui;
+                if (!ui?.stakeGraphSvg) return;
+                const svg = ui.stakeGraphSvg;
+                svg.innerHTML = "";
+                this._setTip("");
+
+                const playersRaw = this._toFiniteArray(MEP.State.roundPlayersCountHistory);
+                const betsRealRaw = this._toFiniteArray(MEP.State.roundBetSumHistory);
+
+                let playersView = [];
+                let betsRealView = [];
+                const syncOn = !!MEP.State.stakeGraphDensitySync;
+
+                if (syncOn) {
+                    const masterLen = this._getDiffVisibleLength();
+                    playersView = this._syncToMasterLen(playersRaw, masterLen);
+                    betsRealView = this._syncToMasterLen(betsRealRaw, masterLen);
+                } else {
+                    playersView = this._tailWithDensity(playersRaw, MEP.State.stakeGraphDensity);
+                    betsRealView = this._tailWithDensity(betsRealRaw, MEP.State.stakeGraphDensity);
+                }
+
+                let playersScale = Number(MEP.State.stakeGraphPlayersScale);
+                if (!Number.isFinite(playersScale) || playersScale < 0) playersScale = 1;
+                let betScale = Number(MEP.State.stakeGraphBetScale);
+                if (!Number.isFinite(betScale) || betScale < 0) betScale = 10;
+
+                const playersScaledView = playersView.map((v) => v * playersScale); // только для рендера
+                const betsScaledView = betsRealView.map((v) => v * betScale); // только для рендера
+                const showPlayers = MEP.State.stakeGraphShowPlayers !== false;
+                const showBet = MEP.State.stakeGraphShowBet !== false;
+                const autoHeight = !!MEP.State.stakeGraphAutoHeight;
+                const vbW = 100;
+                const vbH = 60;
+                const stageCount = Math.max(playersView.length, betsRealView.length);
+                const scaleSeries = [];
+                if (showPlayers) scaleSeries.push(...playersScaledView);
+                if (showBet) scaleSeries.push(...betsScaledView);
+                const yMax = Math.max(1, ...scaleSeries, 1);
+                const stepX = stageCount <= 1 ? 0 : vbW / (stageCount - 1);
+
+                // baseline
+                const base = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                base.setAttribute("x1", "0");
+                base.setAttribute("x2", String(vbW));
+                base.setAttribute("y1", String(vbH - 1));
+                base.setAttribute("y2", String(vbH - 1));
+                base.setAttribute("stroke", "rgba(255,255,255,0.20)");
+                base.setAttribute("stroke-width", "0.4");
+                svg.appendChild(base);
+
+                // vertical dashed stage lines
+                for (let i = 0; i < stageCount; i++) {
+                    const x = stepX * i;
+                    const ln = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    ln.setAttribute("x1", String(x));
+                    ln.setAttribute("x2", String(x));
+                    ln.setAttribute("y1", "0");
+                    ln.setAttribute("y2", String(vbH));
+                    ln.setAttribute("stroke", "rgba(255,255,255,0.13)");
+                    ln.setAttribute("stroke-width", "0.25");
+                    ln.setAttribute("stroke-dasharray", "1.4 1.4");
+                    ln.setAttribute("pointer-events", "none");
+                    svg.appendChild(ln);
+                }
+
+                const playersPts = this._buildPoints(playersScaledView, stageCount, yMax, vbW, vbH, autoHeight);
+                const betsPts = this._buildPoints(betsScaledView, stageCount, yMax, vbW, vbH, autoHeight);
+
+                const makePolyline = (pts, color) => {
+                    if (!pts.length) return;
+                    const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    pl.setAttribute("points", pts.map((p) => `${p.x},${p.y}`).join(" "));
+                    pl.setAttribute("fill", "none");
+                    pl.setAttribute("stroke", color);
+                    pl.setAttribute("stroke-width", "0.55");
+                    pl.setAttribute("stroke-linejoin", "round");
+                    pl.setAttribute("stroke-linecap", "round");
+                    svg.appendChild(pl);
+                };
+
+                if (showPlayers) makePolyline(playersPts, "rgba(112,206,255,0.95)");
+                if (showBet) makePolyline(betsPts, "rgba(255,170,60,0.95)");
+
+                // tooltip hit targets per series
+                const pPad = new Array(Math.max(0, stageCount - playersView.length)).fill(null).concat(playersView);
+                const bPad = new Array(Math.max(0, stageCount - betsRealView.length)).fill(null).concat(betsRealView);
+
+                if (showPlayers) for (const p of playersPts) {
+                    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    dot.setAttribute("cx", String(p.x));
+                    dot.setAttribute("cy", String(p.y));
+                    dot.setAttribute("r", "0.55");
+                    dot.setAttribute("fill", "rgba(112,206,255,0.95)");
+                    dot.setAttribute("pointer-events", "none");
+                    svg.appendChild(dot);
+
+                    const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    hit.setAttribute("cx", String(p.x));
+                    hit.setAttribute("cy", String(p.y));
+                    hit.setAttribute("r", "2.8");
+                    hit.setAttribute("fill", "rgba(255,255,255,0.001)");
+                    hit.setAttribute("stroke", "none");
+                    hit.style.cursor = "crosshair";
+                    hit.setAttribute("data-series", "players");
+
+                    hit.addEventListener("mouseenter", (ev) => {
+                        const box = svg.getBoundingClientRect();
+                        const txt = `Этап: ${p.stage + 1}\nКлиенты: ${pPad[p.stage]}`;
+                        this._setTip(txt, ev.clientX - box.left + 10);
+                    });
+                    hit.addEventListener("mousemove", (ev) => {
+                        const box = svg.getBoundingClientRect();
+                        this._setTip(ui.stakeTip?.textContent || "", ev.clientX - box.left + 10);
+                    });
+                    hit.addEventListener("mouseleave", () => this._setTip(""));
+                    svg.appendChild(hit);
+                }
+
+                if (showBet) for (const b of betsPts) {
+                    const realBet = bPad[b.stage];
+                    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    dot.setAttribute("cx", String(b.x));
+                    dot.setAttribute("cy", String(b.y));
+                    dot.setAttribute("r", "0.55");
+                    dot.setAttribute("fill", "rgba(255,170,60,0.95)");
+                    dot.setAttribute("pointer-events", "none");
+                    svg.appendChild(dot);
+
+                    const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    hit.setAttribute("cx", String(b.x));
+                    hit.setAttribute("cy", String(b.y));
+                    hit.setAttribute("r", "2.8");
+                    hit.setAttribute("fill", "rgba(255,255,255,0.001)");
+                    hit.setAttribute("stroke", "none");
+                    hit.style.cursor = "crosshair";
+                    hit.setAttribute("data-series", "bets");
+
+                    hit.addEventListener("mouseenter", (ev) => {
+                        const box = svg.getBoundingClientRect();
+                        const txt = `Этап: ${b.stage + 1}\nСтавка: ${this._fmtBet(realBet)}`;
+                        this._setTip(txt, ev.clientX - box.left + 10);
+                    });
+                    hit.addEventListener("mousemove", (ev) => {
+                        const box = svg.getBoundingClientRect();
+                        this._setTip(ui.stakeTip?.textContent || "", ev.clientX - box.left + 10);
+                    });
+                    hit.addEventListener("mouseleave", () => this._setTip(""));
+                    svg.appendChild(hit);
+                }
+            },
+        };
+
+        // -------------------------
         // UI module
         // -------------------------
         MEP.UI = {
@@ -2605,75 +3131,110 @@
 </div>
 <div class="mep-two-stat-wrap">
     <div class="mep-two-head">
-
         <div class="mep-two-topbar">
             <div class="mep-two-toprow">
                 <span class="mep-two-head-label">Последние</span>
                 <input class="mep-two-lastn" type="number" min="1" step="1" value="250" />
             </div>
-
             <div class="mep-two-total">
                 <span class="mep-two-total-n">0</span><span class="mep-two-total-sep">|</span
                 ><span class="mep-two-diff zero">0</span>
             </div>
-
             <label class="mep-two-head-right">
                 <input class="mep-two-all" type="checkbox" />
                 <span>вся история</span>
             </label>
+            <button class="mep-two-collapse" type="button" title="Свернуть параметры">▲</button>
         </div>
+    </div>
+    <div class="mep-two-body">
+        <div class="mep-two-params">
+            <div class="mep-two-subrow">
+                <span class="mep-two-head-label start">Старт</span>
+                <input class="mep-two-start" type="number" min="0" step="1" value="0" />
+            </div>
 
-        <div class="mep-two-subrow">
-            <span class="mep-two-head-label start">Старт</span>
-            <input class="mep-two-start" type="number" min="0" step="1" value="0" />
+            <div class="mep-two-subrow">
+                <span class="mep-two-dens-label">плотность</span>
+                <input class="mep-diff-density" type="number" min="10" step="1" value="81" />
+                <label class="mep-diff-sync-label">
+                    <input class="mep-diff-sync" type="checkbox" />
+                    <span>синхр.</span>
+                </label>
+            </div>
         </div>
-
-        <div class="mep-two-subrow">
-            <span class="mep-two-dens-label">плотность</span>
-            <input class="mep-diff-density" type="number" min="10" step="1" value="81" />
-            <label class="mep-diff-sync-label">
-                <input class="mep-diff-sync" type="checkbox" />
-                <span>синхр.</span>
+        <div class="mep-two-row">
+            <div class="mep-two-left">&gt;= 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt ge">0</span></div>
+            <div class="mep-two-bar">
+                <div class="mep-two-fill ge" style="width: 0%"></div>
+            </div>
+            <div class="mep-two-right"><span class="mep-two-pct ge">0%</span></div>
+        </div>
+        <div class="mep-two-row">
+            <div class="mep-two-left">&lt; 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt lt">0</span></div>
+            <div class="mep-two-bar">
+                <div class="mep-two-fill lt" style="width: 0%"></div>
+            </div>
+            <div class="mep-two-right"><span class="mep-two-pct lt">0%</span></div>
+        </div>
+    </div>
+</div>
+<div class="mep-stake-graph-wrap">
+    <div class="mep-graph-head">
+        <div class="mep-block-title">График ставок</div>
+        <button class="mep-stake-collapse" type="button" title="Свернуть параметры">▲</button>
+    </div>
+    <div class="mep-stake-params">
+        <div class="mep-stake-controls">
+            <label class="mep-stake-density-label">плотн.<input class="mep-stake-density" type="number" min="10" step="1" value="81" /></label>
+            <label class="mep-stake-sync-label"><input class="mep-stake-sync" type="checkbox" /><span>Синхр.</span></label>
+            <label class="mep-stake-sync-label"><input class="mep-stake-auto-height" type="checkbox" /><span>Автовысота</span></label>
+            <label class="mep-stake-density-label">Клиенты масштаб<input class="mep-stake-scale-players" type="number" min="0" step="0.1" value="1" /></label>
+            <label class="mep-stake-density-label">Ставки масштаб<input class="mep-stake-scale-bet" type="number" min="0" step="0.1" value="10" /></label>
+        </div>
+        <div class="mep-stake-legend">
+            <label class="mep-stake-legend-item">
+                <input class="mep-stake-show-players" type="checkbox" checked />
+                <span class="mep-stake-legend-line mep-stake-legend-players"></span>
+                <span>Клиенты</span>
+            </label>
+            <label class="mep-stake-legend-item">
+                <input class="mep-stake-show-bet" type="checkbox" checked />
+                <span class="mep-stake-legend-line mep-stake-legend-bets"></span>
+                <span>Ставка x10</span>
             </label>
         </div>
-
-    </div>
-    <div class="mep-two-row">
-        <div class="mep-two-left">&gt;= 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt ge">0</span></div>
-        <div class="mep-two-bar">
-            <div class="mep-two-fill ge" style="width: 0%"></div>
         </div>
-        <div class="mep-two-right"><span class="mep-two-pct ge">0%</span></div>
-    </div>
-    <div class="mep-two-row">
-        <div class="mep-two-left">&lt; 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt lt">0</span></div>
-        <div class="mep-two-bar">
-            <div class="mep-two-fill lt" style="width: 0%"></div>
-        </div>
-        <div class="mep-two-right"><span class="mep-two-pct lt">0%</span></div>
+    <div class="mep-stake-graph-box">
+        <svg class="mep-stake-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
     </div>
 </div>
 <div class="mep-graph-wrap">
     <div class="mep-graph-head">
         <div class="mep-block-title">График</div>
-        <div class="mep-graph-controls">
-            <label class="mep-graph-label"
-                >обрезать max
-                <input class="mep-graph-max" type="number" min="0" step="0.1" />
-            </label>
-            <label class="mep-graph-label"
-                >плотность
-                <input class="mep-graph-density" type="number" min="10" step="1" />
-            </label>
-            <label class="mep-graph-label"
-                >Гор.линия
-                <input class="mep-graph-line" type="number" min="0" step="0.1" />
-            </label>
-            <label class="mep-graph-label"
-                >Гор.линия 2
-                <input class="mep-graph-line2" type="number" min="0" step="0.1" />
-            </label>
-        </div>
+        <button class="mep-main-graph-collapse" type="button" title="Свернуть параметры">▲</button>
+    </div>
+    <div class="mep-graph-controls">
+        <label class="mep-graph-label"
+            >обрезать max
+            <input class="mep-graph-max" type="number" min="0" step="0.1" />
+        </label>
+        <label class="mep-graph-label"
+            >плотность
+            <input class="mep-graph-density" type="number" min="10" step="1" />
+        </label>
+        <label class="mep-graph-label"
+            >Гор.линия
+            <input class="mep-graph-line" type="number" min="0" step="0.1" />
+        </label>
+        <label class="mep-graph-label"
+            >Гор.линия 2
+            <input class="mep-graph-line2" type="number" min="0" step="0.1" />
+        </label>
+        <label class="mep-graph-label"
+            >Гор.линия 3
+            <input class="mep-graph-line3" type="number" min="0" step="0.1" />
+        </label>
     </div>
     <div class="mep-graph-box">
         <svg class="mep-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
@@ -2751,6 +3312,9 @@
                     diffWrap: panel.querySelector(".mep-diff-wrap"),
                     diffSvg: panel.querySelector("svg.mep-diff"),
                     twoWrap: panel.querySelector(".mep-two-stat-wrap"),
+                    twoHead: panel.querySelector(".mep-two-head"),
+                    twoParamsWrap: panel.querySelector(".mep-two-params"),
+                    twoCollapseBtn: panel.querySelector("button.mep-two-collapse"),
                     twoLastN: panel.querySelector("input.mep-two-lastn"),
                     twoStartInput: panel.querySelector("input.mep-two-start"),
                     diffDensityInput: panel.querySelector("input.mep-diff-density"),
@@ -2772,8 +3336,23 @@
                     graphDensityInput: panel.querySelector("input.mep-graph-density"),
                     graphLineInput: panel.querySelector("input.mep-graph-line"),
                     graphLine2Input: panel.querySelector("input.mep-graph-line2"),
+                    graphLine3Input: panel.querySelector("input.mep-graph-line3"),
+                    graphWrap: panel.querySelector(".mep-graph-wrap"),
+                    graphControlsWrap: panel.querySelector(".mep-graph-controls"),
+                    graphCollapseBtn: panel.querySelector("button.mep-main-graph-collapse"),
                     graphSvg: panel.querySelector("svg.mep-graph"),
                     graphTip: panel.querySelector(".mep-graph-tip"),
+                    stakeWrap: panel.querySelector(".mep-stake-graph-wrap"),
+                    stakeParamsWrap: panel.querySelector(".mep-stake-params"),
+                    stakeCollapseBtn: panel.querySelector("button.mep-stake-collapse"),
+                    stakeGraphSvg: panel.querySelector("svg.mep-stake-graph"),
+                    stakeDensityInput: panel.querySelector("input.mep-stake-density"),
+                    stakeSyncInput: panel.querySelector("input.mep-stake-sync"),
+                    stakeAutoHeightInput: panel.querySelector("input.mep-stake-auto-height"),
+                    stakePlayersScaleInput: panel.querySelector("input.mep-stake-scale-players"),
+                    stakeBetScaleInput: panel.querySelector("input.mep-stake-scale-bet"),
+                    stakeShowPlayersInput: panel.querySelector("input.mep-stake-show-players"),
+                    stakeShowBetInput: panel.querySelector("input.mep-stake-show-bet"),
 
                     xInputs: [...panel.querySelectorAll("input.mep-x")],
                     colorInputs: [...panel.querySelectorAll("input.mep-color")],
@@ -2845,6 +3424,7 @@
                             MEP.State.diffDensity = v;
                             if (ui.diffDensityInput) ui.diffDensityInput.value = String(v);
                             MEP.DiffGraph?.render?.();
+                            if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                         }
 
                         MEP.Storage.save();
@@ -2874,8 +3454,145 @@
                     };
                 }
 
+                if (ui.graphLine3Input) {
+                    ui.graphLine3Input.value = String(MEP.State.graphLine3 ?? 0);
+                    ui.graphLine3Input.oninput = () => {
+                        const n = Number(ui.graphLine3Input.value);
+                        MEP.State.graphLine3 = Number.isFinite(n) ? Math.max(0, n) : 0;
+                        ui.graphLine3Input.value = String(MEP.State.graphLine3);
+                        MEP.Storage.save();
+                        MEP.Graph?.render?.();
+                    };
+                }
+
+                if (ui.stakeDensityInput) {
+                    ui.stakeDensityInput.value = String(Math.max(10, Math.floor(Number(MEP.State.stakeGraphDensity || 81) || 81)));
+                    ui.stakeDensityInput.oninput = () => {
+                        let v = Math.floor(Number(ui.stakeDensityInput.value) || 0);
+                        if (!Number.isFinite(v) || v < 10) v = 10;
+                        ui.stakeDensityInput.value = String(v);
+                        MEP.State.stakeGraphDensity = v;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    };
+                }
+
+                if (ui.stakeSyncInput) {
+                    ui.stakeSyncInput.checked = !!MEP.State.stakeGraphDensitySync;
+                    if (ui.stakeDensityInput) ui.stakeDensityInput.disabled = !!MEP.State.stakeGraphDensitySync;
+                    ui.stakeSyncInput.addEventListener("change", () => {
+                        MEP.State.stakeGraphDensitySync = !!ui.stakeSyncInput.checked;
+                        if (ui.stakeDensityInput) ui.stakeDensityInput.disabled = !!MEP.State.stakeGraphDensitySync;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakeAutoHeightInput) {
+                    ui.stakeAutoHeightInput.checked = !!MEP.State.stakeGraphAutoHeight;
+                    ui.stakeAutoHeightInput.addEventListener("change", () => {
+                        MEP.State.stakeGraphAutoHeight = !!ui.stakeAutoHeightInput.checked;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakePlayersScaleInput) {
+                    let v = Number(MEP.State.stakeGraphPlayersScale);
+                    if (!Number.isFinite(v) || v < 0) v = 1;
+                    MEP.State.stakeGraphPlayersScale = v;
+                    ui.stakePlayersScaleInput.value = String(v);
+                    ui.stakePlayersScaleInput.addEventListener("input", () => {
+                        let n = Number(ui.stakePlayersScaleInput.value);
+                        if (!Number.isFinite(n) || n < 0) n = 1;
+                        ui.stakePlayersScaleInput.value = String(n);
+                        MEP.State.stakeGraphPlayersScale = n;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakeBetScaleInput) {
+                    let v = Number(MEP.State.stakeGraphBetScale);
+                    if (!Number.isFinite(v) || v < 0) v = 10;
+                    MEP.State.stakeGraphBetScale = v;
+                    ui.stakeBetScaleInput.value = String(v);
+                    ui.stakeBetScaleInput.addEventListener("input", () => {
+                        let n = Number(ui.stakeBetScaleInput.value);
+                        if (!Number.isFinite(n) || n < 0) n = 10;
+                        ui.stakeBetScaleInput.value = String(n);
+                        MEP.State.stakeGraphBetScale = n;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakeShowPlayersInput) {
+                    ui.stakeShowPlayersInput.checked = MEP.State.stakeGraphShowPlayers !== false;
+                    ui.stakeShowPlayersInput.addEventListener("change", () => {
+                        MEP.State.stakeGraphShowPlayers = !!ui.stakeShowPlayersInput.checked;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakeShowBetInput) {
+                    ui.stakeShowBetInput.checked = MEP.State.stakeGraphShowBet !== false;
+                    ui.stakeShowBetInput.addEventListener("change", () => {
+                        MEP.State.stakeGraphShowBet = !!ui.stakeShowBetInput.checked;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
                 MEP.Graph?.init?.(ui);
                 MEP.DiffGraph?.init?.(ui);
+                MEP.StakeGraph?.init?.(ui);
+
+                const applyStakeParamsCollapse = () => {
+                    if (!ui.stakeWrap || !ui.stakeCollapseBtn) return;
+                    const collapsed = !!ui._stakeParamsCollapsed;
+                    ui.stakeWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.stakeCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.stakeCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyStakeParamsCollapse();
+                if (ui.stakeCollapseBtn) {
+                    ui.stakeCollapseBtn.addEventListener("click", () => {
+                        ui._stakeParamsCollapsed = !ui._stakeParamsCollapsed;
+                        applyStakeParamsCollapse();
+                    });
+                }
+
+                const applyMainGraphParamsCollapse = () => {
+                    if (!ui.graphWrap || !ui.graphCollapseBtn) return;
+                    const collapsed = !!ui._mainGraphParamsCollapsed;
+                    ui.graphWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.graphCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.graphCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyMainGraphParamsCollapse();
+                if (ui.graphCollapseBtn) {
+                    ui.graphCollapseBtn.addEventListener("click", () => {
+                        ui._mainGraphParamsCollapsed = !ui._mainGraphParamsCollapsed;
+                        applyMainGraphParamsCollapse();
+                    });
+                }
+
+                const applyTwoParamsCollapse = () => {
+                    if (!ui.twoWrap || !ui.twoCollapseBtn) return;
+                    const collapsed = !!ui._twoParamsCollapsed;
+                    ui.twoWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.twoCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.twoCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyTwoParamsCollapse();
+                if (ui.twoCollapseBtn) {
+                    ui.twoCollapseBtn.addEventListener("click", () => {
+                        ui._twoParamsCollapsed = !ui._twoParamsCollapsed;
+                        applyTwoParamsCollapse();
+                    });
+                }
 
                 // -------------------------
                 // Diff density controls (2-й график)
@@ -2941,10 +3658,12 @@
                             applyDiffDensityUi();
                             MEP.Graph?.render?.();
                             MEP.DiffGraph?.render?.();
+                            if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                         } else {
                             // синхра OFF: меняем только 2-й
                             MEP.State.diffDensity = v;
                             MEP.DiffGraph?.render?.();
+                            if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                         }
 
                         MEP.Storage.save();
@@ -2973,11 +3692,13 @@
 
                             MEP.Graph?.render?.();
                             MEP.DiffGraph?.render?.();
+                            if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                         } else {
                             // выключили синхру — возвращаем ручное значение 2-го
                             const v = Math.max(10, Math.floor(Number(MEP.State.diffDensityManual || 81) || 81));
                             MEP.State.diffDensity = v;
                             MEP.DiffGraph?.render?.();
+                            if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                         }
 
                         applyDiffDensityUi();
@@ -3552,6 +4273,7 @@
 
                 MEP.UI.updateTrackingTable();
                 MEP.UI.updateTwoStats();
+                MEP.StakeGraph?.render?.();
                 MEP.Graph?.render?.();
             },
 
@@ -4177,6 +4899,176 @@
         };
 
         // -------------------------
+        // Round stake capture module (SAFE MODE / MVP)
+        // -------------------------
+        MEP.RoundStakeCapture = {
+            state: {
+                observer: null,
+                rebindTimer: null,
+                captureInProgress: false,
+                handledStartKey: "",
+                lastStartSeen: false,
+            },
+
+            parseLocaleNumber(rawText) {
+                const text = (rawText ?? "").toString().replace(/\u00a0/g, " ").trim();
+                if (!text) return null;
+
+                const cleaned = text.replace(/\s+/g, "").replace(/[^0-9,.\-]/g, "");
+                if (!cleaned) return null;
+
+                const hasComma = cleaned.includes(",");
+                const hasDot = cleaned.includes(".");
+                let normalized = cleaned;
+
+                if (hasComma && hasDot) {
+                    const lastComma = cleaned.lastIndexOf(",");
+                    const lastDot = cleaned.lastIndexOf(".");
+                    if (lastComma > lastDot) normalized = cleaned.replace(/\./g, "").replace(",", ".");
+                    else normalized = cleaned.replace(/,/g, "");
+                } else if (hasComma) {
+                    normalized = cleaned.replace(",", ".");
+                }
+
+                const n = Number.parseFloat(normalized);
+                return Number.isFinite(n) ? n : null;
+            },
+
+            readSnapshot() {
+                const out = { playersCount: null, betSum: null };
+
+                const header = document.querySelector(".dropdown-container .player-count-header");
+                if (!header) return out;
+
+                const playerEl = header.querySelector("span.ml-1");
+                const playersText = playerEl?.textContent || "";
+                out.playersCount = MEP.RoundStakeCapture.parseLocaleNumber(playersText);
+
+                const fullText = (header.textContent || "").replace(/\u00a0/g, " ");
+                const numMatches = fullText.match(/-?\d+(?:[.,]\d+)?/g) || [];
+                const parsed = numMatches
+                    .map((v) => MEP.RoundStakeCapture.parseLocaleNumber(v))
+                    .filter((v) => Number.isFinite(v));
+
+                if (parsed.length >= 2) out.betSum = parsed[parsed.length - 1];
+                else if (parsed.length === 1 && playerEl) {
+                    const only = parsed[0];
+                    const p = out.playersCount;
+                    if (p === null || Math.abs(only - p) > 0.0000001) out.betSum = only;
+                }
+
+                return out;
+            },
+
+            getStartMarkerActive() {
+                const btn = document.querySelector('button[data-testid="bet-button"]');
+                const text = MEP.Utils.normText(btn?.textContent || "");
+                return text === "Начинается...";
+            },
+
+            async captureAfterStart(startKey) {
+                if (MEP.RoundStakeCapture.state.captureInProgress) return;
+                MEP.RoundStakeCapture.state.captureInProgress = true;
+
+                const stableNeed = 5;
+                const pollMs = 120;
+                const timeoutMs = 5000;
+
+                let stableCount = 0;
+                let prevKey = "";
+                let lastValid = null;
+                const t0 = Date.now();
+
+                while (Date.now() - t0 < timeoutMs) {
+                    const snap = MEP.RoundStakeCapture.readSnapshot();
+                    const hasBoth = snap.playersCount !== null && snap.betSum !== null;
+
+                    if (hasBoth) {
+                        lastValid = snap;
+                        const nowKey = `${snap.playersCount ?? "na"}|${snap.betSum ?? "na"}`;
+                        if (nowKey === prevKey) stableCount += 1;
+                        else {
+                            prevKey = nowKey;
+                            stableCount = 1;
+                        }
+                        if (stableCount >= stableNeed) break;
+                    }
+                    await MEP.Utils.sleep(pollMs);
+                }
+
+                if (MEP.RoundStakeCapture.state.handledStartKey !== startKey) {
+                    const finalSnap = lastValid;
+                    if (finalSnap) {
+                        const playersCount = Number(finalSnap.playersCount);
+                        const betSum = Number(finalSnap.betSum);
+                        if (Number.isFinite(playersCount) && Number.isFinite(betSum)) {
+                            MEP.State.roundPlayersCountHistory.push(playersCount);
+                            MEP.State.roundBetSumHistory.push(betSum);
+
+                            console.log("[MEP][round-stake-snapshot]", {
+                                playersCount,
+                                betSum,
+                                roundPlayersCountHistory: MEP.State.roundPlayersCountHistory,
+                                roundBetSumHistory: MEP.State.roundBetSumHistory,
+                            });
+                        }
+                    }
+                    MEP.RoundStakeCapture.state.handledStartKey = startKey;
+                }
+
+                MEP.RoundStakeCapture.state.captureInProgress = false;
+            },
+
+            onMutationTick() {
+                const active = MEP.RoundStakeCapture.getStartMarkerActive();
+                if (active && !MEP.RoundStakeCapture.state.lastStartSeen) {
+                    const wsRound = window.MEP?.WS?.last?.roundLikeId ?? "no-round";
+                    const startKey = `${wsRound}|${Date.now()}`;
+                    MEP.RoundStakeCapture.captureAfterStart(startKey);
+                }
+                MEP.RoundStakeCapture.state.lastStartSeen = active;
+            },
+
+            stopIfRunning() {
+                if (MEP.RoundStakeCapture.state.observer) {
+                    try {
+                        MEP.RoundStakeCapture.state.observer.disconnect();
+                    } catch (e) {}
+                    MEP.RoundStakeCapture.state.observer = null;
+                }
+                if (MEP.RoundStakeCapture.state.rebindTimer) {
+                    clearInterval(MEP.RoundStakeCapture.state.rebindTimer);
+                    MEP.RoundStakeCapture.state.rebindTimer = null;
+                }
+                MEP.RoundStakeCapture.state.captureInProgress = false;
+                MEP.RoundStakeCapture.state.lastStartSeen = false;
+            },
+
+            start() {
+                MEP.RoundStakeCapture.stopIfRunning();
+
+                const body = document.body;
+                if (!body) return;
+
+                MEP.RoundStakeCapture.state.observer = new MutationObserver(() => {
+                    queueMicrotask(MEP.RoundStakeCapture.onMutationTick);
+                });
+                MEP.RoundStakeCapture.state.observer.observe(body, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                });
+
+                MEP.RoundStakeCapture.onMutationTick();
+
+                // fallback на случай полной замены контейнеров без мутаций текста
+                MEP.RoundStakeCapture.state.rebindTimer = setInterval(() => {
+                    MEP.RoundStakeCapture.onMutationTick();
+                }, 600);
+            },
+        };
+
+        // -------------------------
         // Main module
         // -------------------------
         MEP.Main = {
@@ -4212,6 +5104,7 @@
 
                 // остановим старые версии наблюдателей
                 MEP.Tracker.stopIfRunning();
+                MEP.RoundStakeCapture.stopIfRunning();
 
                 // CSS всегда
                 MEP.Style.injectMinCss();
@@ -4246,6 +5139,7 @@
                 MEP.UI.rebuildTrackingTable();
                 MEP.UI.render();
                 MEP.Tracker.start();
+                MEP.RoundStakeCapture.start();
 
                 // экспорт совместимого API
                 MEP.tracker = {
