@@ -2586,13 +2586,22 @@
                 const bPad = new Array(Math.max(0, stageCount - betsRealView.length)).fill(null).concat(betsRealView);
 
                 for (const p of playersPts) {
+                    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    dot.setAttribute("cx", String(p.x));
+                    dot.setAttribute("cy", String(p.y));
+                    dot.setAttribute("r", "0.55");
+                    dot.setAttribute("fill", "rgba(112,206,255,0.95)");
+                    dot.setAttribute("pointer-events", "none");
+                    svg.appendChild(dot);
+
                     const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                     hit.setAttribute("cx", String(p.x));
                     hit.setAttribute("cy", String(p.y));
-                    hit.setAttribute("r", "1.8");
+                    hit.setAttribute("r", "2.8");
                     hit.setAttribute("fill", "rgba(255,255,255,0.001)");
                     hit.setAttribute("stroke", "none");
                     hit.style.cursor = "crosshair";
+                    hit.setAttribute("data-series", "players");
 
                     hit.addEventListener("mouseenter", (ev) => {
                         const box = svg.getBoundingClientRect();
@@ -2609,13 +2618,22 @@
 
                 for (const b of betsPts) {
                     const realBet = bPad[b.stage];
+                    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    dot.setAttribute("cx", String(b.x));
+                    dot.setAttribute("cy", String(b.y));
+                    dot.setAttribute("r", "0.55");
+                    dot.setAttribute("fill", "rgba(255,170,60,0.95)");
+                    dot.setAttribute("pointer-events", "none");
+                    svg.appendChild(dot);
+
                     const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                     hit.setAttribute("cx", String(b.x));
                     hit.setAttribute("cy", String(b.y));
-                    hit.setAttribute("r", "1.8");
+                    hit.setAttribute("r", "2.8");
                     hit.setAttribute("fill", "rgba(255,255,255,0.001)");
                     hit.setAttribute("stroke", "none");
                     hit.style.cursor = "crosshair";
+                    hit.setAttribute("data-series", "bets");
 
                     hit.addEventListener("mouseenter", (ev) => {
                         const box = svg.getBoundingClientRect();
