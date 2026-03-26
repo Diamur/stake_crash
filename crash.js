@@ -1301,6 +1301,27 @@
 				border: 1px dashed rgba(255,255,255,0.22);
 				background: rgba(255,255,255,0.03);
 				}
+				#${PANEL_ID} .mep-stake-graph-wrap.mep-collapsed .mep-stake-params{
+				display:none;
+				}
+				#${PANEL_ID} .mep-graph-wrap.mep-collapsed .mep-graph-controls{
+				display:none;
+				}
+				#${PANEL_ID} .mep-stake-collapse,
+				#${PANEL_ID} .mep-main-graph-collapse{
+				border: 1px solid rgba(255,255,255,0.16);
+				background: rgba(255,255,255,0.07);
+				color:#fff;
+				border-radius: 8px;
+				padding: 1px 8px 2px;
+				font-size: 13px;
+				line-height: 1.1;
+				cursor: pointer;
+				}
+				#${PANEL_ID} .mep-stake-collapse:hover,
+				#${PANEL_ID} .mep-main-graph-collapse:hover{
+				background: rgba(255,255,255,0.14);
+				}
 				#${PANEL_ID} .mep-stake-legend{
 				display:flex;
 				align-items:center;
@@ -3161,6 +3182,9 @@
 <div class="mep-stake-graph-wrap">
     <div class="mep-graph-head">
         <div class="mep-block-title">График ставок</div>
+        <button class="mep-stake-collapse" type="button" title="Свернуть параметры">▲</button>
+    </div>
+    <div class="mep-stake-params">
         <div class="mep-stake-controls">
             <label class="mep-stake-density-label">плотн.<input class="mep-stake-density" type="number" min="10" step="1" value="81" /></label>
             <label class="mep-stake-sync-label"><input class="mep-stake-sync" type="checkbox" /><span>Синхр.</span></label>
@@ -3168,18 +3192,18 @@
             <label class="mep-stake-density-label">Клиенты масштаб<input class="mep-stake-scale-players" type="number" min="0" step="0.1" value="1" /></label>
             <label class="mep-stake-density-label">Ставки масштаб<input class="mep-stake-scale-bet" type="number" min="0" step="0.1" value="10" /></label>
         </div>
-    </div>
-    <div class="mep-stake-legend">
-        <label class="mep-stake-legend-item">
-            <input class="mep-stake-show-players" type="checkbox" checked />
-            <span class="mep-stake-legend-line mep-stake-legend-players"></span>
-            <span>Клиенты</span>
-        </label>
-        <label class="mep-stake-legend-item">
-            <input class="mep-stake-show-bet" type="checkbox" checked />
-            <span class="mep-stake-legend-line mep-stake-legend-bets"></span>
-            <span>Ставка x10</span>
-        </label>
+        <div class="mep-stake-legend">
+            <label class="mep-stake-legend-item">
+                <input class="mep-stake-show-players" type="checkbox" checked />
+                <span class="mep-stake-legend-line mep-stake-legend-players"></span>
+                <span>Клиенты</span>
+            </label>
+            <label class="mep-stake-legend-item">
+                <input class="mep-stake-show-bet" type="checkbox" checked />
+                <span class="mep-stake-legend-line mep-stake-legend-bets"></span>
+                <span>Ставка x10</span>
+            </label>
+        </div>
         </div>
     <div class="mep-stake-graph-box">
         <svg class="mep-stake-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
@@ -3188,28 +3212,29 @@
 <div class="mep-graph-wrap">
     <div class="mep-graph-head">
         <div class="mep-block-title">График</div>
-        <div class="mep-graph-controls">
-            <label class="mep-graph-label"
-                >обрезать max
-                <input class="mep-graph-max" type="number" min="0" step="0.1" />
-            </label>
-            <label class="mep-graph-label"
-                >плотность
-                <input class="mep-graph-density" type="number" min="10" step="1" />
-            </label>
-            <label class="mep-graph-label"
-                >Гор.линия
-                <input class="mep-graph-line" type="number" min="0" step="0.1" />
-            </label>
-            <label class="mep-graph-label"
-                >Гор.линия 2
-                <input class="mep-graph-line2" type="number" min="0" step="0.1" />
-            </label>
-            <label class="mep-graph-label"
-                >Гор.линия 3
-                <input class="mep-graph-line3" type="number" min="0" step="0.1" />
-            </label>
-        </div>
+        <button class="mep-main-graph-collapse" type="button" title="Свернуть параметры">▲</button>
+    </div>
+    <div class="mep-graph-controls">
+        <label class="mep-graph-label"
+            >обрезать max
+            <input class="mep-graph-max" type="number" min="0" step="0.1" />
+        </label>
+        <label class="mep-graph-label"
+            >плотность
+            <input class="mep-graph-density" type="number" min="10" step="1" />
+        </label>
+        <label class="mep-graph-label"
+            >Гор.линия
+            <input class="mep-graph-line" type="number" min="0" step="0.1" />
+        </label>
+        <label class="mep-graph-label"
+            >Гор.линия 2
+            <input class="mep-graph-line2" type="number" min="0" step="0.1" />
+        </label>
+        <label class="mep-graph-label"
+            >Гор.линия 3
+            <input class="mep-graph-line3" type="number" min="0" step="0.1" />
+        </label>
     </div>
     <div class="mep-graph-box">
         <svg class="mep-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
@@ -3312,8 +3337,14 @@
                     graphLineInput: panel.querySelector("input.mep-graph-line"),
                     graphLine2Input: panel.querySelector("input.mep-graph-line2"),
                     graphLine3Input: panel.querySelector("input.mep-graph-line3"),
+                    graphWrap: panel.querySelector(".mep-graph-wrap"),
+                    graphControlsWrap: panel.querySelector(".mep-graph-controls"),
+                    graphCollapseBtn: panel.querySelector("button.mep-main-graph-collapse"),
                     graphSvg: panel.querySelector("svg.mep-graph"),
                     graphTip: panel.querySelector(".mep-graph-tip"),
+                    stakeWrap: panel.querySelector(".mep-stake-graph-wrap"),
+                    stakeParamsWrap: panel.querySelector(".mep-stake-params"),
+                    stakeCollapseBtn: panel.querySelector("button.mep-stake-collapse"),
                     stakeGraphSvg: panel.querySelector("svg.mep-stake-graph"),
                     stakeDensityInput: panel.querySelector("input.mep-stake-density"),
                     stakeSyncInput: panel.querySelector("input.mep-stake-sync"),
@@ -3517,6 +3548,36 @@
                 MEP.Graph?.init?.(ui);
                 MEP.DiffGraph?.init?.(ui);
                 MEP.StakeGraph?.init?.(ui);
+
+                const applyStakeParamsCollapse = () => {
+                    if (!ui.stakeWrap || !ui.stakeCollapseBtn) return;
+                    const collapsed = !!ui._stakeParamsCollapsed;
+                    ui.stakeWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.stakeCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.stakeCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyStakeParamsCollapse();
+                if (ui.stakeCollapseBtn) {
+                    ui.stakeCollapseBtn.addEventListener("click", () => {
+                        ui._stakeParamsCollapsed = !ui._stakeParamsCollapsed;
+                        applyStakeParamsCollapse();
+                    });
+                }
+
+                const applyMainGraphParamsCollapse = () => {
+                    if (!ui.graphWrap || !ui.graphCollapseBtn) return;
+                    const collapsed = !!ui._mainGraphParamsCollapsed;
+                    ui.graphWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.graphCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.graphCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyMainGraphParamsCollapse();
+                if (ui.graphCollapseBtn) {
+                    ui.graphCollapseBtn.addEventListener("click", () => {
+                        ui._mainGraphParamsCollapsed = !ui._mainGraphParamsCollapsed;
+                        applyMainGraphParamsCollapse();
+                    });
+                }
 
                 const applyTwoParamsCollapse = () => {
                     if (!ui.twoWrap || !ui.twoCollapseBtn) return;
