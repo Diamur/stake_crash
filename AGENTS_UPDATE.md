@@ -3,3 +3,7 @@
 - Добавлены runtime-массивы roundPlayersCountHistory и roundBetSumHistory в MEP.State.
 - Добавлен RoundStakeCapture: триггер по тексту "Начинается...", ожидание стабилизации DOM (120мс, 5 стабильных тиков, timeout 5с).
 - После фиксации snapshot данные пушатся в массивы (oldest->newest) и логируются в console.
+- 2026-03-26: Добавлен toggle сворачивания параметров блока «Разницы» (runtime-only, default=развернуто).
+- В `.mep-two-stat-wrap` скрывается только `.mep-two-params`, строки `>=2/<2` и total/diff остаются видимыми.
+- Добавлен новый SVG-блок `.mep-stake-graph-wrap` над основным графиком.
+- Реализован рендер двух линий: `roundPlayersCountHistory` и `roundBetSumHistory * 10` (только для отображения).

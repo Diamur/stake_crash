@@ -883,6 +883,7 @@
 				/* === Unsupported game mode (hide everything except message) === */
 				#${PANEL_ID}.mep-unsupported .mep-diff-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-two-stat-wrap,
+				#${PANEL_ID}.mep-unsupported .mep-stake-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-modal-overlay{
 				display:none !important;
@@ -1008,6 +1009,22 @@
 				align-items: stretch;
 				gap: 8px;
 				margin: 2px 0 10px;
+				}
+				#${PANEL_ID} .mep-two-head.mep-collapsed .mep-two-params{
+				display:none;
+				}
+				#${PANEL_ID} .mep-two-collapse{
+				border: 1px solid rgba(255,255,255,0.16);
+				background: rgba(255,255,255,0.07);
+				color:#fff;
+				border-radius: 8px;
+				padding: 1px 8px 2px;
+				font-size: 13px;
+				line-height: 1.1;
+				cursor: pointer;
+				}
+				#${PANEL_ID} .mep-two-collapse:hover{
+				background: rgba(255,255,255,0.14);
 				}
 
 				#${PANEL_ID} .mep-two-topbar{
@@ -1252,6 +1269,49 @@
 				display:flex; align-items:flex-start; justify-content:space-between;
 				gap:10px;
 				margin-bottom:8px;
+				}
+				#${PANEL_ID} .mep-stake-graph-wrap{
+				margin: 12px;
+				margin-bottom: 0;
+				padding: 10px 12px 12px;
+				border: 1px dashed rgba(255,255,255,0.22);
+				background: rgba(255,255,255,0.03);
+				}
+				#${PANEL_ID} .mep-stake-legend{
+				display:flex;
+				align-items:center;
+				gap:12px;
+				font-size: 12px;
+				opacity: 0.92;
+				}
+				#${PANEL_ID} .mep-stake-legend-item{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				}
+				#${PANEL_ID} .mep-stake-legend-line{
+				display:inline-block;
+				width:14px;
+				height:2px;
+				border-radius: 4px;
+				}
+				#${PANEL_ID} .mep-stake-legend-line.mep-stake-legend-players{
+				background: rgba(112,206,255,0.95);
+				}
+				#${PANEL_ID} .mep-stake-legend-line.mep-stake-legend-bets{
+				background: rgba(255,170,60,0.95);
+				}
+				#${PANEL_ID} .mep-stake-graph-box{
+				position:relative;
+				height:120px;
+				border-top:1px solid rgba(255,255,255,0.10);
+				padding-top:8px;
+				margin-top:6px;
+				}
+				#${PANEL_ID} .mep-stake-graph{
+				width:100%;
+				height:100%;
+				display:block;
 				}
 				.mep-graph-controls{
 				display:flex;
@@ -2285,6 +2345,82 @@
         };
 
         // -------------------------
+        // Stake graph (players + bet*10)
+        // -------------------------
+        MEP.StakeGraph = {
+            _ui: null,
+            init(ui) {
+                this._ui = ui || null;
+            },
+
+            _toFiniteArray(arr) {
+                if (!Array.isArray(arr)) return [];
+                return arr.map((v) => Number(v)).filter((v) => Number.isFinite(v));
+            },
+
+            _polylinePoints(values, yMax, vbW, vbH) {
+                if (!values.length || yMax <= 0) return "";
+                if (values.length === 1) {
+                    const y = vbH - (values[0] / yMax) * (vbH - 2) - 1;
+                    return `0,${Math.max(1, Math.min(vbH - 1, y))} ${vbW},${Math.max(1, Math.min(vbH - 1, y))}`;
+                }
+
+                const stepX = vbW / (values.length - 1);
+                const pts = [];
+                for (let i = 0; i < values.length; i++) {
+                    const x = i * stepX;
+                    const y = vbH - (values[i] / yMax) * (vbH - 2) - 1;
+                    const ySafe = Math.max(1, Math.min(vbH - 1, y));
+                    pts.push(`${x},${ySafe}`);
+                }
+                return pts.join(" ");
+            },
+
+            render() {
+                const ui = this._ui;
+                if (!ui?.stakeGraphSvg) return;
+
+                const svg = ui.stakeGraphSvg;
+                svg.innerHTML = "";
+
+                const players = this._toFiniteArray(MEP.State.roundPlayersCountHistory);
+                const betsScaled = this._toFiniteArray(MEP.State.roundBetSumHistory).map((v) => v * 10);
+
+                const vbW = 100;
+                const vbH = 60;
+                const all = players.concat(betsScaled);
+                const yMax = Math.max(1, ...all, 1);
+
+                const makePolyline = (points, color) => {
+                    if (!points) return;
+                    const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    pl.setAttribute("points", points);
+                    pl.setAttribute("fill", "none");
+                    pl.setAttribute("stroke", color);
+                    pl.setAttribute("stroke-width", "1.1");
+                    pl.setAttribute("stroke-linejoin", "round");
+                    pl.setAttribute("stroke-linecap", "round");
+                    svg.appendChild(pl);
+                };
+
+                const base = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                base.setAttribute("x1", "0");
+                base.setAttribute("x2", String(vbW));
+                base.setAttribute("y1", String(vbH - 1));
+                base.setAttribute("y2", String(vbH - 1));
+                base.setAttribute("stroke", "rgba(255,255,255,0.20)");
+                base.setAttribute("stroke-width", "0.4");
+                svg.appendChild(base);
+
+                const playersPoints = this._polylinePoints(players, yMax, vbW, vbH);
+                const betsPoints = this._polylinePoints(betsScaled, yMax, vbW, vbH);
+
+                makePolyline(playersPoints, "rgba(112,206,255,0.95)");
+                makePolyline(betsPoints, "rgba(255,170,60,0.95)");
+            },
+        };
+
+        // -------------------------
         // UI module
         // -------------------------
         MEP.UI = {
@@ -2625,20 +2761,23 @@
                 <input class="mep-two-all" type="checkbox" />
                 <span>вся история</span>
             </label>
+            <button class="mep-two-collapse" type="button" title="Свернуть параметры">▲</button>
         </div>
 
-        <div class="mep-two-subrow">
-            <span class="mep-two-head-label start">Старт</span>
-            <input class="mep-two-start" type="number" min="0" step="1" value="0" />
-        </div>
+        <div class="mep-two-params">
+            <div class="mep-two-subrow">
+                <span class="mep-two-head-label start">Старт</span>
+                <input class="mep-two-start" type="number" min="0" step="1" value="0" />
+            </div>
 
-        <div class="mep-two-subrow">
-            <span class="mep-two-dens-label">плотность</span>
-            <input class="mep-diff-density" type="number" min="10" step="1" value="81" />
-            <label class="mep-diff-sync-label">
-                <input class="mep-diff-sync" type="checkbox" />
-                <span>синхр.</span>
-            </label>
+            <div class="mep-two-subrow">
+                <span class="mep-two-dens-label">плотность</span>
+                <input class="mep-diff-density" type="number" min="10" step="1" value="81" />
+                <label class="mep-diff-sync-label">
+                    <input class="mep-diff-sync" type="checkbox" />
+                    <span>синхр.</span>
+                </label>
+            </div>
         </div>
 
     </div>
@@ -2655,6 +2794,24 @@
             <div class="mep-two-fill lt" style="width: 0%"></div>
         </div>
         <div class="mep-two-right"><span class="mep-two-pct lt">0%</span></div>
+    </div>
+</div>
+<div class="mep-stake-graph-wrap">
+    <div class="mep-graph-head">
+        <div class="mep-block-title">График ставок</div>
+        <div class="mep-stake-legend">
+            <span class="mep-stake-legend-item">
+                <span class="mep-stake-legend-line mep-stake-legend-players"></span>
+                <span>Клиенты</span>
+            </span>
+            <span class="mep-stake-legend-item">
+                <span class="mep-stake-legend-line mep-stake-legend-bets"></span>
+                <span>Ставка x10</span>
+            </span>
+        </div>
+    </div>
+    <div class="mep-stake-graph-box">
+        <svg class="mep-stake-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
     </div>
 </div>
 <div class="mep-graph-wrap">
@@ -2755,6 +2912,9 @@
                     diffWrap: panel.querySelector(".mep-diff-wrap"),
                     diffSvg: panel.querySelector("svg.mep-diff"),
                     twoWrap: panel.querySelector(".mep-two-stat-wrap"),
+                    twoHead: panel.querySelector(".mep-two-head"),
+                    twoParamsWrap: panel.querySelector(".mep-two-params"),
+                    twoCollapseBtn: panel.querySelector("button.mep-two-collapse"),
                     twoLastN: panel.querySelector("input.mep-two-lastn"),
                     twoStartInput: panel.querySelector("input.mep-two-start"),
                     diffDensityInput: panel.querySelector("input.mep-diff-density"),
@@ -2778,6 +2938,7 @@
                     graphLine2Input: panel.querySelector("input.mep-graph-line2"),
                     graphSvg: panel.querySelector("svg.mep-graph"),
                     graphTip: panel.querySelector(".mep-graph-tip"),
+                    stakeGraphSvg: panel.querySelector("svg.mep-stake-graph"),
 
                     xInputs: [...panel.querySelectorAll("input.mep-x")],
                     colorInputs: [...panel.querySelectorAll("input.mep-color")],
@@ -2880,6 +3041,22 @@
 
                 MEP.Graph?.init?.(ui);
                 MEP.DiffGraph?.init?.(ui);
+                MEP.StakeGraph?.init?.(ui);
+
+                const applyTwoParamsCollapse = () => {
+                    if (!ui.twoHead || !ui.twoCollapseBtn) return;
+                    const collapsed = !!ui._twoParamsCollapsed;
+                    ui.twoHead.classList.toggle("mep-collapsed", collapsed);
+                    ui.twoCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.twoCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyTwoParamsCollapse();
+                if (ui.twoCollapseBtn) {
+                    ui.twoCollapseBtn.addEventListener("click", () => {
+                        ui._twoParamsCollapsed = !ui._twoParamsCollapsed;
+                        applyTwoParamsCollapse();
+                    });
+                }
 
                 // -------------------------
                 // Diff density controls (2-й график)
@@ -3556,6 +3733,7 @@
 
                 MEP.UI.updateTrackingTable();
                 MEP.UI.updateTwoStats();
+                MEP.StakeGraph?.render?.();
                 MEP.Graph?.render?.();
             },
 
