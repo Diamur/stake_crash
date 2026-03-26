@@ -17,3 +17,4 @@
 - 2026-03-26: Для `MEP.StakeGraph` добавлены отдельные hit-targets/точки по сериям `players` и `bets` (radius 2.8), tooltip остаётся строго series-specific.
 - 2026-03-26: В легенду `График ставок` добавлены чекбоксы показа серий (`stakeGraphShowPlayers`, `stakeGraphShowBet`) с persistence и условным рендером линий/hit-targets.
 - 2026-03-26: Добавлены видимые стили для `mep-stake-show-players` и `mep-stake-show-bet` (как у `mep-stake-sync`) без изменения логики переключения.
+- 2026-03-26: В `График ставок` добавлены ручные масштабы `stakeGraphPlayersScale` (default 1) и `stakeGraphBetScale` (default 10) с persistence и применением только в рендере.

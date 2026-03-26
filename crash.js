@@ -535,6 +535,8 @@
                     graphDensity: MEP.State.graphDensity,
                     stakeGraphDensity: MEP.State.stakeGraphDensity,
                     stakeGraphDensitySync: MEP.State.stakeGraphDensitySync,
+                    stakeGraphPlayersScale: MEP.State.stakeGraphPlayersScale,
+                    stakeGraphBetScale: MEP.State.stakeGraphBetScale,
                     stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
                     stakeGraphShowBet: MEP.State.stakeGraphShowBet,
                     graphLine: MEP.State.graphLine,
@@ -575,6 +577,8 @@
                         if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
                         if (typeof data.stakeGraphDensity === "number") MEP.State.stakeGraphDensity = data.stakeGraphDensity;
                         if (typeof data.stakeGraphDensitySync === "boolean") MEP.State.stakeGraphDensitySync = data.stakeGraphDensitySync;
+                        if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
+                        if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                         if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                         if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                         if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
@@ -604,6 +608,8 @@
                     if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
                     if (typeof data.stakeGraphDensity === "number") MEP.State.stakeGraphDensity = data.stakeGraphDensity;
                     if (typeof data.stakeGraphDensitySync === "boolean") MEP.State.stakeGraphDensitySync = data.stakeGraphDensitySync;
+                    if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
+                    if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                     if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                     if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                     if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
@@ -1301,6 +1307,8 @@
 				align-items:center;
 				gap:10px;
 				font-size:12px;
+				flex-wrap: wrap;
+				justify-content: flex-end;
 				}
 				#${PANEL_ID} .mep-stake-density-label{
 				display:inline-flex;
@@ -1309,6 +1317,17 @@
 				}
 				#${PANEL_ID} input.mep-stake-density{
 				width:52px;
+				border-radius:8px;
+				border: 1px solid rgba(255,255,255,0.10);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding: 0 8px;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} input.mep-stake-scale-players,
+				#${PANEL_ID} input.mep-stake-scale-bet{
+				width:58px;
 				border-radius:8px;
 				border: 1px solid rgba(255,255,255,0.10);
 				background: rgba(255,255,255,0.06);
@@ -1495,6 +1514,8 @@
             graphDensity: typeof MEP.graphDensity === "number" ? MEP.graphDensity : 100,
             stakeGraphDensity: typeof MEP.stakeGraphDensity === "number" ? MEP.stakeGraphDensity : 81,
             stakeGraphDensitySync: !!MEP.stakeGraphDensitySync,
+            stakeGraphPlayersScale: typeof MEP.stakeGraphPlayersScale === "number" ? MEP.stakeGraphPlayersScale : 1,
+            stakeGraphBetScale: typeof MEP.stakeGraphBetScale === "number" ? MEP.stakeGraphBetScale : 10,
             stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
             stakeGraphShowBet: ("stakeGraphShowBet" in MEP) ? !!MEP.stakeGraphShowBet : true,
             graphLine: typeof MEP.graphLine === "number" ? MEP.graphLine : 0,
@@ -2569,11 +2590,17 @@
                     betsRealView = this._tailWithDensity(betsRealRaw, MEP.State.stakeGraphDensity);
                 }
 
-                const betsScaledView = betsRealView.map((v) => v * 10); // только для рендера
+                let playersScale = Number(MEP.State.stakeGraphPlayersScale);
+                if (!Number.isFinite(playersScale) || playersScale < 0) playersScale = 1;
+                let betScale = Number(MEP.State.stakeGraphBetScale);
+                if (!Number.isFinite(betScale) || betScale < 0) betScale = 10;
+
+                const playersScaledView = playersView.map((v) => v * playersScale); // только для рендера
+                const betsScaledView = betsRealView.map((v) => v * betScale); // только для рендера
                 const vbW = 100;
                 const vbH = 60;
                 const stageCount = Math.max(playersView.length, betsRealView.length);
-                const all = playersView.concat(betsScaledView);
+                const all = playersScaledView.concat(betsScaledView);
                 const yMax = Math.max(1, ...all, 1);
                 const stepX = stageCount <= 1 ? 0 : vbW / (stageCount - 1);
 
@@ -2602,7 +2629,7 @@
                     svg.appendChild(ln);
                 }
 
-                const playersPts = this._buildPoints(playersView, stageCount, yMax, vbW, vbH);
+                const playersPts = this._buildPoints(playersScaledView, stageCount, yMax, vbW, vbH);
                 const betsPts = this._buildPoints(betsScaledView, stageCount, yMax, vbW, vbH);
                 const showPlayers = MEP.State.stakeGraphShowPlayers !== false;
                 const showBet = MEP.State.stakeGraphShowBet !== false;
@@ -2623,6 +2650,7 @@
                 if (showBet) makePolyline(betsPts, "rgba(255,170,60,0.95)");
 
                 // tooltip hit targets per series
+                const pPad = new Array(Math.max(0, stageCount - playersView.length)).fill(null).concat(playersView);
                 const bPad = new Array(Math.max(0, stageCount - betsRealView.length)).fill(null).concat(betsRealView);
 
                 if (showPlayers) for (const p of playersPts) {
@@ -2645,7 +2673,7 @@
 
                     hit.addEventListener("mouseenter", (ev) => {
                         const box = svg.getBoundingClientRect();
-                        const txt = `Этап: ${p.stage + 1}\nКлиенты: ${p.value}`;
+                        const txt = `Этап: ${p.stage + 1}\nКлиенты: ${pPad[p.stage]}`;
                         this._setTip(txt, ev.clientX - box.left + 10);
                     });
                     hit.addEventListener("mousemove", (ev) => {
@@ -3069,6 +3097,8 @@
         <div class="mep-stake-controls">
             <label class="mep-stake-density-label">плотн.<input class="mep-stake-density" type="number" min="10" step="1" value="81" /></label>
             <label class="mep-stake-sync-label"><input class="mep-stake-sync" type="checkbox" /><span>Синхр.</span></label>
+            <label class="mep-stake-density-label">Клиенты масштаб<input class="mep-stake-scale-players" type="number" min="0" step="0.1" value="1" /></label>
+            <label class="mep-stake-density-label">Ставки масштаб<input class="mep-stake-scale-bet" type="number" min="0" step="0.1" value="10" /></label>
         </div>
     </div>
     <div class="mep-stake-legend">
@@ -3214,6 +3244,8 @@
                     stakeGraphSvg: panel.querySelector("svg.mep-stake-graph"),
                     stakeDensityInput: panel.querySelector("input.mep-stake-density"),
                     stakeSyncInput: panel.querySelector("input.mep-stake-sync"),
+                    stakePlayersScaleInput: panel.querySelector("input.mep-stake-scale-players"),
+                    stakeBetScaleInput: panel.querySelector("input.mep-stake-scale-bet"),
                     stakeShowPlayersInput: panel.querySelector("input.mep-stake-show-players"),
                     stakeShowBetInput: panel.querySelector("input.mep-stake-show-bet"),
 
@@ -3335,6 +3367,36 @@
                     ui.stakeSyncInput.addEventListener("change", () => {
                         MEP.State.stakeGraphDensitySync = !!ui.stakeSyncInput.checked;
                         if (ui.stakeDensityInput) ui.stakeDensityInput.disabled = !!MEP.State.stakeGraphDensitySync;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakePlayersScaleInput) {
+                    let v = Number(MEP.State.stakeGraphPlayersScale);
+                    if (!Number.isFinite(v) || v < 0) v = 1;
+                    MEP.State.stakeGraphPlayersScale = v;
+                    ui.stakePlayersScaleInput.value = String(v);
+                    ui.stakePlayersScaleInput.addEventListener("input", () => {
+                        let n = Number(ui.stakePlayersScaleInput.value);
+                        if (!Number.isFinite(n) || n < 0) n = 1;
+                        ui.stakePlayersScaleInput.value = String(n);
+                        MEP.State.stakeGraphPlayersScale = n;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakeBetScaleInput) {
+                    let v = Number(MEP.State.stakeGraphBetScale);
+                    if (!Number.isFinite(v) || v < 0) v = 10;
+                    MEP.State.stakeGraphBetScale = v;
+                    ui.stakeBetScaleInput.value = String(v);
+                    ui.stakeBetScaleInput.addEventListener("input", () => {
+                        let n = Number(ui.stakeBetScaleInput.value);
+                        if (!Number.isFinite(n) || n < 0) n = 10;
+                        ui.stakeBetScaleInput.value = String(n);
+                        MEP.State.stakeGraphBetScale = n;
                         MEP.Storage.save();
                         MEP.StakeGraph?.render?.();
                     });
