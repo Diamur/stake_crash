@@ -27,3 +27,6 @@
 - Добавлены state/persistence поля: `frequencyThreshold`, `frequencyPeriod`, `frequencyGraphDensity`, `frequencyGraphDensitySync`.
 - В UI добавлены параметры: `Множитель`, `Период`, `Плотн.`, `Синхр.` + их bind/save/load.
 - Реализован sync частотного графика с master длиной видимого diff-графика (правое выравнивание и safe fallback).
+- 2026-03-27: Доработан `График частотности` — добавлен параметр `Гор.линия` (`frequencyGraphLine`) с persistence и рендером пунктирной горизонтальной линии.
+- В `MEP.FrequencyGraph` добавлен tooltip по hover-точкам: `Этап: N` и `Частотность: X`.
+- Добавлены UI/input-bind для `mep-frequency-line`, нормализация `>= 0`, сохранение в storage и ререндер графика.
