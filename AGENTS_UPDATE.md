@@ -22,3 +22,8 @@
 - 2026-03-26: Добавлен чекбокс `Автовысота` (`stakeGraphAutoHeight`) для `MEP.StakeGraph` с persistence; при включении каждая видимая серия нормализуется по собственным min/max.
 - 2026-03-26: Для первого графика (`MEP.Graph`) добавлена `Гор.линия 3` (`graphLine3`) с UI, persistence и независимым рендером третьей пунктирной горизонтальной линии.
 - 2026-03-26: Добавлены независимые toggle-кнопки сворачивания параметров для `График ставок` и первого `График` (скрываются только params-контейнеры, SVG остаётся видимым).
+- 2026-03-27: Добавлен новый блок `.mep-frequency-graph-wrap` перед «График ставок» с отдельным SVG и toggle параметров.
+- Добавлен модуль `MEP.FrequencyGraph` (init/render): rolling частотность `count(x > threshold)` по окну `period`, источник `MEP.State.list` (newest-first -> oldest-first).
+- Добавлены state/persistence поля: `frequencyThreshold`, `frequencyPeriod`, `frequencyGraphDensity`, `frequencyGraphDensitySync`.
+- В UI добавлены параметры: `Множитель`, `Период`, `Плотн.`, `Синхр.` + их bind/save/load.
+- Реализован sync частотного графика с master длиной видимого diff-графика (правое выравнивание и safe fallback).
