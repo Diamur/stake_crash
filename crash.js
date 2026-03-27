@@ -540,6 +540,11 @@
                     stakeGraphBetScale: MEP.State.stakeGraphBetScale,
                     stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
                     stakeGraphShowBet: MEP.State.stakeGraphShowBet,
+                    frequencyThreshold: MEP.State.frequencyThreshold,
+                    frequencyPeriod: MEP.State.frequencyPeriod,
+                    frequencyGraphDensity: MEP.State.frequencyGraphDensity,
+                    frequencyGraphDensitySync: MEP.State.frequencyGraphDensitySync,
+                    frequencyGraphLine: MEP.State.frequencyGraphLine,
                     graphLine: MEP.State.graphLine,
                     graphLine2: MEP.State.graphLine2,
                     graphLine3: MEP.State.graphLine3,
@@ -584,6 +589,11 @@
                         if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                         if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                         if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
+                        if (typeof data.frequencyThreshold === "number") MEP.State.frequencyThreshold = data.frequencyThreshold;
+                        if (typeof data.frequencyPeriod === "number") MEP.State.frequencyPeriod = data.frequencyPeriod;
+                        if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
+                        if (typeof data.frequencyGraphDensitySync === "boolean") MEP.State.frequencyGraphDensitySync = data.frequencyGraphDensitySync;
+                        if (typeof data.frequencyGraphLine === "number") MEP.State.frequencyGraphLine = data.frequencyGraphLine;
                         if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                         if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
                         if (typeof data.graphLine3 === "number") MEP.State.graphLine3 = data.graphLine3;
@@ -617,6 +627,11 @@
                     if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                     if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                     if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
+                    if (typeof data.frequencyThreshold === "number") MEP.State.frequencyThreshold = data.frequencyThreshold;
+                    if (typeof data.frequencyPeriod === "number") MEP.State.frequencyPeriod = data.frequencyPeriod;
+                    if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
+                    if (typeof data.frequencyGraphDensitySync === "boolean") MEP.State.frequencyGraphDensitySync = data.frequencyGraphDensitySync;
+                    if (typeof data.frequencyGraphLine === "number") MEP.State.frequencyGraphLine = data.frequencyGraphLine;
                     if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                     if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
                     if (typeof data.graphLine3 === "number") MEP.State.graphLine3 = data.graphLine3;
@@ -907,6 +922,7 @@
 				/* === Unsupported game mode (hide everything except message) === */
 				#${PANEL_ID}.mep-unsupported .mep-diff-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-two-stat-wrap,
+				#${PANEL_ID}.mep-unsupported .mep-frequency-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-stake-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-modal-overlay{
@@ -1308,12 +1324,25 @@
 				margin-top: 0px;
 				padding-top: 0px;
 				}
+				#${PANEL_ID} .mep-frequency-graph-wrap{
+				margin: 12px;
+				margin-bottom: 0;
+				padding: 10px 12px 12px;
+				border: 1px dashed rgba(255,255,255,0.22);
+				background: rgba(255,255,255,0.03);
+				margin-top: 0px;
+				padding-top: 0px;
+				}
 				#${PANEL_ID} .mep-stake-graph-wrap.mep-collapsed .mep-stake-params{
+				display:none;
+				}
+				#${PANEL_ID} .mep-frequency-graph-wrap.mep-collapsed .mep-frequency-params{
 				display:none;
 				}
 				#${PANEL_ID} .mep-graph-wrap.mep-collapsed .mep-graph-controls{
 				display:none;
 				}
+				#${PANEL_ID} .mep-frequency-collapse,
 				#${PANEL_ID} .mep-stake-collapse,
 				#${PANEL_ID} .mep-main-graph-collapse{
 				border: 1px solid rgba(255,255,255,0.16);
@@ -1325,9 +1354,104 @@
 				line-height: 1.1;
 				cursor: pointer;
 				}
+				#${PANEL_ID} .mep-frequency-collapse:hover,
 				#${PANEL_ID} .mep-stake-collapse:hover,
 				#${PANEL_ID} .mep-main-graph-collapse:hover{
 				background: rgba(255,255,255,0.14);
+				}
+				#${PANEL_ID} .mep-frequency-params{
+				margin-bottom: 2px;
+				}
+				#${PANEL_ID} .mep-frequency-controls{
+				display:inline-flex;
+				align-items:center;
+				gap:10px;
+				font-size:12px;
+				flex-wrap: wrap;
+				justify-content: flex-end;
+				}
+				#${PANEL_ID} .mep-frequency-label{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				}
+				#${PANEL_ID} input.mep-frequency-threshold{
+				width:52px;
+				border-radius:8px;
+				border: 1px solid rgba(255,255,255,0.10);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding: 0 8px;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} input.mep-frequency-period,
+				#${PANEL_ID} input.mep-frequency-density,
+				#${PANEL_ID} input.mep-frequency-line{
+				width:58px;
+				border-radius:8px;
+				border: 1px solid rgba(255,255,255,0.10);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding: 0 8px;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} .mep-frequency-sync-label{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				cursor:pointer;
+				user-select:none;
+				}
+				#${PANEL_ID} input.mep-frequency-sync{
+				width:16px;
+				height:16px;
+				-webkit-appearance:none;
+				appearance:none;
+				border-radius:4px;
+				border:1px solid rgba(255,255,255,0.28);
+				background: rgba(255,255,255,0.06);
+				display:inline-grid;
+				place-items:center;
+				cursor:pointer;
+				}
+				#${PANEL_ID} input.mep-frequency-sync:checked{
+				background: rgba(255,255,255,0.22);
+				border-color: rgba(255,255,255,0.45);
+				}
+				#${PANEL_ID} input.mep-frequency-sync:checked::after{
+				content: "✓";
+				font-size:12px;
+				line-height:1;
+				color: rgba(255,255,255,0.92);
+				}
+				#${PANEL_ID} .mep-frequency-graph-box{
+				position:relative;
+				height:92px;
+				border-top:1px solid rgba(255,255,255,0.10);
+				padding-top:0px;
+				margin-top:0px;
+				}
+				#${PANEL_ID} .mep-frequency-graph{
+				width:100%;
+				height:100%;
+				display:block;
+				}
+				#${PANEL_ID} .mep-frequency-tip{
+				position:absolute;
+				left:10px;
+				top:6px;
+				max-width:240px;
+				white-space:pre-line;
+				font-size:12px;
+				background: rgba(0,0,0,0.75);
+				border:1px solid rgba(255,255,255,0.15);
+				border-radius:10px;
+				padding:6px 8px;
+				pointer-events:none;
+				display:none;
+				z-index:3;
 				}
 				#${PANEL_ID} .mep-stake-legend{
 				display:flex;
@@ -1575,6 +1699,11 @@
             stakeGraphBetScale: typeof MEP.stakeGraphBetScale === "number" ? MEP.stakeGraphBetScale : 10,
             stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
             stakeGraphShowBet: ("stakeGraphShowBet" in MEP) ? !!MEP.stakeGraphShowBet : true,
+            frequencyThreshold: typeof MEP.frequencyThreshold === "number" ? MEP.frequencyThreshold : 7,
+            frequencyPeriod: typeof MEP.frequencyPeriod === "number" ? MEP.frequencyPeriod : 50,
+            frequencyGraphDensity: typeof MEP.frequencyGraphDensity === "number" ? MEP.frequencyGraphDensity : 81,
+            frequencyGraphDensitySync: !!MEP.frequencyGraphDensitySync,
+            frequencyGraphLine: typeof MEP.frequencyGraphLine === "number" ? MEP.frequencyGraphLine : 0,
             graphLine: typeof MEP.graphLine === "number" ? MEP.graphLine : 0,
             graphLine2: typeof MEP.graphLine2 === "number" ? MEP.graphLine2 : 0,
             graphLine3: typeof MEP.graphLine3 === "number" ? MEP.graphLine3 : 0,
@@ -2814,6 +2943,228 @@
         };
 
         // -------------------------
+        // Frequency graph (> threshold in rolling period)
+        // -------------------------
+        MEP.FrequencyGraph = {
+            _ui: null,
+            init(ui) {
+                this._ui = ui || null;
+            },
+
+            _toOldestFirstNumbers() {
+                const src = Array.isArray(MEP.State.list) ? MEP.State.list : [];
+                const out = [];
+                for (let i = src.length - 1; i >= 0; i--) {
+                    const n = MEP.Utils.cleanToNum(src[i]);
+                    if (Number.isFinite(n)) out.push(n);
+                }
+                return out;
+            },
+
+            _buildSeries(values, threshold, period) {
+                if (!Array.isArray(values) || !values.length) return [];
+                const p = Math.max(1, Math.floor(Number(period) || 1));
+                const t = Number(threshold);
+                const thr = Number.isFinite(t) ? t : 7;
+                const prefix = new Array(values.length + 1).fill(0);
+                for (let i = 0; i < values.length; i++) {
+                    prefix[i + 1] = prefix[i] + (values[i] > thr ? 1 : 0);
+                }
+                const out = new Array(values.length);
+                for (let i = 0; i < values.length; i++) {
+                    const start = Math.max(0, i - p + 1);
+                    out[i] = prefix[i + 1] - prefix[start];
+                }
+                return out;
+            },
+
+            _getDiffVisibleLength() {
+                const history = Array.isArray(MEP.State.diffHistory) ? MEP.State.diffHistory : [];
+                const effDensity = MEP.State.diffDensitySync
+                    ? Math.max(10, Math.floor(Number(MEP.State.graphDensity || 100) || 100))
+                    : Math.max(10, Math.floor(Number(MEP.State.diffDensity || MEP.State.diffDensityManual || 81) || 81));
+                if (!history.length) return 0;
+                return Math.min(history.length, effDensity);
+            },
+
+            _tailWithDensity(arr, density) {
+                if (!arr.length) return [];
+                const d = Math.max(10, Math.floor(Number(density || 81) || 81));
+                return arr.slice(Math.max(0, arr.length - d));
+            },
+
+            _syncToMasterLen(arr, masterLen) {
+                if (!Array.isArray(arr) || !arr.length || masterLen <= 0) return [];
+                if (arr.length >= masterLen) return arr.slice(arr.length - masterLen);
+                const pad = new Array(masterLen - arr.length).fill(arr[0] ?? 0);
+                return pad.concat(arr);
+            },
+
+            _buildPoints(values, yMax, vbW, vbH) {
+                if (!values.length || yMax <= 0) return [];
+                if (values.length === 1) {
+                    const y = vbH - (values[0] / yMax) * (vbH - 2) - 1;
+                    return [{ stage: 0, x: 0, y: Math.max(1, Math.min(vbH - 1, y)), value: values[0] }];
+                }
+
+                const out = [];
+                const stepX = vbW / (values.length - 1);
+                for (let i = 0; i < values.length; i++) {
+                    const x = stepX * i;
+                    const y = vbH - (values[i] / yMax) * (vbH - 2) - 1;
+                    out.push({ stage: i, x, y: Math.max(1, Math.min(vbH - 1, y)), value: values[i] });
+                }
+                return out;
+            },
+
+            _ensureTip() {
+                const ui = this._ui;
+                if (!ui?.frequencyGraphSvg) return null;
+                if (ui.frequencyTip) return ui.frequencyTip;
+                const host = ui.frequencyGraphSvg.parentElement;
+                if (!host) return null;
+                const tip = document.createElement("div");
+                tip.className = "mep-frequency-tip";
+                host.appendChild(tip);
+                ui.frequencyTip = tip;
+                return tip;
+            },
+
+            _setTip(text, xPx) {
+                const ui = this._ui;
+                const tip = this._ensureTip();
+                if (!ui?.frequencyGraphSvg || !tip) return;
+                if (!text) {
+                    tip.style.display = "none";
+                    return;
+                }
+
+                tip.textContent = text;
+                tip.style.display = "block";
+                tip.style.top = "6px";
+                const host = ui.frequencyGraphSvg.parentElement;
+                const hostW = host?.clientWidth || 0;
+                const safeX = Number.isFinite(xPx) ? Math.max(6, xPx) : 6;
+                tip.style.left = `${safeX}px`;
+                const tipW = tip.offsetWidth || 0;
+                if (hostW > 0 && tipW > 0) {
+                    const maxLeft = Math.max(6, hostW - tipW - 6);
+                    tip.style.left = `${Math.min(safeX, maxLeft)}px`;
+                }
+            },
+
+            render() {
+                const ui = this._ui;
+                if (!ui?.frequencyGraphSvg) return;
+                const svg = ui.frequencyGraphSvg;
+                svg.innerHTML = "";
+                this._setTip("");
+
+                const threshold = Math.max(0, Number(MEP.State.frequencyThreshold) || 0);
+                const period = Math.max(1, Math.floor(Number(MEP.State.frequencyPeriod) || 1));
+                const oldestFirst = this._toOldestFirstNumbers();
+                const fullSeries = this._buildSeries(oldestFirst, threshold, period);
+
+                let viewSeries = [];
+                if (MEP.State.frequencyGraphDensitySync) {
+                    const masterLen = this._getDiffVisibleLength();
+                    viewSeries = this._syncToMasterLen(fullSeries, masterLen);
+                } else {
+                    viewSeries = this._tailWithDensity(fullSeries, MEP.State.frequencyGraphDensity);
+                }
+
+                const vbW = 100;
+                const vbH = 60;
+                const stageCount = viewSeries.length;
+                const yMax = Math.max(1, ...viewSeries, 1);
+                const points = this._buildPoints(viewSeries, yMax, vbW, vbH);
+
+                const base = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                base.setAttribute("x1", "0");
+                base.setAttribute("x2", String(vbW));
+                base.setAttribute("y1", String(vbH - 1));
+                base.setAttribute("y2", String(vbH - 1));
+                base.setAttribute("stroke", "rgba(255,255,255,0.20)");
+                base.setAttribute("stroke-width", "0.4");
+                svg.appendChild(base);
+
+                const lineValue = Math.max(0, Number(MEP.State.frequencyGraphLine) || 0);
+                if (lineValue > 0) {
+                    const y = vbH - (lineValue / yMax) * (vbH - 2) - 1;
+                    const ySafe = Math.max(-vbH * 4, Math.min(vbH * 5, y));
+                    const ln = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    ln.setAttribute("x1", "0");
+                    ln.setAttribute("x2", String(vbW));
+                    ln.setAttribute("y1", String(ySafe));
+                    ln.setAttribute("y2", String(ySafe));
+                    ln.setAttribute("stroke", "rgba(255,240,140,0.70)");
+                    ln.setAttribute("stroke-width", "0.45");
+                    ln.setAttribute("stroke-dasharray", "2 1.6");
+                    ln.setAttribute("pointer-events", "none");
+                    svg.appendChild(ln);
+                }
+
+                if (stageCount > 1) {
+                    const stepX = vbW / (stageCount - 1);
+                    for (let i = 0; i < stageCount; i++) {
+                        const x = stepX * i;
+                        const ln = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                        ln.setAttribute("x1", String(x));
+                        ln.setAttribute("x2", String(x));
+                        ln.setAttribute("y1", "0");
+                        ln.setAttribute("y2", String(vbH));
+                        ln.setAttribute("stroke", "rgba(255,255,255,0.13)");
+                        ln.setAttribute("stroke-width", "0.25");
+                        ln.setAttribute("stroke-dasharray", "1.4 1.4");
+                        ln.setAttribute("pointer-events", "none");
+                        svg.appendChild(ln);
+                    }
+                }
+
+                if (points.length) {
+                    const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    pl.setAttribute("points", points.map((p) => `${p.x},${p.y}`).join(" "));
+                    pl.setAttribute("fill", "none");
+                    pl.setAttribute("stroke", "rgba(180,241,126,0.95)");
+                    pl.setAttribute("stroke-width", "0.65");
+                    pl.setAttribute("stroke-linejoin", "round");
+                    pl.setAttribute("stroke-linecap", "round");
+                    svg.appendChild(pl);
+
+                    for (const p of points) {
+                        const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        dot.setAttribute("cx", String(p.x));
+                        dot.setAttribute("cy", String(p.y));
+                        dot.setAttribute("r", "0.5");
+                        dot.setAttribute("fill", "rgba(180,241,126,0.95)");
+                        dot.setAttribute("pointer-events", "none");
+                        svg.appendChild(dot);
+
+                        const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        hit.setAttribute("cx", String(p.x));
+                        hit.setAttribute("cy", String(p.y));
+                        hit.setAttribute("r", "2.8");
+                        hit.setAttribute("fill", "rgba(255,255,255,0.001)");
+                        hit.setAttribute("stroke", "none");
+                        hit.style.cursor = "crosshair";
+
+                        hit.addEventListener("mouseenter", (ev) => {
+                            const box = svg.getBoundingClientRect();
+                            const txt = `Этап: ${p.stage + 1}\nЧастотность: ${p.value}`;
+                            this._setTip(txt, ev.clientX - box.left + 10);
+                        });
+                        hit.addEventListener("mousemove", (ev) => {
+                            const box = svg.getBoundingClientRect();
+                            this._setTip(ui.frequencyTip?.textContent || "", ev.clientX - box.left + 10);
+                        });
+                        hit.addEventListener("mouseleave", () => this._setTip(""));
+                        svg.appendChild(hit);
+                    }
+                }
+            },
+        };
+
+        // -------------------------
         // UI module
         // -------------------------
         MEP.UI = {
@@ -3186,6 +3537,25 @@
         </div>
     </div>
 </div>
+<div class="mep-frequency-graph-wrap">
+    <div class="mep-graph-head">
+        <div class="mep-block-title">График частотности</div>
+        <button class="mep-frequency-collapse" type="button" title="Свернуть параметры">▲</button>
+    </div>
+    <div class="mep-frequency-params">
+        <div class="mep-frequency-controls">
+            <label class="mep-frequency-label">Множитель<input class="mep-frequency-threshold" type="number" min="0" step="0.01" value="7" /></label>
+            <label class="mep-frequency-label">Период<input class="mep-frequency-period" type="number" min="1" step="1" value="50" /></label>
+            <label class="mep-frequency-label">Плотн.<input class="mep-frequency-density" type="number" min="10" step="1" value="81" /></label>
+            <label class="mep-frequency-label">Гор.линия<input class="mep-frequency-line" type="number" min="0" step="0.1" value="0" /></label>
+            <label class="mep-frequency-sync-label"><input class="mep-frequency-sync" type="checkbox" /><span>Синхр.</span></label>
+        </div>
+    </div>
+    <div class="mep-frequency-graph-box">
+        <svg class="mep-frequency-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
+        <div class="mep-frequency-tip" style="display: none"></div>
+    </div>
+</div>
 <div class="mep-stake-graph-wrap">
     <div class="mep-graph-head">
         <div class="mep-block-title">График ставок</div>
@@ -3349,6 +3719,16 @@
                     graphCollapseBtn: panel.querySelector("button.mep-main-graph-collapse"),
                     graphSvg: panel.querySelector("svg.mep-graph"),
                     graphTip: panel.querySelector(".mep-graph-tip"),
+                    frequencyWrap: panel.querySelector(".mep-frequency-graph-wrap"),
+                    frequencyParamsWrap: panel.querySelector(".mep-frequency-params"),
+                    frequencyCollapseBtn: panel.querySelector("button.mep-frequency-collapse"),
+                    frequencyGraphSvg: panel.querySelector("svg.mep-frequency-graph"),
+                    frequencyThresholdInput: panel.querySelector("input.mep-frequency-threshold"),
+                    frequencyPeriodInput: panel.querySelector("input.mep-frequency-period"),
+                    frequencyDensityInput: panel.querySelector("input.mep-frequency-density"),
+                    frequencyLineInput: panel.querySelector("input.mep-frequency-line"),
+                    frequencySyncInput: panel.querySelector("input.mep-frequency-sync"),
+                    frequencyTip: panel.querySelector(".mep-frequency-tip"),
                     stakeWrap: panel.querySelector(".mep-stake-graph-wrap"),
                     stakeParamsWrap: panel.querySelector(".mep-stake-params"),
                     stakeCollapseBtn: panel.querySelector("button.mep-stake-collapse"),
@@ -3432,6 +3812,7 @@
                             if (ui.diffDensityInput) ui.diffDensityInput.value = String(v);
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
+                            if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
                         }
 
                         MEP.Storage.save();
@@ -3482,6 +3863,73 @@
                         MEP.Storage.save();
                         MEP.StakeGraph?.render?.();
                     };
+                }
+
+                if (ui.frequencyThresholdInput) {
+                    const current = Math.max(0, Number(MEP.State.frequencyThreshold) || 0);
+                    MEP.State.frequencyThreshold = current;
+                    ui.frequencyThresholdInput.value = String(current);
+                    ui.frequencyThresholdInput.addEventListener("input", () => {
+                        let v = Number(ui.frequencyThresholdInput.value);
+                        if (!Number.isFinite(v) || v < 0) v = 0;
+                        MEP.State.frequencyThreshold = v;
+                        ui.frequencyThresholdInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
+                if (ui.frequencyPeriodInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.frequencyPeriod) || 1));
+                    MEP.State.frequencyPeriod = current;
+                    ui.frequencyPeriodInput.value = String(current);
+                    ui.frequencyPeriodInput.addEventListener("input", () => {
+                        let v = Math.floor(Number(ui.frequencyPeriodInput.value) || 0);
+                        if (!Number.isFinite(v) || v < 1) v = 1;
+                        MEP.State.frequencyPeriod = v;
+                        ui.frequencyPeriodInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
+                if (ui.frequencyDensityInput) {
+                    const current = Math.max(10, Math.floor(Number(MEP.State.frequencyGraphDensity || 81) || 81));
+                    MEP.State.frequencyGraphDensity = current;
+                    ui.frequencyDensityInput.value = String(current);
+                    ui.frequencyDensityInput.addEventListener("input", () => {
+                        let v = Math.floor(Number(ui.frequencyDensityInput.value) || 0);
+                        if (!Number.isFinite(v) || v < 10) v = 10;
+                        MEP.State.frequencyGraphDensity = v;
+                        ui.frequencyDensityInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
+                if (ui.frequencyLineInput) {
+                    const current = Math.max(0, Number(MEP.State.frequencyGraphLine) || 0);
+                    MEP.State.frequencyGraphLine = current;
+                    ui.frequencyLineInput.value = String(current);
+                    ui.frequencyLineInput.addEventListener("input", () => {
+                        let v = Number(ui.frequencyLineInput.value);
+                        if (!Number.isFinite(v) || v < 0) v = 0;
+                        MEP.State.frequencyGraphLine = v;
+                        ui.frequencyLineInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
+                if (ui.frequencySyncInput) {
+                    ui.frequencySyncInput.checked = !!MEP.State.frequencyGraphDensitySync;
+                    if (ui.frequencyDensityInput) ui.frequencyDensityInput.disabled = !!MEP.State.frequencyGraphDensitySync;
+                    ui.frequencySyncInput.addEventListener("change", () => {
+                        MEP.State.frequencyGraphDensitySync = !!ui.frequencySyncInput.checked;
+                        if (ui.frequencyDensityInput) ui.frequencyDensityInput.disabled = !!MEP.State.frequencyGraphDensitySync;
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
                 }
 
                 if (ui.stakeSyncInput) {
@@ -3554,7 +4002,23 @@
 
                 MEP.Graph?.init?.(ui);
                 MEP.DiffGraph?.init?.(ui);
+                MEP.FrequencyGraph?.init?.(ui);
                 MEP.StakeGraph?.init?.(ui);
+
+                const applyFrequencyParamsCollapse = () => {
+                    if (!ui.frequencyWrap || !ui.frequencyCollapseBtn) return;
+                    const collapsed = !!ui._frequencyParamsCollapsed;
+                    ui.frequencyWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.frequencyCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.frequencyCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyFrequencyParamsCollapse();
+                if (ui.frequencyCollapseBtn) {
+                    ui.frequencyCollapseBtn.addEventListener("click", () => {
+                        ui._frequencyParamsCollapsed = !ui._frequencyParamsCollapsed;
+                        applyFrequencyParamsCollapse();
+                    });
+                }
 
                 const applyStakeParamsCollapse = () => {
                     if (!ui.stakeWrap || !ui.stakeCollapseBtn) return;
@@ -3666,11 +4130,13 @@
                             MEP.Graph?.render?.();
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
+                            if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
                         } else {
                             // синхра OFF: меняем только 2-й
                             MEP.State.diffDensity = v;
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
+                            if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
                         }
 
                         MEP.Storage.save();
@@ -3700,12 +4166,14 @@
                             MEP.Graph?.render?.();
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
+                            if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
                         } else {
                             // выключили синхру — возвращаем ручное значение 2-го
                             const v = Math.max(10, Math.floor(Number(MEP.State.diffDensityManual || 81) || 81));
                             MEP.State.diffDensity = v;
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
+                            if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
                         }
 
                         applyDiffDensityUi();
@@ -4280,6 +4748,7 @@
 
                 MEP.UI.updateTrackingTable();
                 MEP.UI.updateTwoStats();
+                MEP.FrequencyGraph?.render?.();
                 MEP.StakeGraph?.render?.();
                 MEP.Graph?.render?.();
             },
