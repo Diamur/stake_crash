@@ -652,3 +652,73 @@ body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
     text-align: center;
     width: 40px;
 }
+
+/* SAFE MODE / MVP tabs */
+#mep-control-panel .mep-main-tabs{
+  display:flex;
+  gap:8px;
+  padding:10px 12px 8px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+}
+
+#mep-control-panel .mep-main-tab-btn,
+#mep-control-panel .mep-game-tab-btn{
+  height:30px;
+  padding:0 12px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color:#fff;
+  font-size:13px;
+  cursor:pointer;
+}
+
+#mep-control-panel .mep-main-tab-btn.is-active,
+#mep-control-panel .mep-game-tab-btn.is-active{
+  background: rgba(255,255,255,0.20);
+  border-color: rgba(255,255,255,0.36);
+}
+
+#mep-control-panel .mep-tab-panel{ display:none; }
+#mep-control-panel .mep-tab-panel.is-active{ display:block; }
+
+#mep-control-panel .mep-tab-panel-main{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+}
+
+#mep-control-panel .mep-main-content{ padding-bottom:12px; }
+
+#mep-control-panel .mep-main-content > .mep-body{
+  overflow:visible;
+  flex:0 0 auto;
+}
+
+#mep-control-panel .mep-tab-panel-game{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  padding:12px;
+}
+
+#mep-control-panel .mep-game-tabs{
+  display:flex;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+#mep-control-panel .mep-game-tab-panel{
+  display:none;
+  padding:12px;
+  border:1px dashed rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.03);
+}
+
+#mep-control-panel .mep-game-tab-panel.is-active{ display:block; }
+
+#mep-control-panel .mep-game-placeholder{
+  font-size:13px;
+  opacity:0.9;
+}

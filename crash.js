@@ -917,6 +917,71 @@
 				color:#fff; cursor:pointer; font-size:18px; line-height:1;
 				}
 				#${PANEL_ID} .mep-body{ flex:1 1 auto; padding:12px; overflow:auto; }
+				#${PANEL_ID} .mep-main-tabs{
+				display:flex;
+				gap:8px;
+				padding:10px 12px 8px;
+				border-bottom:1px solid rgba(255,255,255,0.08);
+				background: rgba(255,255,255,0.03);
+				}
+				#${PANEL_ID} .mep-main-tab-btn,
+				#${PANEL_ID} .mep-game-tab-btn{
+				height:30px;
+				padding:0 12px;
+				border-radius:8px;
+				border:1px solid rgba(255,255,255,0.14);
+				background: rgba(255,255,255,0.05);
+				color:#fff;
+				font-size:13px;
+				cursor:pointer;
+				}
+				#${PANEL_ID} .mep-main-tab-btn.is-active,
+				#${PANEL_ID} .mep-game-tab-btn.is-active{
+				background: rgba(255,255,255,0.20);
+				border-color: rgba(255,255,255,0.36);
+				}
+				#${PANEL_ID} .mep-tab-panel{
+				display:none;
+				}
+				#${PANEL_ID} .mep-tab-panel.is-active{
+				display:block;
+				}
+				#${PANEL_ID} .mep-tab-panel-main{
+				flex:1 1 auto;
+				min-height:0;
+				overflow:auto;
+				}
+				#${PANEL_ID} .mep-main-content{
+				padding-bottom:12px;
+				}
+				#${PANEL_ID} .mep-main-content > .mep-body{
+				overflow:visible;
+				flex:0 0 auto;
+				}
+				#${PANEL_ID} .mep-tab-panel-game{
+				flex:1 1 auto;
+				min-height:0;
+				overflow:auto;
+				padding:12px;
+				}
+				#${PANEL_ID} .mep-game-tabs{
+				display:flex;
+				gap:8px;
+				margin-bottom:10px;
+				}
+				#${PANEL_ID} .mep-game-tab-panel{
+				display:none;
+				padding:12px;
+				border:1px dashed rgba(255,255,255,0.22);
+				background: rgba(255,255,255,0.03);
+				}
+				#${PANEL_ID} .mep-game-tab-panel.is-active{
+				display:block;
+				}
+				#${PANEL_ID} .mep-game-placeholder{
+				font-size:13px;
+				opacity:0.9;
+				}
 				#${PANEL_ID} .mep-block-title{ font-size:13px; font-weight:300; margin:4px 0 8px; }
 
 				/* === Unsupported game mode (hide everything except message) === */
@@ -3170,6 +3235,40 @@
         MEP.UI = {
             ui: null,
 
+            setMainTab(tab) {
+                const ui = MEP.UI.ui;
+                if (!ui) return;
+                const nextTab = tab === "game" ? "game" : "main";
+                ui._mainTab = nextTab;
+
+                if (ui.mainTabButtons?.length) {
+                    for (const btn of ui.mainTabButtons) {
+                        const isActive = (btn.dataset.tab || "") === nextTab;
+                        btn.classList.toggle("is-active", isActive);
+                    }
+                }
+
+                ui.mainPanel?.classList.toggle("is-active", nextTab === "main");
+                ui.gamePanel?.classList.toggle("is-active", nextTab === "game");
+            },
+
+            setGameTab(tab) {
+                const ui = MEP.UI.ui;
+                if (!ui) return;
+                const nextTab = tab === "strategy2" ? "strategy2" : "strategy1";
+                ui._gameTab = nextTab;
+
+                if (ui.gameTabButtons?.length) {
+                    for (const btn of ui.gameTabButtons) {
+                        const isActive = (btn.dataset.tab || "") === nextTab;
+                        btn.classList.toggle("is-active", isActive);
+                    }
+                }
+
+                ui.strategy1Panel?.classList.toggle("is-active", nextTab === "strategy1");
+                ui.strategy2Panel?.classList.toggle("is-active", nextTab === "strategy2");
+            },
+
             setHistoryLoading(isLoading, nextClicks = 0) {
                 const ui = MEP.UI.ui;
                 if (!ui?.historyBtn) return;
@@ -3669,6 +3768,52 @@
 </div>
 `;
 
+                const header = panel.querySelector(".mep-header");
+                const body = panel.querySelector(".mep-body");
+                const diffWrap = panel.querySelector(".mep-diff-wrap");
+                const twoWrap = panel.querySelector(".mep-two-stat-wrap");
+                const frequencyWrap = panel.querySelector(".mep-frequency-graph-wrap");
+                const stakeWrap = panel.querySelector(".mep-stake-graph-wrap");
+                const graphWrap = panel.querySelector(".mep-graph-wrap");
+
+                if (header) {
+                    const mainTabs = document.createElement("div");
+                    mainTabs.className = "mep-main-tabs";
+                    mainTabs.innerHTML = `
+<button class="mep-main-tab-btn is-active" type="button" data-tab="main">Главная</button>
+<button class="mep-main-tab-btn" type="button" data-tab="game">Игра</button>
+`;
+
+                    const mainPanel = document.createElement("div");
+                    mainPanel.className = "mep-tab-panel mep-tab-panel-main is-active";
+                    const mainContent = document.createElement("div");
+                    mainContent.className = "mep-main-content";
+                    mainPanel.appendChild(mainContent);
+
+                    const gamePanel = document.createElement("div");
+                    gamePanel.className = "mep-tab-panel mep-tab-panel-game";
+                    gamePanel.innerHTML = `
+<div class="mep-game-tabs">
+    <button class="mep-game-tab-btn is-active" type="button" data-tab="strategy1">Стратегия1</button>
+    <button class="mep-game-tab-btn" type="button" data-tab="strategy2">Стратегия2</button>
+</div>
+<div class="mep-game-tab-panel mep-game-tab-panel-strategy1 is-active">
+    <div class="mep-game-placeholder">Контент стратегии 1</div>
+</div>
+<div class="mep-game-tab-panel mep-game-tab-panel-strategy2">
+    <div class="mep-game-placeholder">Контент стратегии 2</div>
+</div>
+`;
+
+                    panel.insertBefore(mainTabs, header.nextSibling);
+                    panel.insertBefore(mainPanel, mainTabs.nextSibling);
+                    panel.insertBefore(gamePanel, mainPanel.nextSibling);
+
+                    for (const node of [body, diffWrap, twoWrap, frequencyWrap, stakeWrap, graphWrap]) {
+                        if (node) mainContent.appendChild(node);
+                    }
+                }
+
                 document.body.appendChild(panel);
                 document.body.classList.add("mep-panel-open");
 
@@ -3676,6 +3821,12 @@
 
                 MEP.UI.ui = {
                     panel,
+                    mainTabButtons: [...panel.querySelectorAll("button.mep-main-tab-btn")],
+                    mainPanel: panel.querySelector(".mep-tab-panel-main"),
+                    gamePanel: panel.querySelector(".mep-tab-panel-game"),
+                    gameTabButtons: [...panel.querySelectorAll("button.mep-game-tab-btn")],
+                    strategy1Panel: panel.querySelector(".mep-game-tab-panel-strategy1"),
+                    strategy2Panel: panel.querySelector(".mep-game-tab-panel-strategy2"),
                     textarea: panel.querySelector("textarea.mep-stats"),
                     copyBtn: panel.querySelector("button.mep-copy"),
                     sendDbBtn: panel.querySelector("button.mep-send-db"),
@@ -3784,6 +3935,26 @@
             bind() {
                 const ui = MEP.UI.ui;
                 if (!ui) return;
+
+                ui._mainTab = "main";
+                ui._gameTab = "strategy1";
+
+                if (ui.mainTabButtons?.length) {
+                    for (const btn of ui.mainTabButtons) {
+                        btn.addEventListener("click", () => {
+                            MEP.UI.setMainTab(btn.dataset.tab || "main");
+                        });
+                    }
+                }
+                if (ui.gameTabButtons?.length) {
+                    for (const btn of ui.gameTabButtons) {
+                        btn.addEventListener("click", () => {
+                            MEP.UI.setGameTab(btn.dataset.tab || "strategy1");
+                        });
+                    }
+                }
+                MEP.UI.setMainTab(ui._mainTab);
+                MEP.UI.setGameTab(ui._gameTab);
 
                 // -------------------------
                 // Graph controls
