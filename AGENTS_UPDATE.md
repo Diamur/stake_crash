@@ -1,1 +1,24 @@
 #### Журнал изменений AGENTS (append-only)
+- 2026-03-26: SAFE MODE / MVP для crash.js.
+- Добавлены runtime-массивы roundPlayersCountHistory и roundBetSumHistory в MEP.State.
+- Добавлен RoundStakeCapture: триггер по тексту "Начинается...", ожидание стабилизации DOM (120мс, 5 стабильных тиков, timeout 5с).
+- После фиксации snapshot данные пушатся в массивы (oldest->newest) и логируются в console.
+- 2026-03-26: Добавлен toggle сворачивания параметров блока «Разницы» (runtime-only, default=развернуто).
+- В `.mep-two-stat-wrap` скрывается только `.mep-two-params`, строки `>=2/<2` и total/diff остаются видимыми.
+- Добавлен новый SVG-блок `.mep-stake-graph-wrap` над основным графиком.
+- Реализован рендер двух линий: `roundPlayersCountHistory` и `roundBetSumHistory * 10` (только для отображения).
+- 2026-03-26: Доработан `MEP.StakeGraph` — вертикальные пунктирные линии по этапам и tooltip на вершинах.
+- Добавлены `stakeGraphDensity` и `stakeGraphDensitySync` в state + сохранение/загрузка через `MEP.Storage`.
+- В UI блока «График ставок» добавлены input плотности и чекбокс `Синхр.`.
+- При sync график ставок берёт master-длину видимого diff-графика и выравнивает массивы по правому краю с добивкой слева первым значением.
+- 2026-03-26: Сворачивание «Разницы» изменено — теперь скрывается весь нижний body (`.mep-two-body`), а не только параметры.
+- 2026-03-26: Контейнер `.mep-two-params` перенесён в `.mep-two-body`, чтобы toggle скрывал весь нижний блок «Разницы».
+- 2026-03-26: В `MEP.StakeGraph` линии `Клиенты` и `Ставка x10` сделаны в 2 раза тоньше; tooltip разделён по сериям (без смешанных значений).
+- 2026-03-26: Для `MEP.StakeGraph` добавлены отдельные hit-targets/точки по сериям `players` и `bets` (radius 2.8), tooltip остаётся строго series-specific.
+- 2026-03-26: В легенду `График ставок` добавлены чекбоксы показа серий (`stakeGraphShowPlayers`, `stakeGraphShowBet`) с persistence и условным рендером линий/hit-targets.
+- 2026-03-26: Добавлены видимые стили для `mep-stake-show-players` и `mep-stake-show-bet` (как у `mep-stake-sync`) без изменения логики переключения.
+- 2026-03-26: В `График ставок` добавлены ручные масштабы `stakeGraphPlayersScale` (default 1) и `stakeGraphBetScale` (default 10) с persistence и применением только в рендере.
+- 2026-03-26: В `MEP.StakeGraph` `yMax` теперь считается только по включённым сериям (`showPlayers`/`showBet`), fallback при обеих выключенных — `1`.
+- 2026-03-26: Добавлен чекбокс `Автовысота` (`stakeGraphAutoHeight`) для `MEP.StakeGraph` с persistence; при включении каждая видимая серия нормализуется по собственным min/max.
+- 2026-03-26: Для первого графика (`MEP.Graph`) добавлена `Гор.линия 3` (`graphLine3`) с UI, persistence и независимым рендером третьей пунктирной горизонтальной линии.
+- 2026-03-26: Добавлены независимые toggle-кнопки сворачивания параметров для `График ставок` и первого `График` (скрываются только params-контейнеры, SVG остаётся видимым).
