@@ -544,6 +544,7 @@
                     balanceGraphDensity: MEP.State.balanceGraphDensity,
                     balanceGraphDensitySync: MEP.State.balanceGraphDensitySync,
                     balanceGraphAutoHeight: MEP.State.balanceGraphAutoHeight,
+                    balanceGraphScale: MEP.State.balanceGraphScale,
                     frequencyThreshold: MEP.State.frequencyThreshold,
                     frequencyPeriod: MEP.State.frequencyPeriod,
                     frequencyGraphDensity: MEP.State.frequencyGraphDensity,
@@ -612,6 +613,7 @@
                         if (typeof data.balanceGraphDensity === "number") MEP.State.balanceGraphDensity = data.balanceGraphDensity;
                         if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
                         if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
+                        if (typeof data.balanceGraphScale === "number") MEP.State.balanceGraphScale = data.balanceGraphScale;
                         if (typeof data.frequencyThreshold === "number") MEP.State.frequencyThreshold = data.frequencyThreshold;
                         if (typeof data.frequencyPeriod === "number") MEP.State.frequencyPeriod = data.frequencyPeriod;
                         if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
@@ -669,6 +671,7 @@
                     if (typeof data.balanceGraphDensity === "number") MEP.State.balanceGraphDensity = data.balanceGraphDensity;
                     if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
                     if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
+                    if (typeof data.balanceGraphScale === "number") MEP.State.balanceGraphScale = data.balanceGraphScale;
                     if (typeof data.frequencyThreshold === "number") MEP.State.frequencyThreshold = data.frequencyThreshold;
                     if (typeof data.frequencyPeriod === "number") MEP.State.frequencyPeriod = data.frequencyPeriod;
                     if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
@@ -2010,6 +2013,7 @@
             balanceGraphDensity: typeof MEP.balanceGraphDensity === "number" ? MEP.balanceGraphDensity : 81,
             balanceGraphDensitySync: !!MEP.balanceGraphDensitySync,
             balanceGraphAutoHeight: !!MEP.balanceGraphAutoHeight,
+            balanceGraphScale: typeof MEP.balanceGraphScale === "number" ? MEP.balanceGraphScale : 10000000,
             frequencyThreshold: typeof MEP.frequencyThreshold === "number" ? MEP.frequencyThreshold : 7,
             frequencyPeriod: typeof MEP.frequencyPeriod === "number" ? MEP.frequencyPeriod : 50,
             frequencyGraphDensity: typeof MEP.frequencyGraphDensity === "number" ? MEP.frequencyGraphDensity : 81,
@@ -3486,27 +3490,32 @@
                 const balanceRaw = this._toFiniteArray(MEP.State.balanceHistory);
                 const syncOn = !!MEP.State.balanceGraphDensitySync;
                 const autoHeight = !!MEP.State.balanceGraphAutoHeight;
+                let graphScale = Number(MEP.State.balanceGraphScale);
+                if (!Number.isFinite(graphScale) || graphScale <= 0) graphScale = 10000000;
 
-                let balanceView = [];
+                let balanceViewRaw = [];
                 if (syncOn) {
                     const masterLen = this._getDiffVisibleLength();
-                    balanceView = this._syncToMasterLen(balanceRaw, masterLen);
+                    balanceViewRaw = this._syncToMasterLen(balanceRaw, masterLen);
                 } else {
-                    balanceView = this._tailWithDensity(balanceRaw, MEP.State.balanceGraphDensity);
+                    balanceViewRaw = this._tailWithDensity(balanceRaw, MEP.State.balanceGraphDensity);
                 }
+                const balanceViewScaled = balanceViewRaw.map((v) => v * graphScale);
 
                 const vbW = 100;
                 const vbH = 60;
-                const stageCount = balanceView.length;
-                const yMin = balanceView.length ? Math.min(...balanceView) : 0;
-                const yMax = balanceView.length ? Math.max(...balanceView) : 1;
-                const points = this._buildPoints(balanceView, stageCount, yMin, yMax, vbW, vbH, autoHeight);
+                const stageCount = balanceViewScaled.length;
+                const scaledMin = balanceViewScaled.length ? Math.min(...balanceViewScaled) : 0;
+                const scaledMax = balanceViewScaled.length ? Math.max(...balanceViewScaled) : 1;
+                const points = this._buildPoints(balanceViewScaled, stageCount, scaledMin, scaledMax, vbW, vbH, autoHeight);
                 const stepX = stageCount <= 1 ? 0 : vbW / (stageCount - 1);
-                const dbg = `${balanceRaw.length}|${balanceView.length}|${yMin}|${yMax}|${points.length}`;
+                const rawByStage = new Array(Math.max(0, stageCount - balanceViewRaw.length)).fill(null).concat(balanceViewRaw);
+                const dbg = `${balanceRaw.length}|${balanceViewRaw.length}|${scaledMin}|${scaledMax}|${points.length}|${graphScale}`;
                 if (dbg !== this._lastDebugKey) {
                     console.debug("[MEP.BalanceGraph] history len:", balanceRaw.length);
-                    console.debug("[MEP.BalanceGraph] visible len:", balanceView.length);
-                    console.debug("[MEP.BalanceGraph] min/max:", yMin, yMax);
+                    console.debug("[MEP.BalanceGraph] visible raw len:", balanceViewRaw.length);
+                    console.debug("[MEP.BalanceGraph] scaled min/max:", scaledMin, scaledMax);
+                    console.debug("[MEP.BalanceGraph] balanceGraphScale:", graphScale);
                     console.debug("[MEP.BalanceGraph] points:", points.length);
                     this._lastDebugKey = dbg;
                 }
@@ -3572,7 +3581,8 @@
 
                         hit.addEventListener("mouseenter", (ev) => {
                             const box = svg.getBoundingClientRect();
-                            const txt = `Баланс: ${p.value.toFixed(2)}`;
+                            const rawV = Number(rawByStage[p.stage]);
+                            const txt = `Баланс: ${Number.isFinite(rawV) ? rawV.toFixed(8) : "—"}`;
                             this._setTip(txt, ev.clientX - box.left + 10);
                         });
                         hit.addEventListener("mousemove", (ev) => {
@@ -6629,6 +6639,7 @@
             },
 
             selectors: [
+                'span[data-ds-text="true"].text-neutral-default.ds-body-md-strong',
                 '[data-testid="wallet-balance"]',
                 '[data-testid="user-balance"]',
                 '[data-testid="balance-amount"]',

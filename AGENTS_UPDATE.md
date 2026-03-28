@@ -74,3 +74,8 @@
 - Добавлен dedupe push (`same value` + антидребезг), после валидного push сразу вызывается `MEP.BalanceGraph.render()`.
 - В `MEP.Main.boot()` добавлены `MEP.BalanceCapture.stopIfRunning()` и `MEP.BalanceCapture.start()`.
 - В `MEP.BalanceGraph.render()` добавлены safe-check массива, debug-логи и fallback для 1 точки (рисуется circle + hover).
+- 2026-03-28: Для BalanceCapture приоритетным источником задан `span[data-ds-text="true"].text-neutral-default.ds-body-md-strong`.
+- Добавлен state/storage-параметр `balanceGraphScale` (по умолчанию `10000000`) без UI-контрола.
+- В `MEP.BalanceGraph.render()` внедрено разделение raw/scaled: history хранит raw, геометрия строится по `raw * balanceGraphScale`.
+- Tooltip для balance-графика теперь всегда показывает raw-значение (`toFixed(8)`), без scaled коэффициента.
+- В debug balance-графика добавлены `visible raw len`, `scaled min/max`, `balanceGraphScale`.
