@@ -102,3 +102,6 @@
 - Добавлены CSS-классы `.mep-charter-sections`, `.mep-charter-section`, `.mep-charter-section-title`.
 - Для строк устава выставлена сетка `grid-template-columns: 1fr 60px auto` (как requested).
 - Сами input-классы/селекторы не менялись, поэтому refs/bind/state/storage продолжают работать без правок логики.
+- 2026-03-28: Во вкладку `Устав` добавлено явное пояснение `.mep-charter-note`: `0 = без ограничений`.
+- На все charter input добавлен `title="0 = без ограничений"`.
+- Логика state/storage/bind не менялась: 0 сохраняется как 0 и интерпретируется как отключённый лимит по UI-правилу.

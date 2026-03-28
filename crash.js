@@ -1093,6 +1093,14 @@
 				opacity:0.95;
 				margin:0 0 6px 0;
 				}
+				#${PANEL_ID} .mep-charter-note{
+				font-size:12px;
+				opacity:0.82;
+				margin: 0 0 8px 0;
+				padding: 4px 6px;
+				border: 1px dashed rgba(255,255,255,0.16);
+				background: rgba(255,255,255,0.02);
+				}
 				#${PANEL_ID} .mep-charter-row{
 				display:grid;
 				grid-template-columns: 1fr 60px auto;
@@ -4632,36 +4640,37 @@
     <button class="mep-game-tab-btn" type="button" data-tab="strategy2">Стратегия2</button>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-charter is-active">
+    <div class="mep-charter-note">0 = без ограничений</div>
     <div class="mep-charter-sections">
         <div class="mep-charter-section">
             <div class="mep-charter-section-title">Нагрузка</div>
             <div class="mep-charter-form">
-                <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов в час</span><input class="mep-charter-input mep-charter-rounds-hour" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
-                <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов за 6 часов</span><input class="mep-charter-input mep-charter-rounds-6h" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
-                <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов за сутки</span><input class="mep-charter-input mep-charter-rounds-day" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов в час</span><input class="mep-charter-input mep-charter-rounds-hour" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов за 6 часов</span><input class="mep-charter-input mep-charter-rounds-6h" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов за сутки</span><input class="mep-charter-input mep-charter-rounds-day" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
             </div>
         </div>
         <div class="mep-charter-section">
             <div class="mep-charter-section-title">Результативность</div>
             <div class="mep-charter-form">
-                <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей в час</span><input class="mep-charter-input mep-charter-wins-hour" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
-                <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей за 6 часов</span><input class="mep-charter-input mep-charter-wins-6h" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
-                <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей за сутки</span><input class="mep-charter-input mep-charter-wins-day" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей в час</span><input class="mep-charter-input mep-charter-wins-hour" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей за 6 часов</span><input class="mep-charter-input mep-charter-wins-6h" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей за сутки</span><input class="mep-charter-input mep-charter-wins-day" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
             </div>
         </div>
         <div class="mep-charter-section">
             <div class="mep-charter-section-title">Ограничение потерь</div>
             <div class="mep-charter-form">
-                <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за час</span><input class="mep-charter-input mep-charter-losses-hour" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
-                <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за 6 часов</span><input class="mep-charter-input mep-charter-losses-6h" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
-                <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за день</span><input class="mep-charter-input mep-charter-losses-day" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
-                <div class="mep-charter-row"><span class="mep-charter-label">время перерыва после трех подряд проигрышей</span><input class="mep-charter-input mep-charter-break-3loss-min" type="number" min="0" step="1" /><span class="mep-charter-suffix">мин</span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за час</span><input class="mep-charter-input mep-charter-losses-hour" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за 6 часов</span><input class="mep-charter-input mep-charter-losses-6h" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за день</span><input class="mep-charter-input mep-charter-losses-day" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">время перерыва после трех подряд проигрышей</span><input class="mep-charter-input mep-charter-break-3loss-min" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix">мин</span></div>
             </div>
         </div>
         <div class="mep-charter-section">
             <div class="mep-charter-section-title">Риск-менеджмент</div>
             <div class="mep-charter-form">
-                <div class="mep-charter-row"><span class="mep-charter-label">процент макс от баланса для ставки</span><input class="mep-charter-input mep-charter-max-stake-percent" type="number" min="0" step="0.1" /><span class="mep-charter-suffix">%</span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">процент макс от баланса для ставки</span><input class="mep-charter-input mep-charter-max-stake-percent" type="number" min="0" step="0.1" title="0 = без ограничений" /><span class="mep-charter-suffix">%</span></div>
             </div>
         </div>
     </div>
