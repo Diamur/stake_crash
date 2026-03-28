@@ -69,3 +69,8 @@
 - В UI добавлены параметры `плотн./Синхр./Автовысота` + отдельный collapse `ui._balanceParamsCollapsed` (скрывает только параметры).
 - Реализован sync длины окна с master diff-графиком при `balanceGraphDensitySync=true` через видимую длину diffHistory.
 - Добавлен tooltip по hover-точкам в формате `Баланс: 123.45` без этапа/индекса.
+- 2026-03-28: Точечный фикс `График баланса` — причина пустого графика была в непополняемом `MEP.State.balanceHistory`.
+- Добавлен `MEP.BalanceCapture` (DOM observer + polling fallback): читает текущий баланс из набора селекторов и накапливает историю (oldest->newest).
+- Добавлен dedupe push (`same value` + антидребезг), после валидного push сразу вызывается `MEP.BalanceGraph.render()`.
+- В `MEP.Main.boot()` добавлены `MEP.BalanceCapture.stopIfRunning()` и `MEP.BalanceCapture.start()`.
+- В `MEP.BalanceGraph.render()` добавлены safe-check массива, debug-логи и fallback для 1 точки (рисуется circle + hover).

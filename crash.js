@@ -3385,6 +3385,7 @@
         // -------------------------
         MEP.BalanceGraph = {
             _ui: null,
+            _lastDebugKey: "",
             init(ui) {
                 this._ui = ui || null;
             },
@@ -3477,6 +3478,7 @@
             render() {
                 const ui = this._ui;
                 if (!ui?.balanceGraphSvg) return;
+                if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
                 const svg = ui.balanceGraphSvg;
                 svg.innerHTML = "";
                 this._setTip("");
@@ -3500,6 +3502,14 @@
                 const yMax = balanceView.length ? Math.max(...balanceView) : 1;
                 const points = this._buildPoints(balanceView, stageCount, yMin, yMax, vbW, vbH, autoHeight);
                 const stepX = stageCount <= 1 ? 0 : vbW / (stageCount - 1);
+                const dbg = `${balanceRaw.length}|${balanceView.length}|${yMin}|${yMax}|${points.length}`;
+                if (dbg !== this._lastDebugKey) {
+                    console.debug("[MEP.BalanceGraph] history len:", balanceRaw.length);
+                    console.debug("[MEP.BalanceGraph] visible len:", balanceView.length);
+                    console.debug("[MEP.BalanceGraph] min/max:", yMin, yMax);
+                    console.debug("[MEP.BalanceGraph] points:", points.length);
+                    this._lastDebugKey = dbg;
+                }
 
                 const base = document.createElementNS("http://www.w3.org/2000/svg", "line");
                 base.setAttribute("x1", "0");
@@ -3524,15 +3534,32 @@
                     svg.appendChild(ln);
                 }
 
-                if (points.length) {
+                if (!points.length) {
+                    console.debug("[MEP.BalanceGraph] skipped: empty series");
+                } else {
                     const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-                    pl.setAttribute("points", points.map((p) => `${p.x},${p.y}`).join(" "));
-                    pl.setAttribute("fill", "none");
-                    pl.setAttribute("stroke", "rgba(180,241,126,0.95)");
-                    pl.setAttribute("stroke-width", "0.65");
-                    pl.setAttribute("stroke-linejoin", "round");
-                    pl.setAttribute("stroke-linecap", "round");
-                    svg.appendChild(pl);
+                    if (points.length >= 2) {
+                        pl.setAttribute("points", points.map((p) => `${p.x},${p.y}`).join(" "));
+                        pl.setAttribute("fill", "none");
+                        pl.setAttribute("stroke", "rgba(180,241,126,0.95)");
+                        pl.setAttribute("stroke-width", "0.65");
+                        pl.setAttribute("stroke-linejoin", "round");
+                        pl.setAttribute("stroke-linecap", "round");
+                        svg.appendChild(pl);
+                        console.debug("[MEP.BalanceGraph] polyline: yes");
+                    } else {
+                        const p = points[0];
+                        const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        dot.setAttribute("cx", String(p.x));
+                        dot.setAttribute("cy", String(p.y));
+                        dot.setAttribute("r", "1.25");
+                        dot.setAttribute("fill", "rgba(180,241,126,0.95)");
+                        dot.setAttribute("stroke", "rgba(180,241,126,0.95)");
+                        dot.setAttribute("stroke-width", "0.2");
+                        dot.setAttribute("pointer-events", "none");
+                        svg.appendChild(dot);
+                        console.debug("[MEP.BalanceGraph] polyline: no (single point fallback)");
+                    }
 
                     for (const p of points) {
                         const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -6591,6 +6618,120 @@
         };
 
         // -------------------------
+        // Balance capture module (DOM observer, runtime-only history)
+        // -------------------------
+        MEP.BalanceCapture = {
+            state: {
+                observer: null,
+                rebindTimer: null,
+                lastValue: null,
+                lastPushTs: 0,
+            },
+
+            selectors: [
+                '[data-testid="wallet-balance"]',
+                '[data-testid="user-balance"]',
+                '[data-testid="balance-amount"]',
+                '.wallet-balance',
+                '.balance-amount',
+                '.top-balance',
+                '.account-balance',
+                'header [class*="balance"]',
+            ],
+
+            parseLocaleNumber(rawText) {
+                const text = (rawText ?? "").toString().replace(/\u00a0/g, " ").trim();
+                if (!text) return null;
+                const cleaned = text.replace(/\s+/g, "").replace(/[^0-9,.\-]/g, "");
+                if (!cleaned) return null;
+
+                const hasComma = cleaned.includes(",");
+                const hasDot = cleaned.includes(".");
+                let normalized = cleaned;
+                if (hasComma && hasDot) {
+                    const lastComma = cleaned.lastIndexOf(",");
+                    const lastDot = cleaned.lastIndexOf(".");
+                    if (lastComma > lastDot) normalized = cleaned.replace(/\./g, "").replace(",", ".");
+                    else normalized = cleaned.replace(/,/g, "");
+                } else if (hasComma) {
+                    normalized = cleaned.replace(",", ".");
+                }
+
+                const n = Number.parseFloat(normalized);
+                return Number.isFinite(n) ? n : null;
+            },
+
+            readCurrentBalance() {
+                for (const sel of this.selectors) {
+                    const el = document.querySelector(sel);
+                    if (!el) continue;
+                    const n = this.parseLocaleNumber(el.textContent || "");
+                    if (Number.isFinite(n)) return n;
+                }
+                return null;
+            },
+
+            pushBalance(value, source = "dom") {
+                const n = Number(value);
+                if (!Number.isFinite(n)) return false;
+                if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
+
+                const arr = MEP.State.balanceHistory;
+                const prev = arr.length ? Number(arr[arr.length - 1]) : null;
+                const nowTs = Date.now();
+                const isSameAsPrev = Number.isFinite(prev) && Math.abs(prev - n) < 0.0000001;
+                if (isSameAsPrev && nowTs - this.state.lastPushTs < 800) return false;
+                if (isSameAsPrev) return false;
+
+                arr.push(n);
+                this.state.lastValue = n;
+                this.state.lastPushTs = nowTs;
+                console.debug("[MEP.BalanceCapture] push", { value: n, source, len: arr.length });
+                MEP.BalanceGraph?.render?.();
+                return true;
+            },
+
+            onMutationTick() {
+                const current = this.readCurrentBalance();
+                if (!Number.isFinite(current)) return;
+                this.pushBalance(current, "dom");
+            },
+
+            stopIfRunning() {
+                if (this.state.observer) {
+                    try {
+                        this.state.observer.disconnect();
+                    } catch (e) {}
+                    this.state.observer = null;
+                }
+                if (this.state.rebindTimer) {
+                    clearInterval(this.state.rebindTimer);
+                    this.state.rebindTimer = null;
+                }
+            },
+
+            start() {
+                this.stopIfRunning();
+                if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
+
+                const body = document.body;
+                if (!body) return;
+
+                this.state.observer = new MutationObserver(() => {
+                    queueMicrotask(() => this.onMutationTick());
+                });
+                this.state.observer.observe(body, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                });
+
+                this.onMutationTick();
+                this.state.rebindTimer = setInterval(() => this.onMutationTick(), 700);
+            },
+        };
+
+        // -------------------------
         // Main module
         // -------------------------
         MEP.Main = {
@@ -6627,6 +6768,7 @@
                 // остановим старые версии наблюдателей
                 MEP.Tracker.stopIfRunning();
                 MEP.RoundStakeCapture.stopIfRunning();
+                MEP.BalanceCapture.stopIfRunning();
 
                 // CSS всегда
                 MEP.Style.injectMinCss();
@@ -6662,6 +6804,7 @@
                 MEP.UI.render();
                 MEP.Tracker.start();
                 MEP.RoundStakeCapture.start();
+                MEP.BalanceCapture.start();
 
                 // экспорт совместимого API
                 MEP.tracker = {
