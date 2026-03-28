@@ -63,3 +63,9 @@
 - 2026-03-28: Diff collapse обновлён — теперь в collapsed скрываются `.mep-diff-params`, `.mep-two-stat-wrap` и `.mep-diff-lenrow`.
 - В видимом состоянии при collapse остаются только header и graph-area (max/svg/min).
 - Логика математики/EMA/updateTwoStats/render не изменялась.
+- 2026-03-28: Добавлен новый блок `График баланса` в главной вкладке между `График ставок` и нижним `График`.
+- Добавлен модуль `MEP.BalanceGraph` (init/render): линейный SVG polyline по `MEP.State.balanceHistory` (oldest->newest), baseline + вертикальные пунктирные stage-линии.
+- Добавлены state/persistence поля: `balanceGraphDensity`, `balanceGraphDensitySync`, `balanceGraphAutoHeight` (runtime-only `balanceHistory` не сохраняется).
+- В UI добавлены параметры `плотн./Синхр./Автовысота` + отдельный collapse `ui._balanceParamsCollapsed` (скрывает только параметры).
+- Реализован sync длины окна с master diff-графиком при `balanceGraphDensitySync=true` через видимую длину diffHistory.
+- Добавлен tooltip по hover-точкам в формате `Баланс: 123.45` без этапа/индекса.

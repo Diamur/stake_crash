@@ -541,6 +541,9 @@
                     stakeGraphBetScale: MEP.State.stakeGraphBetScale,
                     stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
                     stakeGraphShowBet: MEP.State.stakeGraphShowBet,
+                    balanceGraphDensity: MEP.State.balanceGraphDensity,
+                    balanceGraphDensitySync: MEP.State.balanceGraphDensitySync,
+                    balanceGraphAutoHeight: MEP.State.balanceGraphAutoHeight,
                     frequencyThreshold: MEP.State.frequencyThreshold,
                     frequencyPeriod: MEP.State.frequencyPeriod,
                     frequencyGraphDensity: MEP.State.frequencyGraphDensity,
@@ -606,6 +609,9 @@
                         if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                         if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                         if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
+                        if (typeof data.balanceGraphDensity === "number") MEP.State.balanceGraphDensity = data.balanceGraphDensity;
+                        if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
+                        if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
                         if (typeof data.frequencyThreshold === "number") MEP.State.frequencyThreshold = data.frequencyThreshold;
                         if (typeof data.frequencyPeriod === "number") MEP.State.frequencyPeriod = data.frequencyPeriod;
                         if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
@@ -660,6 +666,9 @@
                     if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                     if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                     if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
+                    if (typeof data.balanceGraphDensity === "number") MEP.State.balanceGraphDensity = data.balanceGraphDensity;
+                    if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
+                    if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
                     if (typeof data.frequencyThreshold === "number") MEP.State.frequencyThreshold = data.frequencyThreshold;
                     if (typeof data.frequencyPeriod === "number") MEP.State.frequencyPeriod = data.frequencyPeriod;
                     if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
@@ -1038,6 +1047,7 @@
 				#${PANEL_ID}.mep-unsupported .mep-two-stat-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-frequency-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-stake-graph-wrap,
+				#${PANEL_ID}.mep-unsupported .mep-balance-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-modal-overlay{
 				display:none !important;
@@ -1511,10 +1521,22 @@
 				margin-top: 0px;
 				padding-top: 0px;
 				}
+				#${PANEL_ID} .mep-balance-graph-wrap{
+				margin: 12px;
+				margin-bottom: 0;
+				padding: 10px 12px 12px;
+				border: 1px dashed rgba(255,255,255,0.22);
+				background: rgba(255,255,255,0.03);
+				margin-top: 0px;
+				padding-top: 0px;
+				}
 				#${PANEL_ID} .mep-stake-graph-wrap.mep-collapsed .mep-stake-params{
 				display:none;
 				}
 				#${PANEL_ID} .mep-frequency-graph-wrap.mep-collapsed .mep-frequency-params{
+				display:none;
+				}
+				#${PANEL_ID} .mep-balance-graph-wrap.mep-collapsed .mep-balance-params{
 				display:none;
 				}
 				#${PANEL_ID} .mep-graph-wrap.mep-collapsed .mep-graph-controls{
@@ -1522,6 +1544,7 @@
 				}
 				#${PANEL_ID} .mep-frequency-collapse,
 				#${PANEL_ID} .mep-stake-collapse,
+				#${PANEL_ID} .mep-balance-collapse,
 				#${PANEL_ID} .mep-main-graph-collapse{
 				border: 1px solid rgba(255,255,255,0.16);
 				background: rgba(255,255,255,0.07);
@@ -1534,6 +1557,7 @@
 				}
 				#${PANEL_ID} .mep-frequency-collapse:hover,
 				#${PANEL_ID} .mep-stake-collapse:hover,
+				#${PANEL_ID} .mep-balance-collapse:hover,
 				#${PANEL_ID} .mep-main-graph-collapse:hover{
 				background: rgba(255,255,255,0.14);
 				}
@@ -1818,6 +1842,91 @@
 				display:none;
 				z-index:3;
 				}
+				#${PANEL_ID} .mep-balance-params{
+				margin-bottom: 2px;
+				}
+				#${PANEL_ID} .mep-balance-controls{
+				display:inline-flex;
+				align-items:center;
+				gap:10px;
+				font-size:12px;
+				flex-wrap: wrap;
+				justify-content: flex-end;
+				}
+				#${PANEL_ID} .mep-balance-density-label{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				}
+				#${PANEL_ID} input.mep-balance-density{
+				width:52px;
+				border-radius:8px;
+				border: 1px solid rgba(255,255,255,0.10);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding: 0 8px;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} .mep-balance-sync-label{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				cursor:pointer;
+				user-select:none;
+				}
+				#${PANEL_ID} input.mep-balance-sync,
+				#${PANEL_ID} input.mep-balance-auto-height{
+				width:16px;
+				height:16px;
+				-webkit-appearance:none;
+				appearance:none;
+				border-radius:4px;
+				border:1px solid rgba(255,255,255,0.28);
+				background: rgba(255,255,255,0.06);
+				display:inline-grid;
+				place-items:center;
+				cursor:pointer;
+				}
+				#${PANEL_ID} input.mep-balance-sync:checked,
+				#${PANEL_ID} input.mep-balance-auto-height:checked{
+				background: rgba(255,255,255,0.22);
+				border-color: rgba(255,255,255,0.45);
+				}
+				#${PANEL_ID} input.mep-balance-sync:checked::after,
+				#${PANEL_ID} input.mep-balance-auto-height:checked::after{
+				content: "✓";
+				font-size:12px;
+				line-height:1;
+				color: rgba(255,255,255,0.92);
+				}
+				#${PANEL_ID} .mep-balance-graph-box{
+				position:relative;
+				height:92px;
+				border-top:1px solid rgba(255,255,255,0.10);
+				padding-top:0px;
+				margin-top:0px;
+				}
+				#${PANEL_ID} .mep-balance-graph{
+				width:100%;
+				height:100%;
+				display:block;
+				}
+				#${PANEL_ID} .mep-balance-tip{
+				position:absolute;
+				left:10px;
+				top:6px;
+				max-width:240px;
+				white-space:pre-line;
+				font-size:12px;
+				background: rgba(0,0,0,0.75);
+				border:1px solid rgba(255,255,255,0.15);
+				border-radius:10px;
+				padding:6px 8px;
+				pointer-events:none;
+				display:none;
+				z-index:3;
+				}
 				.mep-graph-controls{
 				display:flex;
 				flex-direction: column;      /* как на втором скрине */
@@ -1898,6 +2007,9 @@
             stakeGraphBetScale: typeof MEP.stakeGraphBetScale === "number" ? MEP.stakeGraphBetScale : 10,
             stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
             stakeGraphShowBet: ("stakeGraphShowBet" in MEP) ? !!MEP.stakeGraphShowBet : true,
+            balanceGraphDensity: typeof MEP.balanceGraphDensity === "number" ? MEP.balanceGraphDensity : 81,
+            balanceGraphDensitySync: !!MEP.balanceGraphDensitySync,
+            balanceGraphAutoHeight: !!MEP.balanceGraphAutoHeight,
             frequencyThreshold: typeof MEP.frequencyThreshold === "number" ? MEP.frequencyThreshold : 7,
             frequencyPeriod: typeof MEP.frequencyPeriod === "number" ? MEP.frequencyPeriod : 50,
             frequencyGraphDensity: typeof MEP.frequencyGraphDensity === "number" ? MEP.frequencyGraphDensity : 81,
@@ -1964,6 +2076,7 @@
             // История агрегатов ставок по раундам (oldest -> newest), runtime-only (SAFE MODE / MVP)
             roundPlayersCountHistory: Array.isArray(MEP.roundPlayersCountHistory) ? MEP.roundPlayersCountHistory : [],
             roundBetSumHistory: Array.isArray(MEP.roundBetSumHistory) ? MEP.roundBetSumHistory : [],
+            balanceHistory: Array.isArray(MEP.balanceHistory) ? MEP.balanceHistory : [],
         };
 
         // -------------------------
@@ -3268,6 +3381,185 @@
         };
 
         // -------------------------
+        // Balance graph
+        // -------------------------
+        MEP.BalanceGraph = {
+            _ui: null,
+            init(ui) {
+                this._ui = ui || null;
+            },
+
+            _toFiniteArray(arr) {
+                if (!Array.isArray(arr)) return [];
+                return arr.map((v) => Number(v)).filter((v) => Number.isFinite(v));
+            },
+
+            _getDiffVisibleLength() {
+                const history = Array.isArray(MEP.State.diffHistory) ? MEP.State.diffHistory : [];
+                const effDensity = MEP.State.diffDensitySync
+                    ? Math.max(10, Math.floor(Number(MEP.State.graphDensity || 100) || 100))
+                    : Math.max(10, Math.floor(Number(MEP.State.diffDensity || MEP.State.diffDensityManual || 81) || 81));
+                if (!history.length) return 0;
+                return Math.min(history.length, effDensity);
+            },
+
+            _tailWithDensity(arr, density) {
+                if (!arr.length) return [];
+                const d = Math.max(10, Math.floor(Number(density || 81) || 81));
+                return arr.slice(Math.max(0, arr.length - d));
+            },
+
+            _syncToMasterLen(arr, masterLen) {
+                if (!Array.isArray(arr) || !arr.length || masterLen <= 0) return [];
+                if (arr.length >= masterLen) return arr.slice(arr.length - masterLen);
+                const pad = new Array(masterLen - arr.length).fill(arr[0]);
+                return pad.concat(arr);
+            },
+
+            _buildPoints(values, totalStages, yMin, yMax, vbW, vbH, autoHeight = false) {
+                if (!values.length || totalStages <= 0) return [];
+                const out = [];
+                const stepX = totalStages <= 1 ? 0 : vbW / (totalStages - 1);
+                const startStage = Math.max(0, totalStages - values.length);
+                let sMin = yMin;
+                let sMax = yMax;
+                if (autoHeight) {
+                    sMin = Math.min(...values);
+                    sMax = Math.max(...values);
+                }
+                for (let i = 0; i < values.length; i++) {
+                    const stage = startStage + i;
+                    const x = stepX * stage;
+                    let y = vbH / 2;
+                    if (sMax !== sMin) {
+                        y = 1 + ((sMax - values[i]) / (sMax - sMin)) * (vbH - 2);
+                    }
+                    out.push({ stage, x, y: Math.max(1, Math.min(vbH - 1, y)), value: values[i] });
+                }
+                return out;
+            },
+
+            _ensureTip() {
+                const ui = this._ui;
+                if (!ui?.balanceGraphSvg) return null;
+                if (ui.balanceTip) return ui.balanceTip;
+                const host = ui.balanceGraphSvg.parentElement;
+                if (!host) return null;
+                const tip = document.createElement("div");
+                tip.className = "mep-balance-tip";
+                host.appendChild(tip);
+                ui.balanceTip = tip;
+                return tip;
+            },
+
+            _setTip(text, xPx) {
+                const ui = this._ui;
+                const tip = this._ensureTip();
+                if (!ui?.balanceGraphSvg || !tip) return;
+                if (!text) {
+                    tip.style.display = "none";
+                    return;
+                }
+                tip.textContent = text;
+                tip.style.display = "block";
+                tip.style.top = "6px";
+                const host = ui.balanceGraphSvg.parentElement;
+                const hostW = host?.clientWidth || 0;
+                const safeX = Number.isFinite(xPx) ? Math.max(6, xPx) : 6;
+                tip.style.left = `${safeX}px`;
+                const tipW = tip.offsetWidth || 0;
+                if (hostW > 0 && tipW > 0) {
+                    const maxLeft = Math.max(6, hostW - tipW - 6);
+                    tip.style.left = `${Math.min(safeX, maxLeft)}px`;
+                }
+            },
+
+            render() {
+                const ui = this._ui;
+                if (!ui?.balanceGraphSvg) return;
+                const svg = ui.balanceGraphSvg;
+                svg.innerHTML = "";
+                this._setTip("");
+
+                const balanceRaw = this._toFiniteArray(MEP.State.balanceHistory);
+                const syncOn = !!MEP.State.balanceGraphDensitySync;
+                const autoHeight = !!MEP.State.balanceGraphAutoHeight;
+
+                let balanceView = [];
+                if (syncOn) {
+                    const masterLen = this._getDiffVisibleLength();
+                    balanceView = this._syncToMasterLen(balanceRaw, masterLen);
+                } else {
+                    balanceView = this._tailWithDensity(balanceRaw, MEP.State.balanceGraphDensity);
+                }
+
+                const vbW = 100;
+                const vbH = 60;
+                const stageCount = balanceView.length;
+                const yMin = balanceView.length ? Math.min(...balanceView) : 0;
+                const yMax = balanceView.length ? Math.max(...balanceView) : 1;
+                const points = this._buildPoints(balanceView, stageCount, yMin, yMax, vbW, vbH, autoHeight);
+                const stepX = stageCount <= 1 ? 0 : vbW / (stageCount - 1);
+
+                const base = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                base.setAttribute("x1", "0");
+                base.setAttribute("x2", String(vbW));
+                base.setAttribute("y1", String(vbH - 1));
+                base.setAttribute("y2", String(vbH - 1));
+                base.setAttribute("stroke", "rgba(255,255,255,0.20)");
+                base.setAttribute("stroke-width", "0.4");
+                svg.appendChild(base);
+
+                for (let i = 0; i < stageCount; i++) {
+                    const x = stepX * i;
+                    const ln = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    ln.setAttribute("x1", String(x));
+                    ln.setAttribute("x2", String(x));
+                    ln.setAttribute("y1", "0");
+                    ln.setAttribute("y2", String(vbH));
+                    ln.setAttribute("stroke", "rgba(255,255,255,0.13)");
+                    ln.setAttribute("stroke-width", "0.25");
+                    ln.setAttribute("stroke-dasharray", "1.4 1.4");
+                    ln.setAttribute("pointer-events", "none");
+                    svg.appendChild(ln);
+                }
+
+                if (points.length) {
+                    const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    pl.setAttribute("points", points.map((p) => `${p.x},${p.y}`).join(" "));
+                    pl.setAttribute("fill", "none");
+                    pl.setAttribute("stroke", "rgba(180,241,126,0.95)");
+                    pl.setAttribute("stroke-width", "0.65");
+                    pl.setAttribute("stroke-linejoin", "round");
+                    pl.setAttribute("stroke-linecap", "round");
+                    svg.appendChild(pl);
+
+                    for (const p of points) {
+                        const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        hit.setAttribute("cx", String(p.x));
+                        hit.setAttribute("cy", String(p.y));
+                        hit.setAttribute("r", "2.8");
+                        hit.setAttribute("fill", "rgba(255,255,255,0.001)");
+                        hit.setAttribute("stroke", "none");
+                        hit.style.cursor = "crosshair";
+
+                        hit.addEventListener("mouseenter", (ev) => {
+                            const box = svg.getBoundingClientRect();
+                            const txt = `Баланс: ${p.value.toFixed(2)}`;
+                            this._setTip(txt, ev.clientX - box.left + 10);
+                        });
+                        hit.addEventListener("mousemove", (ev) => {
+                            const box = svg.getBoundingClientRect();
+                            this._setTip(ui.balanceTip?.textContent || "", ev.clientX - box.left + 10);
+                        });
+                        hit.addEventListener("mouseleave", () => this._setTip(""));
+                        svg.appendChild(hit);
+                    }
+                }
+            },
+        };
+
+        // -------------------------
         // Frequency graph (> threshold in rolling period)
         // -------------------------
         MEP.FrequencyGraph = {
@@ -4074,6 +4366,22 @@
         <svg class="mep-stake-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
     </div>
 </div>
+<div class="mep-balance-graph-wrap">
+    <div class="mep-graph-head">
+        <div class="mep-block-title">График баланса</div>
+        <button class="mep-balance-collapse" type="button" title="Свернуть параметры">▲</button>
+    </div>
+    <div class="mep-balance-params">
+        <div class="mep-balance-controls">
+            <label class="mep-balance-density-label">плотн.<input class="mep-balance-density" type="number" min="10" step="1" value="81" /></label>
+            <label class="mep-balance-sync-label"><input class="mep-balance-sync" type="checkbox" /><span>Синхр.</span></label>
+            <label class="mep-balance-sync-label"><input class="mep-balance-auto-height" type="checkbox" /><span>Автовысота</span></label>
+        </div>
+    </div>
+    <div class="mep-balance-graph-box">
+        <svg class="mep-balance-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
+    </div>
+</div>
 <div class="mep-graph-wrap">
     <div class="mep-graph-head">
         <div class="mep-block-title">График</div>
@@ -4163,6 +4471,7 @@
                 const twoWrap = panel.querySelector(".mep-two-stat-wrap");
                 const frequencyWrap = panel.querySelector(".mep-frequency-graph-wrap");
                 const stakeWrap = panel.querySelector(".mep-stake-graph-wrap");
+                const balanceWrap = panel.querySelector(".mep-balance-graph-wrap");
                 const graphWrap = panel.querySelector(".mep-graph-wrap");
 
                 if (header) {
@@ -4198,7 +4507,7 @@
                     panel.insertBefore(mainPanel, mainTabs.nextSibling);
                     panel.insertBefore(gamePanel, mainPanel.nextSibling);
 
-                    for (const node of [body, diffWrap, frequencyWrap, stakeWrap, graphWrap]) {
+                    for (const node of [body, diffWrap, frequencyWrap, stakeWrap, balanceWrap, graphWrap]) {
                         if (node) mainContent.appendChild(node);
                     }
                 }
@@ -4292,6 +4601,13 @@
                     stakeBetScaleInput: panel.querySelector("input.mep-stake-scale-bet"),
                     stakeShowPlayersInput: panel.querySelector("input.mep-stake-show-players"),
                     stakeShowBetInput: panel.querySelector("input.mep-stake-show-bet"),
+                    balanceWrap: panel.querySelector(".mep-balance-graph-wrap"),
+                    balanceParamsWrap: panel.querySelector(".mep-balance-params"),
+                    balanceCollapseBtn: panel.querySelector("button.mep-balance-collapse"),
+                    balanceGraphSvg: panel.querySelector("svg.mep-balance-graph"),
+                    balanceDensityInput: panel.querySelector("input.mep-balance-density"),
+                    balanceSyncInput: panel.querySelector("input.mep-balance-sync"),
+                    balanceAutoHeightInput: panel.querySelector("input.mep-balance-auto-height"),
 
                     xInputs: [...panel.querySelectorAll("input.mep-x")],
                     colorInputs: [...panel.querySelectorAll("input.mep-color")],
@@ -4385,6 +4701,7 @@
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                             if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
+                            if (MEP.State.balanceGraphDensitySync) MEP.BalanceGraph?.render?.();
                         }
 
                         MEP.Storage.save();
@@ -4620,10 +4937,45 @@
                     });
                 }
 
+                if (ui.balanceDensityInput) {
+                    const current = Math.max(10, Math.floor(Number(MEP.State.balanceGraphDensity || 81) || 81));
+                    MEP.State.balanceGraphDensity = current;
+                    ui.balanceDensityInput.value = String(current);
+                    ui.balanceDensityInput.addEventListener("input", () => {
+                        let v = Math.floor(Number(ui.balanceDensityInput.value) || 0);
+                        if (!Number.isFinite(v) || v < 10) v = 10;
+                        MEP.State.balanceGraphDensity = v;
+                        ui.balanceDensityInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.BalanceGraph?.render?.();
+                    });
+                }
+
+                if (ui.balanceSyncInput) {
+                    ui.balanceSyncInput.checked = !!MEP.State.balanceGraphDensitySync;
+                    if (ui.balanceDensityInput) ui.balanceDensityInput.disabled = !!MEP.State.balanceGraphDensitySync;
+                    ui.balanceSyncInput.addEventListener("change", () => {
+                        MEP.State.balanceGraphDensitySync = !!ui.balanceSyncInput.checked;
+                        if (ui.balanceDensityInput) ui.balanceDensityInput.disabled = !!MEP.State.balanceGraphDensitySync;
+                        MEP.Storage.save();
+                        MEP.BalanceGraph?.render?.();
+                    });
+                }
+
+                if (ui.balanceAutoHeightInput) {
+                    ui.balanceAutoHeightInput.checked = !!MEP.State.balanceGraphAutoHeight;
+                    ui.balanceAutoHeightInput.addEventListener("change", () => {
+                        MEP.State.balanceGraphAutoHeight = !!ui.balanceAutoHeightInput.checked;
+                        MEP.Storage.save();
+                        MEP.BalanceGraph?.render?.();
+                    });
+                }
+
                 MEP.Graph?.init?.(ui);
                 MEP.DiffGraph?.init?.(ui);
                 MEP.FrequencyGraph?.init?.(ui);
                 MEP.StakeGraph?.init?.(ui);
+                MEP.BalanceGraph?.init?.(ui);
 
                 const applyFrequencyParamsCollapse = () => {
                     if (!ui.frequencyWrap || !ui.frequencyCollapseBtn) return;
@@ -4652,6 +5004,21 @@
                     ui.stakeCollapseBtn.addEventListener("click", () => {
                         ui._stakeParamsCollapsed = !ui._stakeParamsCollapsed;
                         applyStakeParamsCollapse();
+                    });
+                }
+
+                const applyBalanceParamsCollapse = () => {
+                    if (!ui.balanceWrap || !ui.balanceCollapseBtn) return;
+                    const collapsed = !!ui._balanceParamsCollapsed;
+                    ui.balanceWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.balanceCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.balanceCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyBalanceParamsCollapse();
+                if (ui.balanceCollapseBtn) {
+                    ui.balanceCollapseBtn.addEventListener("click", () => {
+                        ui._balanceParamsCollapsed = !ui._balanceParamsCollapsed;
+                        applyBalanceParamsCollapse();
                     });
                 }
 
@@ -4805,12 +5172,14 @@
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                             if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
+                            if (MEP.State.balanceGraphDensitySync) MEP.BalanceGraph?.render?.();
                         } else {
                             // синхра OFF: меняем только 2-й
                             MEP.State.diffDensity = v;
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                             if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
+                            if (MEP.State.balanceGraphDensitySync) MEP.BalanceGraph?.render?.();
                         }
 
                         MEP.Storage.save();
@@ -4841,6 +5210,7 @@
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                             if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
+                            if (MEP.State.balanceGraphDensitySync) MEP.BalanceGraph?.render?.();
                         } else {
                             // выключили синхру — возвращаем ручное значение 2-го
                             const v = Math.max(10, Math.floor(Number(MEP.State.diffDensityManual || 81) || 81));
@@ -4848,6 +5218,7 @@
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                             if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
+                            if (MEP.State.balanceGraphDensitySync) MEP.BalanceGraph?.render?.();
                         }
 
                         applyDiffDensityUi();
@@ -5424,6 +5795,7 @@
                 MEP.UI.updateTwoStats();
                 MEP.FrequencyGraph?.render?.();
                 MEP.StakeGraph?.render?.();
+                MEP.BalanceGraph?.render?.();
                 MEP.Graph?.render?.();
             },
 
