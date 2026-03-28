@@ -98,3 +98,7 @@
 - `setGameTab()` расширен на тройку `charter/strategy1/strategy2`, дефолт `ui._gameTab` сменён на `charter`.
 - В `MEP.State` и `MEP.Storage.save/load()` добавлены `charter*` поля с дефолтом `0` и persistence.
 - В `MEP.UI.ui` добавлены refs charter-panel/input'ов и bind-обработчики с нормализацией `number >= 0` + `MEP.Storage.save()`.
+- 2026-03-28: Вкладка `Устав` визуально перегруппирована в 4 секции: `Нагрузка`, `Результативность`, `Ограничение потерь`, `Риск-менеджмент`.
+- Добавлены CSS-классы `.mep-charter-sections`, `.mep-charter-section`, `.mep-charter-section-title`.
+- Для строк устава выставлена сетка `grid-template-columns: 1fr 60px auto` (как requested).
+- Сами input-классы/селекторы не менялись, поэтому refs/bind/state/storage продолжают работать без правок логики.
