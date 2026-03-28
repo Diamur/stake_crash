@@ -546,6 +546,14 @@
                     frequencyGraphDensity: MEP.State.frequencyGraphDensity,
                     frequencyGraphDensitySync: MEP.State.frequencyGraphDensitySync,
                     frequencyGraphLine: MEP.State.frequencyGraphLine,
+                    frequencyVectorEnabled: MEP.State.frequencyVectorEnabled,
+                    frequencyVectorPeriod: MEP.State.frequencyVectorPeriod,
+                    frequencyVectorPhaseShift: MEP.State.frequencyVectorPhaseShift,
+                    frequencyVectorFlatEpsilon: MEP.State.frequencyVectorFlatEpsilon,
+                    frequencyVectorMainColor: MEP.State.frequencyVectorMainColor,
+                    frequencyVectorShiftColor: MEP.State.frequencyVectorShiftColor,
+                    frequencyVectorMainWidth: MEP.State.frequencyVectorMainWidth,
+                    frequencyVectorShiftWidth: MEP.State.frequencyVectorShiftWidth,
                     graphLine: MEP.State.graphLine,
                     graphLine2: MEP.State.graphLine2,
                     graphLine3: MEP.State.graphLine3,
@@ -603,6 +611,14 @@
                         if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
                         if (typeof data.frequencyGraphDensitySync === "boolean") MEP.State.frequencyGraphDensitySync = data.frequencyGraphDensitySync;
                         if (typeof data.frequencyGraphLine === "number") MEP.State.frequencyGraphLine = data.frequencyGraphLine;
+                        if (typeof data.frequencyVectorEnabled === "boolean") MEP.State.frequencyVectorEnabled = data.frequencyVectorEnabled;
+                        if (typeof data.frequencyVectorPeriod === "number") MEP.State.frequencyVectorPeriod = data.frequencyVectorPeriod;
+                        if (typeof data.frequencyVectorPhaseShift === "number") MEP.State.frequencyVectorPhaseShift = data.frequencyVectorPhaseShift;
+                        if (typeof data.frequencyVectorFlatEpsilon === "number") MEP.State.frequencyVectorFlatEpsilon = data.frequencyVectorFlatEpsilon;
+                        if (typeof data.frequencyVectorMainColor === "string") MEP.State.frequencyVectorMainColor = data.frequencyVectorMainColor;
+                        if (typeof data.frequencyVectorShiftColor === "string") MEP.State.frequencyVectorShiftColor = data.frequencyVectorShiftColor;
+                        if (typeof data.frequencyVectorMainWidth === "number") MEP.State.frequencyVectorMainWidth = data.frequencyVectorMainWidth;
+                        if (typeof data.frequencyVectorShiftWidth === "number") MEP.State.frequencyVectorShiftWidth = data.frequencyVectorShiftWidth;
                         if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                         if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
                         if (typeof data.graphLine3 === "number") MEP.State.graphLine3 = data.graphLine3;
@@ -649,6 +665,14 @@
                     if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
                     if (typeof data.frequencyGraphDensitySync === "boolean") MEP.State.frequencyGraphDensitySync = data.frequencyGraphDensitySync;
                     if (typeof data.frequencyGraphLine === "number") MEP.State.frequencyGraphLine = data.frequencyGraphLine;
+                    if (typeof data.frequencyVectorEnabled === "boolean") MEP.State.frequencyVectorEnabled = data.frequencyVectorEnabled;
+                    if (typeof data.frequencyVectorPeriod === "number") MEP.State.frequencyVectorPeriod = data.frequencyVectorPeriod;
+                    if (typeof data.frequencyVectorPhaseShift === "number") MEP.State.frequencyVectorPhaseShift = data.frequencyVectorPhaseShift;
+                    if (typeof data.frequencyVectorFlatEpsilon === "number") MEP.State.frequencyVectorFlatEpsilon = data.frequencyVectorFlatEpsilon;
+                    if (typeof data.frequencyVectorMainColor === "string") MEP.State.frequencyVectorMainColor = data.frequencyVectorMainColor;
+                    if (typeof data.frequencyVectorShiftColor === "string") MEP.State.frequencyVectorShiftColor = data.frequencyVectorShiftColor;
+                    if (typeof data.frequencyVectorMainWidth === "number") MEP.State.frequencyVectorMainWidth = data.frequencyVectorMainWidth;
+                    if (typeof data.frequencyVectorShiftWidth === "number") MEP.State.frequencyVectorShiftWidth = data.frequencyVectorShiftWidth;
                     if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                     if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
                     if (typeof data.graphLine3 === "number") MEP.State.graphLine3 = data.graphLine3;
@@ -1501,6 +1525,24 @@
 				align-items:center;
 				gap:6px;
 				}
+				#${PANEL_ID} .mep-frequency-vector-row{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				flex-wrap:wrap;
+				}
+				#${PANEL_ID} .mep-frequency-vector-label{
+				display:inline-flex;
+				align-items:center;
+				gap:5px;
+				font-size:12px;
+				white-space:nowrap;
+				}
+				#${PANEL_ID} input.mep-frequency-vector-enabled{
+				width:15px;
+				height:15px;
+				cursor:pointer;
+				}
 				#${PANEL_ID} input.mep-frequency-threshold{
 				width:52px;
 				border-radius:8px;
@@ -1513,7 +1555,10 @@
 				}
 				#${PANEL_ID} input.mep-frequency-period,
 				#${PANEL_ID} input.mep-frequency-density,
-				#${PANEL_ID} input.mep-frequency-line{
+				#${PANEL_ID} input.mep-frequency-line,
+				#${PANEL_ID} input.mep-frequency-vector-period,
+				#${PANEL_ID} input.mep-frequency-vector-shift,
+				#${PANEL_ID} input.mep-frequency-vector-flat{
 				width:58px;
 				border-radius:8px;
 				border: 1px solid rgba(255,255,255,0.10);
@@ -1830,6 +1875,16 @@
             frequencyGraphDensity: typeof MEP.frequencyGraphDensity === "number" ? MEP.frequencyGraphDensity : 81,
             frequencyGraphDensitySync: !!MEP.frequencyGraphDensitySync,
             frequencyGraphLine: typeof MEP.frequencyGraphLine === "number" ? MEP.frequencyGraphLine : 0,
+            frequencyVectorEnabled: ("frequencyVectorEnabled" in MEP) ? !!MEP.frequencyVectorEnabled : true,
+            frequencyVectorPeriod: typeof MEP.frequencyVectorPeriod === "number" ? MEP.frequencyVectorPeriod : 9,
+            frequencyVectorPhaseShift: typeof MEP.frequencyVectorPhaseShift === "number" ? MEP.frequencyVectorPhaseShift : 3,
+            frequencyVectorFlatEpsilon: typeof MEP.frequencyVectorFlatEpsilon === "number" ? MEP.frequencyVectorFlatEpsilon : 0.15,
+            frequencyVectorMainColor: typeof MEP.frequencyVectorMainColor === "string" ? MEP.frequencyVectorMainColor : "rgba(255,255,255,0.96)",
+            frequencyVectorShiftColor: typeof MEP.frequencyVectorShiftColor === "string" ? MEP.frequencyVectorShiftColor : "rgba(80,210,255,0.92)",
+            frequencyVectorMainWidth: typeof MEP.frequencyVectorMainWidth === "number" ? MEP.frequencyVectorMainWidth : 0.9,
+            frequencyVectorShiftWidth: typeof MEP.frequencyVectorShiftWidth === "number" ? MEP.frequencyVectorShiftWidth : 0.7,
+            frequencyVectorState: typeof MEP.frequencyVectorState === "string" ? MEP.frequencyVectorState : "flat",
+            frequencyVectorSignal: typeof MEP.frequencyVectorSignal === "number" ? MEP.frequencyVectorSignal : 0,
             graphLine: typeof MEP.graphLine === "number" ? MEP.graphLine : 0,
             graphLine2: typeof MEP.graphLine2 === "number" ? MEP.graphLine2 : 0,
             graphLine3: typeof MEP.graphLine3 === "number" ? MEP.graphLine3 : 0,
@@ -3259,6 +3314,60 @@
                 return out;
             },
 
+            _calcEMA(values, period) {
+                const src = Array.isArray(values) ? values : [];
+                const p = Math.max(1, Math.floor(Number(period) || 1));
+                const alpha = 2 / (p + 1);
+                const out = [];
+                let prev = null;
+                for (let i = 0; i < src.length; i++) {
+                    const v = Number(src[i]) || 0;
+                    if (prev === null) prev = v;
+                    else prev = alpha * v + (1 - alpha) * prev;
+                    out.push(prev);
+                }
+                return out;
+            },
+
+            _buildVectorSeries(values, opts) {
+                const src = Array.isArray(values) ? values : [];
+                const o = opts && typeof opts === "object" ? opts : {};
+                const clipFrom = Math.max(0, Math.floor(Number(o.clipFrom) || 0));
+                const clipLenRaw = Math.floor(Number(o.clipLen) || src.length);
+                const clipLen = Math.max(0, clipLenRaw);
+                const period = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPeriod) || 9));
+                const shift = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPhaseShift) || 3));
+                const mainEMA = this._calcEMA(src, period);
+                const shiftedEMA = new Array(mainEMA.length);
+                for (let i = 0; i < mainEMA.length; i++) {
+                    const j = i - shift;
+                    shiftedEMA[i] = j >= 0 ? mainEMA[j] : null;
+                }
+                const from = Math.min(clipFrom, mainEMA.length);
+                const to = Math.min(mainEMA.length, from + clipLen);
+                return {
+                    mainEMA: mainEMA.slice(from, to),
+                    shiftedEMA: shiftedEMA.slice(from, to),
+                    period,
+                    shift,
+                };
+            },
+
+            _updateVectorState(mainEMA, shiftedEMA) {
+                if (!Array.isArray(mainEMA) || !mainEMA.length || !Array.isArray(shiftedEMA) || !shiftedEMA.length) {
+                    MEP.State.frequencyVectorState = "flat";
+                    MEP.State.frequencyVectorSignal = 0;
+                    return;
+                }
+                const lastMain = Number(mainEMA[mainEMA.length - 1]) || 0;
+                const lastShiftRaw = shiftedEMA[shiftedEMA.length - 1];
+                const lastShift = Number.isFinite(Number(lastShiftRaw)) ? Number(lastShiftRaw) : lastMain;
+                const signal = lastMain - lastShift;
+                const eps = Math.max(0, Number(MEP.State.frequencyVectorFlatEpsilon) || 0);
+                MEP.State.frequencyVectorSignal = signal;
+                MEP.State.frequencyVectorState = signal > eps ? "up" : signal < -eps ? "down" : "flat";
+            },
+
             _ensureTip() {
                 const ui = this._ui;
                 if (!ui?.frequencyGraphSvg) return null;
@@ -3308,10 +3417,18 @@
                 const fullSeries = this._buildSeries(oldestFirst, threshold, period);
 
                 let viewSeries = [];
+                let viewStartIndex = 0;
                 if (MEP.State.frequencyGraphDensitySync) {
                     const masterLen = this._getDiffVisibleLength();
+                    if (fullSeries.length >= masterLen) {
+                        viewStartIndex = Math.max(0, fullSeries.length - masterLen);
+                    } else {
+                        viewStartIndex = 0;
+                    }
                     viewSeries = this._syncToMasterLen(fullSeries, masterLen);
                 } else {
+                    const density = Math.max(10, Math.floor(Number(MEP.State.frequencyGraphDensity || 81) || 81));
+                    viewStartIndex = Math.max(0, fullSeries.length - density);
                     viewSeries = this._tailWithDensity(fullSeries, MEP.State.frequencyGraphDensity);
                 }
 
@@ -3320,6 +3437,20 @@
                 const stageCount = viewSeries.length;
                 const yMax = Math.max(1, ...viewSeries, 1);
                 const points = this._buildPoints(viewSeries, yMax, vbW, vbH);
+
+                const vectorPeriod = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPeriod) || 9));
+                const vectorShift = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPhaseShift) || 3));
+                const warmup = Math.max(vectorPeriod * 3, vectorShift + vectorPeriod + 10);
+                const extStart = Math.max(0, viewStartIndex - warmup);
+                const extEnd = Math.min(fullSeries.length, viewStartIndex);
+                const leftTail = fullSeries.slice(extStart, extEnd);
+                const extendedSeries = leftTail.concat(viewSeries);
+                const clipFrom = leftTail.length;
+                const vectorData = this._buildVectorSeries(extendedSeries, {
+                    clipFrom,
+                    clipLen: viewSeries.length,
+                });
+                this._updateVectorState(vectorData.mainEMA, vectorData.shiftedEMA);
 
                 const base = document.createElementNS("http://www.w3.org/2000/svg", "line");
                 base.setAttribute("x1", "0");
@@ -3372,6 +3503,43 @@
                     pl.setAttribute("stroke-linejoin", "round");
                     pl.setAttribute("stroke-linecap", "round");
                     svg.appendChild(pl);
+
+                    if (MEP.State.frequencyVectorEnabled !== false) {
+                        const makeVectorPolyline = (series, stroke, width) => {
+                            if (!Array.isArray(series) || !series.length) return;
+                            const stepX = series.length <= 1 ? 0 : vbW / (series.length - 1);
+                            const pts = [];
+                            for (let i = 0; i < series.length; i++) {
+                                const raw = series[i];
+                                const v = Number(raw);
+                                if (!Number.isFinite(v)) continue;
+                                const x = stepX * i;
+                                const y = vbH - (v / yMax) * (vbH - 2) - 1;
+                                pts.push(`${x},${Math.max(1, Math.min(vbH - 1, y))}`);
+                            }
+                            if (!pts.length) return;
+                            const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                            line.setAttribute("points", pts.join(" "));
+                            line.setAttribute("fill", "none");
+                            line.setAttribute("stroke", stroke);
+                            line.setAttribute("stroke-width", String(width));
+                            line.setAttribute("stroke-linejoin", "round");
+                            line.setAttribute("stroke-linecap", "round");
+                            line.setAttribute("pointer-events", "none");
+                            svg.appendChild(line);
+                        };
+
+                        makeVectorPolyline(
+                            vectorData.mainEMA,
+                            (MEP.State.frequencyVectorMainColor || "rgba(255,255,255,0.96)").toString(),
+                            Number(MEP.State.frequencyVectorMainWidth) || 0.9
+                        );
+                        makeVectorPolyline(
+                            vectorData.shiftedEMA,
+                            (MEP.State.frequencyVectorShiftColor || "rgba(80,210,255,0.92)").toString(),
+                            Number(MEP.State.frequencyVectorShiftWidth) || 0.7
+                        );
+                    }
 
                     for (const p of points) {
                         const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -3831,6 +3999,12 @@
             <label class="mep-frequency-label">Плотн.<input class="mep-frequency-density" type="number" min="10" step="1" value="81" /></label>
             <label class="mep-frequency-label">Гор.линия<input class="mep-frequency-line" type="number" min="0" step="0.1" value="0" /></label>
             <label class="mep-frequency-sync-label"><input class="mep-frequency-sync" type="checkbox" /><span>Синхр.</span></label>
+            <span class="mep-frequency-vector-row">
+                <label class="mep-frequency-vector-label"><input class="mep-frequency-vector-enabled" type="checkbox" checked /><span>Вектор</span></label>
+                <label class="mep-frequency-vector-label"><span>P</span><input class="mep-frequency-vector-period" type="number" min="1" step="1" value="9" /></label>
+                <label class="mep-frequency-vector-label"><span>S</span><input class="mep-frequency-vector-shift" type="number" min="1" step="1" value="3" /></label>
+                <label class="mep-frequency-vector-label"><span>Flat</span><input class="mep-frequency-vector-flat" type="number" min="0" step="0.01" value="0.15" /></label>
+            </span>
         </div>
     </div>
     <div class="mep-frequency-graph-box">
@@ -4066,6 +4240,10 @@
                     frequencyDensityInput: panel.querySelector("input.mep-frequency-density"),
                     frequencyLineInput: panel.querySelector("input.mep-frequency-line"),
                     frequencySyncInput: panel.querySelector("input.mep-frequency-sync"),
+                    frequencyVectorEnabledInput: panel.querySelector("input.mep-frequency-vector-enabled"),
+                    frequencyVectorPeriodInput: panel.querySelector("input.mep-frequency-vector-period"),
+                    frequencyVectorShiftInput: panel.querySelector("input.mep-frequency-vector-shift"),
+                    frequencyVectorFlatInput: panel.querySelector("input.mep-frequency-vector-flat"),
                     frequencyTip: panel.querySelector(".mep-frequency-tip"),
                     stakeWrap: panel.querySelector(".mep-stake-graph-wrap"),
                     stakeParamsWrap: panel.querySelector(".mep-stake-params"),
@@ -4285,6 +4463,54 @@
                     ui.frequencySyncInput.addEventListener("change", () => {
                         MEP.State.frequencyGraphDensitySync = !!ui.frequencySyncInput.checked;
                         if (ui.frequencyDensityInput) ui.frequencyDensityInput.disabled = !!MEP.State.frequencyGraphDensitySync;
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
+                if (ui.frequencyVectorEnabledInput) {
+                    ui.frequencyVectorEnabledInput.checked = MEP.State.frequencyVectorEnabled !== false;
+                    ui.frequencyVectorEnabledInput.addEventListener("change", () => {
+                        MEP.State.frequencyVectorEnabled = !!ui.frequencyVectorEnabledInput.checked;
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
+                if (ui.frequencyVectorPeriodInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPeriod) || 9));
+                    MEP.State.frequencyVectorPeriod = current;
+                    ui.frequencyVectorPeriodInput.value = String(current);
+                    ui.frequencyVectorPeriodInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.frequencyVectorPeriodInput.value) || 1));
+                        MEP.State.frequencyVectorPeriod = v;
+                        ui.frequencyVectorPeriodInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
+                if (ui.frequencyVectorShiftInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPhaseShift) || 3));
+                    MEP.State.frequencyVectorPhaseShift = current;
+                    ui.frequencyVectorShiftInput.value = String(current);
+                    ui.frequencyVectorShiftInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.frequencyVectorShiftInput.value) || 1));
+                        MEP.State.frequencyVectorPhaseShift = v;
+                        ui.frequencyVectorShiftInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
+                if (ui.frequencyVectorFlatInput) {
+                    const current = Math.max(0, Number(MEP.State.frequencyVectorFlatEpsilon) || 0);
+                    MEP.State.frequencyVectorFlatEpsilon = current;
+                    ui.frequencyVectorFlatInput.value = String(current);
+                    ui.frequencyVectorFlatInput.addEventListener("input", () => {
+                        const v = Math.max(0, Number(ui.frequencyVectorFlatInput.value) || 0);
+                        MEP.State.frequencyVectorFlatEpsilon = v;
+                        ui.frequencyVectorFlatInput.value = String(v);
                         MEP.Storage.save();
                         MEP.FrequencyGraph?.render?.();
                     });

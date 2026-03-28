@@ -44,3 +44,7 @@
 - Добавлен warmup: `max(period*3, phaseShift + period + 10)` для естественного входа EMA в левом крае.
 - shifted EMA больше не стартует фиктивным значением: до появления валидной точки хранится `null`.
 - После расчёта выполняется clip обратно к текущему видимому окну перед отрисовкой polyline.
+- 2026-03-28: Для FrequencyGraph добавлены EMA-векторные overlay-линии (main + phase shift) в том же SVG и шкале Y.
+- Добавлены state/persistence поля frequencyVector* + runtime `frequencyVectorState/frequencyVectorSignal`.
+- В frequency controls добавлена компактная строка `Вектор / P / S / Flat` и bind/save/render обработчики.
+- EMA рассчитывается по extendedSeries (left warmup tail + видимое окно), затем clip к видимой части.
