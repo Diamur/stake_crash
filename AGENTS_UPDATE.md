@@ -93,3 +93,8 @@
 - Добавлены helper'ы `startInitialSeedFixTimer()`, `stopInitialSeedFixTimer()`, `tryFixInitialZero()` с debug-логами start/overwrite/stop/timeout.
 - Timer останавливается автоматически при валидной первой точке (`!= 0`) и не используется для обычного накопления history.
 - Round-based поток записи баланса по stageKey не менялся.
+- 2026-03-28: В разделе `Игра` добавлена новая первая подвкладка `Устав` (`data-tab="charter"`) перед `Стратегия1/2`.
+- Добавлен panel `.mep-game-tab-panel-charter` с формой `mep-charter-form` и 11 полями лимитов/параметров.
+- `setGameTab()` расширен на тройку `charter/strategy1/strategy2`, дефолт `ui._gameTab` сменён на `charter`.
+- В `MEP.State` и `MEP.Storage.save/load()` добавлены `charter*` поля с дефолтом `0` и persistence.
+- В `MEP.UI.ui` добавлены refs charter-panel/input'ов и bind-обработчики с нормализацией `number >= 0` + `MEP.Storage.save()`.

@@ -545,6 +545,17 @@
                     balanceGraphDensitySync: MEP.State.balanceGraphDensitySync,
                     balanceGraphAutoHeight: MEP.State.balanceGraphAutoHeight,
                     balanceGraphScale: MEP.State.balanceGraphScale,
+                    charterRoundsPerHour: MEP.State.charterRoundsPerHour,
+                    charterRoundsPer6Hours: MEP.State.charterRoundsPer6Hours,
+                    charterRoundsPerDay: MEP.State.charterRoundsPerDay,
+                    charterWinsPerHour: MEP.State.charterWinsPerHour,
+                    charterWinsPer6Hours: MEP.State.charterWinsPer6Hours,
+                    charterWinsPerDay: MEP.State.charterWinsPerDay,
+                    charterMaxStakePercent: MEP.State.charterMaxStakePercent,
+                    charterLossesPerHour: MEP.State.charterLossesPerHour,
+                    charterLossesPer6Hours: MEP.State.charterLossesPer6Hours,
+                    charterLossesPerDay: MEP.State.charterLossesPerDay,
+                    charterBreakAfter3LossesMin: MEP.State.charterBreakAfter3LossesMin,
                     frequencyThreshold: MEP.State.frequencyThreshold,
                     frequencyPeriod: MEP.State.frequencyPeriod,
                     frequencyGraphDensity: MEP.State.frequencyGraphDensity,
@@ -614,6 +625,17 @@
                         if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
                         if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
                         if (typeof data.balanceGraphScale === "number") MEP.State.balanceGraphScale = data.balanceGraphScale;
+                        if (typeof data.charterRoundsPerHour === "number") MEP.State.charterRoundsPerHour = data.charterRoundsPerHour;
+                        if (typeof data.charterRoundsPer6Hours === "number") MEP.State.charterRoundsPer6Hours = data.charterRoundsPer6Hours;
+                        if (typeof data.charterRoundsPerDay === "number") MEP.State.charterRoundsPerDay = data.charterRoundsPerDay;
+                        if (typeof data.charterWinsPerHour === "number") MEP.State.charterWinsPerHour = data.charterWinsPerHour;
+                        if (typeof data.charterWinsPer6Hours === "number") MEP.State.charterWinsPer6Hours = data.charterWinsPer6Hours;
+                        if (typeof data.charterWinsPerDay === "number") MEP.State.charterWinsPerDay = data.charterWinsPerDay;
+                        if (typeof data.charterMaxStakePercent === "number") MEP.State.charterMaxStakePercent = data.charterMaxStakePercent;
+                        if (typeof data.charterLossesPerHour === "number") MEP.State.charterLossesPerHour = data.charterLossesPerHour;
+                        if (typeof data.charterLossesPer6Hours === "number") MEP.State.charterLossesPer6Hours = data.charterLossesPer6Hours;
+                        if (typeof data.charterLossesPerDay === "number") MEP.State.charterLossesPerDay = data.charterLossesPerDay;
+                        if (typeof data.charterBreakAfter3LossesMin === "number") MEP.State.charterBreakAfter3LossesMin = data.charterBreakAfter3LossesMin;
                         if (typeof data.frequencyThreshold === "number") MEP.State.frequencyThreshold = data.frequencyThreshold;
                         if (typeof data.frequencyPeriod === "number") MEP.State.frequencyPeriod = data.frequencyPeriod;
                         if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
@@ -672,6 +694,17 @@
                     if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
                     if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
                     if (typeof data.balanceGraphScale === "number") MEP.State.balanceGraphScale = data.balanceGraphScale;
+                    if (typeof data.charterRoundsPerHour === "number") MEP.State.charterRoundsPerHour = data.charterRoundsPerHour;
+                    if (typeof data.charterRoundsPer6Hours === "number") MEP.State.charterRoundsPer6Hours = data.charterRoundsPer6Hours;
+                    if (typeof data.charterRoundsPerDay === "number") MEP.State.charterRoundsPerDay = data.charterRoundsPerDay;
+                    if (typeof data.charterWinsPerHour === "number") MEP.State.charterWinsPerHour = data.charterWinsPerHour;
+                    if (typeof data.charterWinsPer6Hours === "number") MEP.State.charterWinsPer6Hours = data.charterWinsPer6Hours;
+                    if (typeof data.charterWinsPerDay === "number") MEP.State.charterWinsPerDay = data.charterWinsPerDay;
+                    if (typeof data.charterMaxStakePercent === "number") MEP.State.charterMaxStakePercent = data.charterMaxStakePercent;
+                    if (typeof data.charterLossesPerHour === "number") MEP.State.charterLossesPerHour = data.charterLossesPerHour;
+                    if (typeof data.charterLossesPer6Hours === "number") MEP.State.charterLossesPer6Hours = data.charterLossesPer6Hours;
+                    if (typeof data.charterLossesPerDay === "number") MEP.State.charterLossesPerDay = data.charterLossesPerDay;
+                    if (typeof data.charterBreakAfter3LossesMin === "number") MEP.State.charterBreakAfter3LossesMin = data.charterBreakAfter3LossesMin;
                     if (typeof data.frequencyThreshold === "number") MEP.State.frequencyThreshold = data.frequencyThreshold;
                     if (typeof data.frequencyPeriod === "number") MEP.State.frequencyPeriod = data.frequencyPeriod;
                     if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
@@ -1038,6 +1071,43 @@
 				}
 				#${PANEL_ID} .mep-game-tab-panel.is-active{
 				display:block;
+				}
+				#${PANEL_ID} .mep-charter-form{
+				display:flex;
+				flex-direction:column;
+				gap:8px;
+				}
+				#${PANEL_ID} .mep-charter-row{
+				display:grid;
+				grid-template-columns: 1fr 120px auto;
+				align-items:center;
+				gap:10px;
+				padding:6px 8px;
+				border:1px solid rgba(255,255,255,0.12);
+				background: rgba(255,255,255,0.03);
+				}
+				#${PANEL_ID} .mep-charter-label{
+				font-size:12px;
+				font-weight:300;
+				opacity:0.95;
+				}
+				#${PANEL_ID} .mep-charter-input{
+				width:100%;
+				height:26px;
+				border-radius:8px;
+				border:1px solid rgba(255,255,255,0.14);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding:0 8px;
+				box-sizing:border-box;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} .mep-charter-suffix{
+				font-size:12px;
+				opacity:0.9;
+				min-width:28px;
+				text-align:left;
 				}
 				#${PANEL_ID} .mep-game-placeholder{
 				font-size:13px;
@@ -2014,6 +2084,17 @@
             balanceGraphDensitySync: !!MEP.balanceGraphDensitySync,
             balanceGraphAutoHeight: !!MEP.balanceGraphAutoHeight,
             balanceGraphScale: typeof MEP.balanceGraphScale === "number" ? MEP.balanceGraphScale : 10000000,
+            charterRoundsPerHour: typeof MEP.charterRoundsPerHour === "number" ? MEP.charterRoundsPerHour : 0,
+            charterRoundsPer6Hours: typeof MEP.charterRoundsPer6Hours === "number" ? MEP.charterRoundsPer6Hours : 0,
+            charterRoundsPerDay: typeof MEP.charterRoundsPerDay === "number" ? MEP.charterRoundsPerDay : 0,
+            charterWinsPerHour: typeof MEP.charterWinsPerHour === "number" ? MEP.charterWinsPerHour : 0,
+            charterWinsPer6Hours: typeof MEP.charterWinsPer6Hours === "number" ? MEP.charterWinsPer6Hours : 0,
+            charterWinsPerDay: typeof MEP.charterWinsPerDay === "number" ? MEP.charterWinsPerDay : 0,
+            charterMaxStakePercent: typeof MEP.charterMaxStakePercent === "number" ? MEP.charterMaxStakePercent : 0,
+            charterLossesPerHour: typeof MEP.charterLossesPerHour === "number" ? MEP.charterLossesPerHour : 0,
+            charterLossesPer6Hours: typeof MEP.charterLossesPer6Hours === "number" ? MEP.charterLossesPer6Hours : 0,
+            charterLossesPerDay: typeof MEP.charterLossesPerDay === "number" ? MEP.charterLossesPerDay : 0,
+            charterBreakAfter3LossesMin: typeof MEP.charterBreakAfter3LossesMin === "number" ? MEP.charterBreakAfter3LossesMin : 0,
             frequencyThreshold: typeof MEP.frequencyThreshold === "number" ? MEP.frequencyThreshold : 7,
             frequencyPeriod: typeof MEP.frequencyPeriod === "number" ? MEP.frequencyPeriod : 50,
             frequencyGraphDensity: typeof MEP.frequencyGraphDensity === "number" ? MEP.frequencyGraphDensity : 81,
@@ -3957,7 +4038,7 @@
             setGameTab(tab) {
                 const ui = MEP.UI.ui;
                 if (!ui) return;
-                const nextTab = tab === "strategy2" ? "strategy2" : "strategy1";
+                const nextTab = tab === "charter" ? "charter" : tab === "strategy2" ? "strategy2" : "strategy1";
                 ui._gameTab = nextTab;
 
                 if (ui.gameTabButtons?.length) {
@@ -3967,6 +4048,7 @@
                     }
                 }
 
+                ui.charterPanel?.classList.toggle("is-active", nextTab === "charter");
                 ui.strategy1Panel?.classList.toggle("is-active", nextTab === "strategy1");
                 ui.strategy2Panel?.classList.toggle("is-active", nextTab === "strategy2");
             },
@@ -4529,10 +4611,26 @@
                     gamePanel.className = "mep-tab-panel mep-tab-panel-game";
                     gamePanel.innerHTML = `
 <div class="mep-game-tabs">
-    <button class="mep-game-tab-btn is-active" type="button" data-tab="strategy1">Стратегия1</button>
+    <button class="mep-game-tab-btn is-active" type="button" data-tab="charter">Устав</button>
+    <button class="mep-game-tab-btn" type="button" data-tab="strategy1">Стратегия1</button>
     <button class="mep-game-tab-btn" type="button" data-tab="strategy2">Стратегия2</button>
 </div>
-<div class="mep-game-tab-panel mep-game-tab-panel-strategy1 is-active">
+<div class="mep-game-tab-panel mep-game-tab-panel-charter is-active">
+    <div class="mep-charter-form">
+        <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов в час</span><input class="mep-charter-input mep-charter-rounds-hour" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
+        <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов за 6 часов</span><input class="mep-charter-input mep-charter-rounds-6h" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
+        <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов за сутки</span><input class="mep-charter-input mep-charter-rounds-day" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
+        <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей в час</span><input class="mep-charter-input mep-charter-wins-hour" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
+        <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей за 6 часов</span><input class="mep-charter-input mep-charter-wins-6h" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
+        <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей за сутки</span><input class="mep-charter-input mep-charter-wins-day" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
+        <div class="mep-charter-row"><span class="mep-charter-label">процент макс от баланса для ставки</span><input class="mep-charter-input mep-charter-max-stake-percent" type="number" min="0" step="0.1" /><span class="mep-charter-suffix">%</span></div>
+        <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за час</span><input class="mep-charter-input mep-charter-losses-hour" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
+        <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за 6 часов</span><input class="mep-charter-input mep-charter-losses-6h" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
+        <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за день</span><input class="mep-charter-input mep-charter-losses-day" type="number" min="0" step="1" /><span class="mep-charter-suffix"></span></div>
+        <div class="mep-charter-row"><span class="mep-charter-label">время перерыва после трех подряд проигрышей</span><input class="mep-charter-input mep-charter-break-3loss-min" type="number" min="0" step="1" /><span class="mep-charter-suffix">мин</span></div>
+    </div>
+</div>
+<div class="mep-game-tab-panel mep-game-tab-panel-strategy1">
     <div class="mep-game-placeholder">Контент стратегии 1</div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-strategy2">
@@ -4560,8 +4658,20 @@
                     mainPanel: panel.querySelector(".mep-tab-panel-main"),
                     gamePanel: panel.querySelector(".mep-tab-panel-game"),
                     gameTabButtons: [...panel.querySelectorAll("button.mep-game-tab-btn")],
+                    charterPanel: panel.querySelector(".mep-game-tab-panel-charter"),
                     strategy1Panel: panel.querySelector(".mep-game-tab-panel-strategy1"),
                     strategy2Panel: panel.querySelector(".mep-game-tab-panel-strategy2"),
+                    charterRoundsPerHourInput: panel.querySelector("input.mep-charter-rounds-hour"),
+                    charterRoundsPer6HoursInput: panel.querySelector("input.mep-charter-rounds-6h"),
+                    charterRoundsPerDayInput: panel.querySelector("input.mep-charter-rounds-day"),
+                    charterWinsPerHourInput: panel.querySelector("input.mep-charter-wins-hour"),
+                    charterWinsPer6HoursInput: panel.querySelector("input.mep-charter-wins-6h"),
+                    charterWinsPerDayInput: panel.querySelector("input.mep-charter-wins-day"),
+                    charterMaxStakePercentInput: panel.querySelector("input.mep-charter-max-stake-percent"),
+                    charterLossesPerHourInput: panel.querySelector("input.mep-charter-losses-hour"),
+                    charterLossesPer6HoursInput: panel.querySelector("input.mep-charter-losses-6h"),
+                    charterLossesPerDayInput: panel.querySelector("input.mep-charter-losses-day"),
+                    charterBreakAfter3LossesMinInput: panel.querySelector("input.mep-charter-break-3loss-min"),
                     textarea: panel.querySelector("textarea.mep-stats"),
                     copyBtn: panel.querySelector("button.mep-copy"),
                     sendDbBtn: panel.querySelector("button.mep-send-db"),
@@ -4691,7 +4801,7 @@
                 if (!ui) return;
 
                 ui._mainTab = "main";
-                ui._gameTab = "strategy1";
+                ui._gameTab = "charter";
 
                 if (ui.mainTabButtons?.length) {
                     for (const btn of ui.mainTabButtons) {
@@ -4703,12 +4813,39 @@
                 if (ui.gameTabButtons?.length) {
                     for (const btn of ui.gameTabButtons) {
                         btn.addEventListener("click", () => {
-                            MEP.UI.setGameTab(btn.dataset.tab || "strategy1");
+                            MEP.UI.setGameTab(btn.dataset.tab || "charter");
                         });
                     }
                 }
                 MEP.UI.setMainTab(ui._mainTab);
                 MEP.UI.setGameTab(ui._gameTab);
+
+                const bindCharterInput = (inp, stateKey, step = 1) => {
+                    if (!inp) return;
+                    let current = Number(MEP.State[stateKey]);
+                    if (!Number.isFinite(current) || current < 0) current = 0;
+                    MEP.State[stateKey] = current;
+                    inp.value = String(current);
+                    inp.addEventListener("input", () => {
+                        let v = Number(inp.value);
+                        if (!Number.isFinite(v) || v < 0) v = 0;
+                        if (step === 1) v = Math.floor(v);
+                        MEP.State[stateKey] = v;
+                        inp.value = String(v);
+                        MEP.Storage.save();
+                    });
+                };
+                bindCharterInput(ui.charterRoundsPerHourInput, "charterRoundsPerHour", 1);
+                bindCharterInput(ui.charterRoundsPer6HoursInput, "charterRoundsPer6Hours", 1);
+                bindCharterInput(ui.charterRoundsPerDayInput, "charterRoundsPerDay", 1);
+                bindCharterInput(ui.charterWinsPerHourInput, "charterWinsPerHour", 1);
+                bindCharterInput(ui.charterWinsPer6HoursInput, "charterWinsPer6Hours", 1);
+                bindCharterInput(ui.charterWinsPerDayInput, "charterWinsPerDay", 1);
+                bindCharterInput(ui.charterMaxStakePercentInput, "charterMaxStakePercent", 0.1);
+                bindCharterInput(ui.charterLossesPerHourInput, "charterLossesPerHour", 1);
+                bindCharterInput(ui.charterLossesPer6HoursInput, "charterLossesPer6Hours", 1);
+                bindCharterInput(ui.charterLossesPerDayInput, "charterLossesPerDay", 1);
+                bindCharterInput(ui.charterBreakAfter3LossesMinInput, "charterBreakAfter3LossesMin", 1);
 
                 // -------------------------
                 // Graph controls
