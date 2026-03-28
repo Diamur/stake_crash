@@ -557,6 +557,14 @@
                     diffPosLevel: MEP.State.diffPosLevel,
                     diffNegLevel: MEP.State.diffNegLevel,
                     diffStartIndex: MEP.State.diffStartIndex,
+                    diffVectorEnabled: MEP.State.diffVectorEnabled,
+                    diffVectorPeriod: MEP.State.diffVectorPeriod,
+                    diffVectorPhaseShift: MEP.State.diffVectorPhaseShift,
+                    diffVectorFlatEpsilon: MEP.State.diffVectorFlatEpsilon,
+                    diffVectorMainColor: MEP.State.diffVectorMainColor,
+                    diffVectorShiftColor: MEP.State.diffVectorShiftColor,
+                    diffVectorMainWidth: MEP.State.diffVectorMainWidth,
+                    diffVectorShiftWidth: MEP.State.diffVectorShiftWidth,
                 };
 
                 const str = JSON.stringify(data);
@@ -606,6 +614,14 @@
                         if (typeof data.diffPosLevel === "number") MEP.State.diffPosLevel = data.diffPosLevel;
                         if (typeof data.diffNegLevel === "number") MEP.State.diffNegLevel = data.diffNegLevel;
                         if (typeof data.diffStartIndex === "number") MEP.State.diffStartIndex = data.diffStartIndex;
+                        if (typeof data.diffVectorEnabled === "boolean") MEP.State.diffVectorEnabled = data.diffVectorEnabled;
+                        if (typeof data.diffVectorPeriod === "number") MEP.State.diffVectorPeriod = data.diffVectorPeriod;
+                        if (typeof data.diffVectorPhaseShift === "number") MEP.State.diffVectorPhaseShift = data.diffVectorPhaseShift;
+                        if (typeof data.diffVectorFlatEpsilon === "number") MEP.State.diffVectorFlatEpsilon = data.diffVectorFlatEpsilon;
+                        if (typeof data.diffVectorMainColor === "string") MEP.State.diffVectorMainColor = data.diffVectorMainColor;
+                        if (typeof data.diffVectorShiftColor === "string") MEP.State.diffVectorShiftColor = data.diffVectorShiftColor;
+                        if (typeof data.diffVectorMainWidth === "number") MEP.State.diffVectorMainWidth = data.diffVectorMainWidth;
+                        if (typeof data.diffVectorShiftWidth === "number") MEP.State.diffVectorShiftWidth = data.diffVectorShiftWidth;
 
                         return true;
                     }
@@ -644,6 +660,14 @@
                     if (typeof data.diffPosLevel === "number") MEP.State.diffPosLevel = data.diffPosLevel;
                     if (typeof data.diffNegLevel === "number") MEP.State.diffNegLevel = data.diffNegLevel;
                     if (typeof data.diffStartIndex === "number") MEP.State.diffStartIndex = data.diffStartIndex;
+                    if (typeof data.diffVectorEnabled === "boolean") MEP.State.diffVectorEnabled = data.diffVectorEnabled;
+                    if (typeof data.diffVectorPeriod === "number") MEP.State.diffVectorPeriod = data.diffVectorPeriod;
+                    if (typeof data.diffVectorPhaseShift === "number") MEP.State.diffVectorPhaseShift = data.diffVectorPhaseShift;
+                    if (typeof data.diffVectorFlatEpsilon === "number") MEP.State.diffVectorFlatEpsilon = data.diffVectorFlatEpsilon;
+                    if (typeof data.diffVectorMainColor === "string") MEP.State.diffVectorMainColor = data.diffVectorMainColor;
+                    if (typeof data.diffVectorShiftColor === "string") MEP.State.diffVectorShiftColor = data.diffVectorShiftColor;
+                    if (typeof data.diffVectorMainWidth === "number") MEP.State.diffVectorMainWidth = data.diffVectorMainWidth;
+                    if (typeof data.diffVectorShiftWidth === "number") MEP.State.diffVectorShiftWidth = data.diffVectorShiftWidth;
 
                     return true;
                 } catch (e) {
@@ -1076,6 +1100,42 @@
 				padding: 0 8px;
 				box-sizing: border-box;
 				font-size: 13px;
+				font-weight: 300;
+				outline:none;
+				}
+				#${PANEL_ID} .mep-diff-vector-row{
+				display:flex;
+				align-items:center;
+				gap:6px;
+				margin: 0 0 4px 0;
+				flex-wrap: wrap;
+				}
+				#${PANEL_ID} .mep-diff-vector-label{
+				display:inline-flex;
+				align-items:center;
+				gap:5px;
+				font-size: 12px;
+				font-weight: 300;
+				opacity: 0.95;
+				white-space: nowrap;
+				}
+				#${PANEL_ID} .mep-diff-vector-check{
+				width: 15px;
+				height: 15px;
+				cursor: pointer;
+				}
+				#${PANEL_ID} input.mep-diff-vector-period,
+				#${PANEL_ID} input.mep-diff-vector-shift,
+				#${PANEL_ID} input.mep-diff-vector-flat{
+				width: 54px;
+				height: 24px;
+				border-radius: 8px;
+				border: 1px solid rgba(255,255,255,0.14);
+				background: rgba(255,255,255,0.08);
+				color:#fff;
+				padding: 0 7px;
+				box-sizing: border-box;
+				font-size: 12px;
 				font-weight: 300;
 				outline:none;
 				}
@@ -1807,6 +1867,16 @@
             // фиксированная стартовая точка этапа для diff-расчёта (1-based от начала истории)
             // 0 = выключено (используется режим "Последние N")
             diffStartIndex: typeof MEP.diffStartIndex === "number" ? MEP.diffStartIndex : 0,
+            diffVectorEnabled: ("diffVectorEnabled" in MEP) ? !!MEP.diffVectorEnabled : true,
+            diffVectorPeriod: typeof MEP.diffVectorPeriod === "number" ? MEP.diffVectorPeriod : 9,
+            diffVectorPhaseShift: typeof MEP.diffVectorPhaseShift === "number" ? MEP.diffVectorPhaseShift : 3,
+            diffVectorFlatEpsilon: typeof MEP.diffVectorFlatEpsilon === "number" ? MEP.diffVectorFlatEpsilon : 0.15,
+            diffVectorMainColor: typeof MEP.diffVectorMainColor === "string" ? MEP.diffVectorMainColor : "rgba(255,255,255,0.96)",
+            diffVectorShiftColor: typeof MEP.diffVectorShiftColor === "string" ? MEP.diffVectorShiftColor : "rgba(80,210,255,0.92)",
+            diffVectorMainWidth: typeof MEP.diffVectorMainWidth === "number" ? MEP.diffVectorMainWidth : 0.9,
+            diffVectorShiftWidth: typeof MEP.diffVectorShiftWidth === "number" ? MEP.diffVectorShiftWidth : 0.7,
+            diffVectorState: typeof MEP.diffVectorState === "string" ? MEP.diffVectorState : "flat",
+            diffVectorSignal: typeof MEP.diffVectorSignal === "number" ? MEP.diffVectorSignal : 0,
 
             // История агрегатов ставок по раундам (oldest -> newest), runtime-only (SAFE MODE / MVP)
             roundPlayersCountHistory: Array.isArray(MEP.roundPlayersCountHistory) ? MEP.roundPlayersCountHistory : [],
@@ -2374,6 +2444,48 @@
                 }
             },
 
+            _calcEMA(values, period) {
+                const src = Array.isArray(values) ? values : [];
+                const p = Math.max(1, Math.floor(Number(period) || 1));
+                const alpha = 2 / (p + 1);
+                const out = [];
+                let prev = null;
+                for (let i = 0; i < src.length; i++) {
+                    const v = Number(src[i]) || 0;
+                    if (prev === null) prev = v;
+                    else prev = alpha * v + (1 - alpha) * prev;
+                    out.push(prev);
+                }
+                return out;
+            },
+
+            _buildVectorSeries(values) {
+                const src = Array.isArray(values) ? values : [];
+                const period = Math.max(1, Math.floor(Number(MEP.State.diffVectorPeriod) || 9));
+                const shift = Math.max(1, Math.floor(Number(MEP.State.diffVectorPhaseShift) || 3));
+                const mainEMA = this._calcEMA(src, period);
+                const shiftedEMA = new Array(mainEMA.length);
+                for (let i = 0; i < mainEMA.length; i++) {
+                    const j = i - shift;
+                    shiftedEMA[i] = j >= 0 ? mainEMA[j] : mainEMA[0];
+                }
+                return { mainEMA, shiftedEMA };
+            },
+
+            _updateVectorState(mainEMA, shiftedEMA) {
+                if (!Array.isArray(mainEMA) || !mainEMA.length || !Array.isArray(shiftedEMA) || !shiftedEMA.length) {
+                    MEP.State.diffVectorState = "flat";
+                    MEP.State.diffVectorSignal = 0;
+                    return;
+                }
+                const lastMain = Number(mainEMA[mainEMA.length - 1]) || 0;
+                const lastShift = Number(shiftedEMA[shiftedEMA.length - 1]) || 0;
+                const signal = lastMain - lastShift;
+                const eps = Math.max(0, Number(MEP.State.diffVectorFlatEpsilon) || 0);
+                MEP.State.diffVectorSignal = signal;
+                MEP.State.diffVectorState = signal > eps ? "up" : signal < -eps ? "down" : "flat";
+            },
+
             render() {
                 const ui = this._ui;
                 if (!ui?.diffSvg) return;
@@ -2424,6 +2536,9 @@
                     const a = Math.abs(Number(v) || 0);
                     if (a > maxAbs) maxAbs = a;
                 }
+
+                const vectorData = this._buildVectorSeries(series);
+                this._updateVectorState(vectorData.mainEMA, vectorData.shiftedEMA);
 
                 // min/max/len labels for FULL selected series (не зависит от плотности)
                 {
@@ -2552,6 +2667,43 @@
 
 					ui.diffSvg.appendChild(rect);
 					});
+
+                  if (MEP.State.diffVectorEnabled !== false && n > 1) {
+                    const toY = (v0) => {
+                        const v = Number(v0) || 0;
+                        return midY - (v / maxAbs) * (midY - 1);
+                    };
+                    const toPoints = (arr) => arr
+                        .map((v, i) => `${(i * (barW + gap)) + (barW / 2)},${toY(v)}`)
+                        .join(" ");
+
+                    const mainPts = toPoints(vectorData.mainEMA);
+                    const shiftPts = toPoints(vectorData.shiftedEMA);
+
+                    if (mainPts) {
+                        const mainLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                        mainLine.setAttribute("fill", "none");
+                        mainLine.setAttribute("stroke", (MEP.State.diffVectorMainColor || "rgba(255,255,255,0.96)").toString());
+                        mainLine.setAttribute("stroke-width", String(Number(MEP.State.diffVectorMainWidth) || 0.9));
+                        mainLine.setAttribute("stroke-linecap", "round");
+                        mainLine.setAttribute("stroke-linejoin", "round");
+                        mainLine.setAttribute("points", mainPts);
+                        mainLine.setAttribute("pointer-events", "none");
+                        ui.diffSvg.appendChild(mainLine);
+                    }
+
+                    if (shiftPts) {
+                        const shiftLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                        shiftLine.setAttribute("fill", "none");
+                        shiftLine.setAttribute("stroke", (MEP.State.diffVectorShiftColor || "rgba(80,210,255,0.92)").toString());
+                        shiftLine.setAttribute("stroke-width", String(Number(MEP.State.diffVectorShiftWidth) || 0.7));
+                        shiftLine.setAttribute("stroke-linecap", "round");
+                        shiftLine.setAttribute("stroke-linejoin", "round");
+                        shiftLine.setAttribute("points", shiftPts);
+                        shiftLine.setAttribute("pointer-events", "none");
+                        ui.diffSvg.appendChild(shiftLine);
+                    }
+                  }
 
 				  // пунктирные уровни (+ / -) — ПОСЛЕ rect, чтобы были поверх столбиков
 				  appendDiffGuideLines();
@@ -3581,6 +3733,12 @@
 </div>
 <div class="mep-diff-wrap">
 <div class="mep-diff-lenrow"><span class="mep-diff-len">len: 0</span><span class="mep-diff-lvlwrap"><span class="mep-diff-lvl-sign">+</span><input class="mep-diff-lvl-pos" type="number" min="0" step="1" value="0"><span class="mep-diff-lvl-sign">-</span><input class="mep-diff-lvl-neg" type="number" min="0" step="1" value="0"></span></div>
+    <div class="mep-diff-vector-row">
+        <label class="mep-diff-vector-label"><input class="mep-diff-vector-enabled mep-diff-vector-check" type="checkbox" checked><span>Вектор</span></label>
+        <label class="mep-diff-vector-label"><span>P</span><input class="mep-diff-vector-period" type="number" min="1" step="1" value="9"></label>
+        <label class="mep-diff-vector-label"><span>S</span><input class="mep-diff-vector-shift" type="number" min="1" step="1" value="3"></label>
+        <label class="mep-diff-vector-label"><span>Flat</span><input class="mep-diff-vector-flat" type="number" min="0" step="0.01" value="0.15"></label>
+    </div>
     <div class="mep-diff-maxrow"><span class="mep-diff-max">max: +0</span></div>
     <div class="mep-diff-box">
         <svg class="mep-diff" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
@@ -3850,6 +4008,10 @@
 					diffSyncInput: panel.querySelector("input.mep-diff-sync"),
 					diffPosInput: panel.querySelector("input.mep-diff-lvl-pos"),
 					diffNegInput: panel.querySelector("input.mep-diff-lvl-neg"),
+                    diffVectorEnabledInput: panel.querySelector("input.mep-diff-vector-enabled"),
+                    diffVectorPeriodInput: panel.querySelector("input.mep-diff-vector-period"),
+                    diffVectorShiftInput: panel.querySelector("input.mep-diff-vector-shift"),
+                    diffVectorFlatInput: panel.querySelector("input.mep-diff-vector-flat"),
                     twoAll: panel.querySelector("input.mep-two-all"),
                     twoTotal: panel.querySelector(".mep-two-total"),
                     twoTotalN: panel.querySelector(".mep-two-total-n"),
@@ -4259,6 +4421,22 @@
 
                     if (ui.diffPosInput) ui.diffPosInput.value = String(Math.max(0, Math.floor(Number(MEP.State.diffPosLevel) || 0)));
                     if (ui.diffNegInput) ui.diffNegInput.value = String(Math.max(0, Math.floor(Number(MEP.State.diffNegLevel) || 0)));
+                    if (ui.diffVectorEnabledInput) ui.diffVectorEnabledInput.checked = MEP.State.diffVectorEnabled !== false;
+                    if (ui.diffVectorPeriodInput) {
+                        const p = Math.max(1, Math.floor(Number(MEP.State.diffVectorPeriod) || 9));
+                        MEP.State.diffVectorPeriod = p;
+                        ui.diffVectorPeriodInput.value = String(p);
+                    }
+                    if (ui.diffVectorShiftInput) {
+                        const s = Math.max(1, Math.floor(Number(MEP.State.diffVectorPhaseShift) || 3));
+                        MEP.State.diffVectorPhaseShift = s;
+                        ui.diffVectorShiftInput.value = String(s);
+                    }
+                    if (ui.diffVectorFlatInput) {
+                        const f = Math.max(0, Number(MEP.State.diffVectorFlatEpsilon) || 0);
+                        MEP.State.diffVectorFlatEpsilon = f;
+                        ui.diffVectorFlatInput.value = String(f);
+                    }
                 };
 
                 applyDiffDensityUi();
@@ -4278,6 +4456,44 @@
                         const v = Math.max(0, Math.floor(Number(ui.diffNegInput.value) || 0));
                         ui.diffNegInput.value = String(v);
                         MEP.State.diffNegLevel = v;
+                        MEP.Storage.save();
+                        MEP.DiffGraph?.render?.();
+                    });
+                }
+
+                if (ui.diffVectorEnabledInput) {
+                    ui.diffVectorEnabledInput.addEventListener("change", () => {
+                        MEP.State.diffVectorEnabled = !!ui.diffVectorEnabledInput.checked;
+                        MEP.Storage.save();
+                        MEP.DiffGraph?.render?.();
+                    });
+                }
+
+                if (ui.diffVectorPeriodInput) {
+                    ui.diffVectorPeriodInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.diffVectorPeriodInput.value) || 1));
+                        ui.diffVectorPeriodInput.value = String(v);
+                        MEP.State.diffVectorPeriod = v;
+                        MEP.Storage.save();
+                        MEP.DiffGraph?.render?.();
+                    });
+                }
+
+                if (ui.diffVectorShiftInput) {
+                    ui.diffVectorShiftInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.diffVectorShiftInput.value) || 1));
+                        ui.diffVectorShiftInput.value = String(v);
+                        MEP.State.diffVectorPhaseShift = v;
+                        MEP.Storage.save();
+                        MEP.DiffGraph?.render?.();
+                    });
+                }
+
+                if (ui.diffVectorFlatInput) {
+                    ui.diffVectorFlatInput.addEventListener("input", () => {
+                        const v = Math.max(0, Number(ui.diffVectorFlatInput.value) || 0);
+                        ui.diffVectorFlatInput.value = String(v);
+                        MEP.State.diffVectorFlatEpsilon = v;
                         MEP.Storage.save();
                         MEP.DiffGraph?.render?.();
                     });

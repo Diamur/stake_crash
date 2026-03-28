@@ -35,3 +35,8 @@
 - В `Главная` обёрнут весь прежний основной контент без изменения порядка блоков.
 - Во вкладке `Игра` добавлены подвкладки `Стратегия1` / `Стратегия2` с runtime-only переключением.
 - Добавлены базовые тёмные стили для main/game tab-bar и контейнеров-заглушек стратегий.
+- 2026-03-28: В diff-график добавлены EMA-векторные линии (main + phase-shift) поверх столбиков в общей шкале Y.
+- Добавлены state/persistence поля: diffVectorEnabled/Period/PhaseShift/FlatEpsilon + цвета и ширины линий.
+- В `.mep-diff-wrap` добавлены компактные контролы `Вектор / P / S / Flat` + bind/save/render без отдельного блока.
+- В `MEP.DiffGraph` добавлены helper'ы `_calcEMA`, `_buildVectorSeries`, `_updateVectorState`.
+- Вычисляется и сохраняется сигнал вектора: `MEP.State.diffVectorSignal` и состояние `up/down/flat`.
