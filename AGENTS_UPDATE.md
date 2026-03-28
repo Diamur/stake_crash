@@ -84,3 +84,7 @@
 - Добавлен `pushCurrentBalanceToHistory(stageKey, reason)` с anti-duplicate по `stageKey` (`lastBalanceStageKey`), а не по value.
 - Коммит баланса встроен в тот же момент, где пишутся `roundPlayersCountHistory/roundBetSumHistory` в `MEP.RoundStakeCapture.captureAfterStart()`.
 - Одинаковые значения баланса между разными stage теперь разрешены; дубль только при повторном том же stageKey.
+- 2026-03-28: Добавлен helper `MEP.BalanceCapture.ensureInitialBalance()` для жёсткой инициализации первой точки balance history.
+- Initial seed теперь: если history пустая -> push current balance; если history = [0] -> overwrite первого элемента реальным balance.
+- При успешном initial seed сразу вызывается `MEP.BalanceGraph.render()` и выставляется stageKey `__initial__`.
+- Стартовая инициализация `BalanceCapture.start()` переведена на `ensureInitialBalance()` вместо обычного round-push.

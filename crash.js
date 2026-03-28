@@ -6693,6 +6693,29 @@
                 return true;
             },
 
+            ensureInitialBalance() {
+                const hasLatest = this.updateLatestSeenBalance();
+                if (!hasLatest) return false;
+                const n = Number(this.state.latestSeenBalance);
+                if (!Number.isFinite(n)) return false;
+                if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
+
+                const arr = MEP.State.balanceHistory;
+                if (!arr.length) {
+                    arr.push(n);
+                } else if (arr.length === 1 && Number(arr[0]) === 0) {
+                    arr[0] = n; // fallback overwrite стартового 0
+                } else {
+                    return false;
+                }
+
+                this.state.seededInitialBalance = true;
+                this.state.lastBalanceStageKey = "__initial__";
+                console.debug("[MEP.BalanceCapture] initial seed", { value: n, len: arr.length });
+                MEP.BalanceGraph?.render?.();
+                return true;
+            },
+
             pushCurrentBalanceToHistory(stageKey, reason = "round") {
                 const n = Number(this.state.latestSeenBalance);
                 if (!Number.isFinite(n)) return false;
@@ -6738,10 +6761,7 @@
                 this.state.seededInitialBalance = false;
                 this.state.latestSeenBalance = null;
 
-                this.updateLatestSeenBalance();
-                if (!this.state.seededInitialBalance) {
-                    this.pushCurrentBalanceToHistory("__initial__", "initial");
-                }
+                this.ensureInitialBalance();
 
                 const body = document.body;
                 if (!body) return;
