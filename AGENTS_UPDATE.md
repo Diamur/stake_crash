@@ -63,3 +63,45 @@
 - 2026-03-28: Diff collapse обновлён — теперь в collapsed скрываются `.mep-diff-params`, `.mep-two-stat-wrap` и `.mep-diff-lenrow`.
 - В видимом состоянии при collapse остаются только header и graph-area (max/svg/min).
 - Логика математики/EMA/updateTwoStats/render не изменялась.
+- 2026-03-28: Добавлен новый блок `График баланса` в главной вкладке между `График ставок` и нижним `График`.
+- Добавлен модуль `MEP.BalanceGraph` (init/render): линейный SVG polyline по `MEP.State.balanceHistory` (oldest->newest), baseline + вертикальные пунктирные stage-линии.
+- Добавлены state/persistence поля: `balanceGraphDensity`, `balanceGraphDensitySync`, `balanceGraphAutoHeight` (runtime-only `balanceHistory` не сохраняется).
+- В UI добавлены параметры `плотн./Синхр./Автовысота` + отдельный collapse `ui._balanceParamsCollapsed` (скрывает только параметры).
+- Реализован sync длины окна с master diff-графиком при `balanceGraphDensitySync=true` через видимую длину diffHistory.
+- Добавлен tooltip по hover-точкам в формате `Баланс: 123.45` без этапа/индекса.
+- 2026-03-28: Точечный фикс `График баланса` — причина пустого графика была в непополняемом `MEP.State.balanceHistory`.
+- Добавлен `MEP.BalanceCapture` (DOM observer + polling fallback): читает текущий баланс из набора селекторов и накапливает историю (oldest->newest).
+- Добавлен dedupe push (`same value` + антидребезг), после валидного push сразу вызывается `MEP.BalanceGraph.render()`.
+- В `MEP.Main.boot()` добавлены `MEP.BalanceCapture.stopIfRunning()` и `MEP.BalanceCapture.start()`.
+- В `MEP.BalanceGraph.render()` добавлены safe-check массива, debug-логи и fallback для 1 точки (рисуется circle + hover).
+- 2026-03-28: Для BalanceCapture приоритетным источником задан `span[data-ds-text="true"].text-neutral-default.ds-body-md-strong`.
+- Добавлен state/storage-параметр `balanceGraphScale` (по умолчанию `10000000`) без UI-контрола.
+- В `MEP.BalanceGraph.render()` внедрено разделение raw/scaled: history хранит raw, геометрия строится по `raw * balanceGraphScale`.
+- Tooltip для balance-графика теперь всегда показывает raw-значение (`toFixed(8)`), без scaled коэффициента.
+- В debug balance-графика добавлены `visible raw len`, `scaled min/max`, `balanceGraphScale`.
+- 2026-03-28: Balance history переведён на round-based commit: мутации/polling обновляют только `latestSeenBalance`.
+- `MEP.BalanceCapture.start()` теперь сразу seed'ит первую точку из текущего DOM-баланса (`__initial__`) и рендерит график.
+- Добавлен `pushCurrentBalanceToHistory(stageKey, reason)` с anti-duplicate по `stageKey` (`lastBalanceStageKey`), а не по value.
+- Коммит баланса встроен в тот же момент, где пишутся `roundPlayersCountHistory/roundBetSumHistory` в `MEP.RoundStakeCapture.captureAfterStart()`.
+- Одинаковые значения баланса между разными stage теперь разрешены; дубль только при повторном том же stageKey.
+- 2026-03-28: Добавлен helper `MEP.BalanceCapture.ensureInitialBalance()` для жёсткой инициализации первой точки balance history.
+- Initial seed теперь: если history пустая -> push current balance; если history = [0] -> overwrite первого элемента реальным balance.
+- При успешном initial seed сразу вызывается `MEP.BalanceGraph.render()` и выставляется stageKey `__initial__`.
+- Стартовая инициализация `BalanceCapture.start()` переведена на `ensureInitialBalance()` вместо обычного round-push.
+- 2026-03-28: Для жёсткого initial seed добавлен fallback timer в `MEP.BalanceCapture` (400ms, до 40 попыток).
+- Timer правит только первую точку: если history пустая -> push first; если history[0] == 0 -> overwrite history[0] реальным балансом.
+- Добавлены helper'ы `startInitialSeedFixTimer()`, `stopInitialSeedFixTimer()`, `tryFixInitialZero()` с debug-логами start/overwrite/stop/timeout.
+- Timer останавливается автоматически при валидной первой точке (`!= 0`) и не используется для обычного накопления history.
+- Round-based поток записи баланса по stageKey не менялся.
+- 2026-03-28: В разделе `Игра` добавлена новая первая подвкладка `Устав` (`data-tab="charter"`) перед `Стратегия1/2`.
+- Добавлен panel `.mep-game-tab-panel-charter` с формой `mep-charter-form` и 11 полями лимитов/параметров.
+- `setGameTab()` расширен на тройку `charter/strategy1/strategy2`, дефолт `ui._gameTab` сменён на `charter`.
+- В `MEP.State` и `MEP.Storage.save/load()` добавлены `charter*` поля с дефолтом `0` и persistence.
+- В `MEP.UI.ui` добавлены refs charter-panel/input'ов и bind-обработчики с нормализацией `number >= 0` + `MEP.Storage.save()`.
+- 2026-03-28: Вкладка `Устав` визуально перегруппирована в 4 секции: `Нагрузка`, `Результативность`, `Ограничение потерь`, `Риск-менеджмент`.
+- Добавлены CSS-классы `.mep-charter-sections`, `.mep-charter-section`, `.mep-charter-section-title`.
+- Для строк устава выставлена сетка `grid-template-columns: 1fr 60px auto` (как requested).
+- Сами input-классы/селекторы не менялись, поэтому refs/bind/state/storage продолжают работать без правок логики.
+- 2026-03-28: Во вкладку `Устав` добавлено явное пояснение `.mep-charter-note`: `0 = без ограничений`.
+- На все charter input добавлен `title="0 = без ограничений"`.
+- Логика state/storage/bind не менялась: 0 сохраняется как 0 и интерпретируется как отключённый лимит по UI-правилу.
