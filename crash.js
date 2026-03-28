@@ -546,6 +546,14 @@
                     frequencyGraphDensity: MEP.State.frequencyGraphDensity,
                     frequencyGraphDensitySync: MEP.State.frequencyGraphDensitySync,
                     frequencyGraphLine: MEP.State.frequencyGraphLine,
+                    frequencyVectorEnabled: MEP.State.frequencyVectorEnabled,
+                    frequencyVectorPeriod: MEP.State.frequencyVectorPeriod,
+                    frequencyVectorPhaseShift: MEP.State.frequencyVectorPhaseShift,
+                    frequencyVectorFlatEpsilon: MEP.State.frequencyVectorFlatEpsilon,
+                    frequencyVectorMainColor: MEP.State.frequencyVectorMainColor,
+                    frequencyVectorShiftColor: MEP.State.frequencyVectorShiftColor,
+                    frequencyVectorMainWidth: MEP.State.frequencyVectorMainWidth,
+                    frequencyVectorShiftWidth: MEP.State.frequencyVectorShiftWidth,
                     graphLine: MEP.State.graphLine,
                     graphLine2: MEP.State.graphLine2,
                     graphLine3: MEP.State.graphLine3,
@@ -557,6 +565,14 @@
                     diffPosLevel: MEP.State.diffPosLevel,
                     diffNegLevel: MEP.State.diffNegLevel,
                     diffStartIndex: MEP.State.diffStartIndex,
+                    diffVectorEnabled: MEP.State.diffVectorEnabled,
+                    diffVectorPeriod: MEP.State.diffVectorPeriod,
+                    diffVectorPhaseShift: MEP.State.diffVectorPhaseShift,
+                    diffVectorFlatEpsilon: MEP.State.diffVectorFlatEpsilon,
+                    diffVectorMainColor: MEP.State.diffVectorMainColor,
+                    diffVectorShiftColor: MEP.State.diffVectorShiftColor,
+                    diffVectorMainWidth: MEP.State.diffVectorMainWidth,
+                    diffVectorShiftWidth: MEP.State.diffVectorShiftWidth,
                 };
 
                 const str = JSON.stringify(data);
@@ -595,6 +611,14 @@
                         if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
                         if (typeof data.frequencyGraphDensitySync === "boolean") MEP.State.frequencyGraphDensitySync = data.frequencyGraphDensitySync;
                         if (typeof data.frequencyGraphLine === "number") MEP.State.frequencyGraphLine = data.frequencyGraphLine;
+                        if (typeof data.frequencyVectorEnabled === "boolean") MEP.State.frequencyVectorEnabled = data.frequencyVectorEnabled;
+                        if (typeof data.frequencyVectorPeriod === "number") MEP.State.frequencyVectorPeriod = data.frequencyVectorPeriod;
+                        if (typeof data.frequencyVectorPhaseShift === "number") MEP.State.frequencyVectorPhaseShift = data.frequencyVectorPhaseShift;
+                        if (typeof data.frequencyVectorFlatEpsilon === "number") MEP.State.frequencyVectorFlatEpsilon = data.frequencyVectorFlatEpsilon;
+                        if (typeof data.frequencyVectorMainColor === "string") MEP.State.frequencyVectorMainColor = data.frequencyVectorMainColor;
+                        if (typeof data.frequencyVectorShiftColor === "string") MEP.State.frequencyVectorShiftColor = data.frequencyVectorShiftColor;
+                        if (typeof data.frequencyVectorMainWidth === "number") MEP.State.frequencyVectorMainWidth = data.frequencyVectorMainWidth;
+                        if (typeof data.frequencyVectorShiftWidth === "number") MEP.State.frequencyVectorShiftWidth = data.frequencyVectorShiftWidth;
                         if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                         if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
                         if (typeof data.graphLine3 === "number") MEP.State.graphLine3 = data.graphLine3;
@@ -606,6 +630,14 @@
                         if (typeof data.diffPosLevel === "number") MEP.State.diffPosLevel = data.diffPosLevel;
                         if (typeof data.diffNegLevel === "number") MEP.State.diffNegLevel = data.diffNegLevel;
                         if (typeof data.diffStartIndex === "number") MEP.State.diffStartIndex = data.diffStartIndex;
+                        if (typeof data.diffVectorEnabled === "boolean") MEP.State.diffVectorEnabled = data.diffVectorEnabled;
+                        if (typeof data.diffVectorPeriod === "number") MEP.State.diffVectorPeriod = data.diffVectorPeriod;
+                        if (typeof data.diffVectorPhaseShift === "number") MEP.State.diffVectorPhaseShift = data.diffVectorPhaseShift;
+                        if (typeof data.diffVectorFlatEpsilon === "number") MEP.State.diffVectorFlatEpsilon = data.diffVectorFlatEpsilon;
+                        if (typeof data.diffVectorMainColor === "string") MEP.State.diffVectorMainColor = data.diffVectorMainColor;
+                        if (typeof data.diffVectorShiftColor === "string") MEP.State.diffVectorShiftColor = data.diffVectorShiftColor;
+                        if (typeof data.diffVectorMainWidth === "number") MEP.State.diffVectorMainWidth = data.diffVectorMainWidth;
+                        if (typeof data.diffVectorShiftWidth === "number") MEP.State.diffVectorShiftWidth = data.diffVectorShiftWidth;
 
                         return true;
                     }
@@ -633,6 +665,14 @@
                     if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
                     if (typeof data.frequencyGraphDensitySync === "boolean") MEP.State.frequencyGraphDensitySync = data.frequencyGraphDensitySync;
                     if (typeof data.frequencyGraphLine === "number") MEP.State.frequencyGraphLine = data.frequencyGraphLine;
+                    if (typeof data.frequencyVectorEnabled === "boolean") MEP.State.frequencyVectorEnabled = data.frequencyVectorEnabled;
+                    if (typeof data.frequencyVectorPeriod === "number") MEP.State.frequencyVectorPeriod = data.frequencyVectorPeriod;
+                    if (typeof data.frequencyVectorPhaseShift === "number") MEP.State.frequencyVectorPhaseShift = data.frequencyVectorPhaseShift;
+                    if (typeof data.frequencyVectorFlatEpsilon === "number") MEP.State.frequencyVectorFlatEpsilon = data.frequencyVectorFlatEpsilon;
+                    if (typeof data.frequencyVectorMainColor === "string") MEP.State.frequencyVectorMainColor = data.frequencyVectorMainColor;
+                    if (typeof data.frequencyVectorShiftColor === "string") MEP.State.frequencyVectorShiftColor = data.frequencyVectorShiftColor;
+                    if (typeof data.frequencyVectorMainWidth === "number") MEP.State.frequencyVectorMainWidth = data.frequencyVectorMainWidth;
+                    if (typeof data.frequencyVectorShiftWidth === "number") MEP.State.frequencyVectorShiftWidth = data.frequencyVectorShiftWidth;
                     if (typeof data.graphLine === "number") MEP.State.graphLine = data.graphLine;
                     if (typeof data.graphLine2 === "number") MEP.State.graphLine2 = data.graphLine2;
                     if (typeof data.graphLine3 === "number") MEP.State.graphLine3 = data.graphLine3;
@@ -644,6 +684,14 @@
                     if (typeof data.diffPosLevel === "number") MEP.State.diffPosLevel = data.diffPosLevel;
                     if (typeof data.diffNegLevel === "number") MEP.State.diffNegLevel = data.diffNegLevel;
                     if (typeof data.diffStartIndex === "number") MEP.State.diffStartIndex = data.diffStartIndex;
+                    if (typeof data.diffVectorEnabled === "boolean") MEP.State.diffVectorEnabled = data.diffVectorEnabled;
+                    if (typeof data.diffVectorPeriod === "number") MEP.State.diffVectorPeriod = data.diffVectorPeriod;
+                    if (typeof data.diffVectorPhaseShift === "number") MEP.State.diffVectorPhaseShift = data.diffVectorPhaseShift;
+                    if (typeof data.diffVectorFlatEpsilon === "number") MEP.State.diffVectorFlatEpsilon = data.diffVectorFlatEpsilon;
+                    if (typeof data.diffVectorMainColor === "string") MEP.State.diffVectorMainColor = data.diffVectorMainColor;
+                    if (typeof data.diffVectorShiftColor === "string") MEP.State.diffVectorShiftColor = data.diffVectorShiftColor;
+                    if (typeof data.diffVectorMainWidth === "number") MEP.State.diffVectorMainWidth = data.diffVectorMainWidth;
+                    if (typeof data.diffVectorShiftWidth === "number") MEP.State.diffVectorShiftWidth = data.diffVectorShiftWidth;
 
                     return true;
                 } catch (e) {
@@ -1020,12 +1068,49 @@
 				margin: 12px;
 				border: 1px dashed rgba(255,255,255,0.22);
 				border-radius: unset;
-				padding: 12px;
+				padding: 10px 12px 12px;
 				background: rgba(255,255,255,0.03);
 				margin-bottom: 0px;
-				padding-bottom: 0px;
-				padding-top: 3px;
-				
+				padding-top: 0px;
+				}
+				#${PANEL_ID} .mep-diff-head{
+				display:flex;
+				align-items:center;
+				justify-content:space-between;
+				margin-bottom:6px;
+				}
+				#${PANEL_ID} .mep-diff-title{
+				font-size:13px;
+				font-weight:300;
+				opacity:0.95;
+				}
+				#${PANEL_ID} .mep-diff-collapse{
+				border: 1px solid rgba(255,255,255,0.16);
+				background: rgba(255,255,255,0.07);
+				color:#fff;
+				border-radius: 8px;
+				padding: 1px 8px 2px;
+				font-size: 13px;
+				line-height: 1.1;
+				cursor: pointer;
+				}
+				#${PANEL_ID} .mep-diff-collapse:hover{
+				background: rgba(255,255,255,0.14);
+				}
+				#${PANEL_ID} .mep-diff-wrap.mep-collapsed .mep-diff-params,
+				#${PANEL_ID} .mep-diff-wrap.mep-collapsed .mep-two-stat-wrap,
+				#${PANEL_ID} .mep-diff-wrap.mep-collapsed .mep-diff-lenrow{
+				display:none;
+				}
+				#${PANEL_ID} .mep-diff-params{
+				display:flex;
+				flex-direction:column;
+				gap:4px;
+				margin-bottom:6px;
+				}
+				#${PANEL_ID} .mep-diff-graph-area{
+				display:flex;
+				flex-direction:column;
 				}
 				#${PANEL_ID} .mep-diff-box{
 				width:100%;
@@ -1046,9 +1131,8 @@
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
-				margin: 0 0 -2px 0;
+				margin: 0 0 4px 0;
 				background-color: #04325b73;
-				flex-direction: row-reverse;
 				}
 
 				#${PANEL_ID} .mep-diff-lvlwrap{
@@ -1076,6 +1160,42 @@
 				padding: 0 8px;
 				box-sizing: border-box;
 				font-size: 13px;
+				font-weight: 300;
+				outline:none;
+				}
+				#${PANEL_ID} .mep-diff-vector-row{
+				display:flex;
+				align-items:center;
+				gap:6px;
+				margin: 0;
+				flex-wrap: wrap;
+				}
+				#${PANEL_ID} .mep-diff-vector-label{
+				display:inline-flex;
+				align-items:center;
+				gap:5px;
+				font-size: 12px;
+				font-weight: 300;
+				opacity: 0.95;
+				white-space: nowrap;
+				}
+				#${PANEL_ID} .mep-diff-vector-check{
+				width: 15px;
+				height: 15px;
+				cursor: pointer;
+				}
+				#${PANEL_ID} input.mep-diff-vector-period,
+				#${PANEL_ID} input.mep-diff-vector-shift,
+				#${PANEL_ID} input.mep-diff-vector-flat{
+				width: 54px;
+				height: 24px;
+				border-radius: 8px;
+				border: 1px solid rgba(255,255,255,0.14);
+				background: rgba(255,255,255,0.08);
+				color:#fff;
+				padding: 0 7px;
+				box-sizing: border-box;
+				font-size: 12px;
 				font-weight: 300;
 				outline:none;
 				}
@@ -1110,39 +1230,26 @@
 				margin-bottom: 0px;
 				margin-top: 0px;
         padding-top: 0px;
-        margin-top: 0px;
-				
+	        margin-top: 0px;
+					
+				}
+				#${PANEL_ID} .mep-diff-wrap > .mep-two-stat-wrap{
+				margin: 6px 0 6px;
+				padding: 8px 10px 9px;
+				border: 1px solid rgba(255,255,255,0.12);
+				background: rgba(255,255,255,0.02);
+				}
+				#${PANEL_ID} .mep-diff-wrap > .mep-diff-params + .mep-two-stat-wrap{
+				margin-top: 4px;
+				}
+				#${PANEL_ID} .mep-diff-wrap > .mep-two-stat-wrap + .mep-diff-graph-area{
+				margin-top: 4px;
 				}
 
 				#${PANEL_ID} .mep-two-head{
 				display:flex;
-				flex-direction: column;
-				align-items: stretch;
-				gap: 8px;
-				margin: 0px;
-				}
-				#${PANEL_ID} .mep-two-stat-wrap.mep-collapsed .mep-two-body{
-				display:none;
-				}
-				#${PANEL_ID} .mep-two-collapse{
-				border: 1px solid rgba(255,255,255,0.16);
-				background: rgba(255,255,255,0.07);
-				color:#fff;
-				border-radius: 8px;
-				padding: 1px 8px 2px;
-				font-size: 13px;
-				line-height: 1.1;
-				cursor: pointer;
-				}
-				#${PANEL_ID} .mep-two-collapse:hover{
-				background: rgba(255,255,255,0.14);
-				}
-
-				#${PANEL_ID} .mep-two-topbar{
-				display:flex;
-				align-items:center;
-				justify-content:space-between;
-				gap:10px;
+				justify-content:center;
+				margin: 0 0 6px 0;
 				}
 				#${PANEL_ID} .mep-two-total{
 				font-size: 18px;
@@ -1191,6 +1298,11 @@
 				display:flex;
 				align-items:center;
 				gap:8px;
+				}
+				#${PANEL_ID} .mep-two-params{
+				display:flex;
+				flex-direction:column;
+				gap:4px;
 				}
 
 				#${PANEL_ID} .mep-two-head-label{
@@ -1441,6 +1553,24 @@
 				align-items:center;
 				gap:6px;
 				}
+				#${PANEL_ID} .mep-frequency-vector-row{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				flex-wrap:wrap;
+				}
+				#${PANEL_ID} .mep-frequency-vector-label{
+				display:inline-flex;
+				align-items:center;
+				gap:5px;
+				font-size:12px;
+				white-space:nowrap;
+				}
+				#${PANEL_ID} input.mep-frequency-vector-enabled{
+				width:15px;
+				height:15px;
+				cursor:pointer;
+				}
 				#${PANEL_ID} input.mep-frequency-threshold{
 				width:52px;
 				border-radius:8px;
@@ -1453,7 +1583,10 @@
 				}
 				#${PANEL_ID} input.mep-frequency-period,
 				#${PANEL_ID} input.mep-frequency-density,
-				#${PANEL_ID} input.mep-frequency-line{
+				#${PANEL_ID} input.mep-frequency-line,
+				#${PANEL_ID} input.mep-frequency-vector-period,
+				#${PANEL_ID} input.mep-frequency-vector-shift,
+				#${PANEL_ID} input.mep-frequency-vector-flat{
 				width:58px;
 				border-radius:8px;
 				border: 1px solid rgba(255,255,255,0.10);
@@ -1770,6 +1903,16 @@
             frequencyGraphDensity: typeof MEP.frequencyGraphDensity === "number" ? MEP.frequencyGraphDensity : 81,
             frequencyGraphDensitySync: !!MEP.frequencyGraphDensitySync,
             frequencyGraphLine: typeof MEP.frequencyGraphLine === "number" ? MEP.frequencyGraphLine : 0,
+            frequencyVectorEnabled: ("frequencyVectorEnabled" in MEP) ? !!MEP.frequencyVectorEnabled : true,
+            frequencyVectorPeriod: typeof MEP.frequencyVectorPeriod === "number" ? MEP.frequencyVectorPeriod : 9,
+            frequencyVectorPhaseShift: typeof MEP.frequencyVectorPhaseShift === "number" ? MEP.frequencyVectorPhaseShift : 3,
+            frequencyVectorFlatEpsilon: typeof MEP.frequencyVectorFlatEpsilon === "number" ? MEP.frequencyVectorFlatEpsilon : 0.15,
+            frequencyVectorMainColor: typeof MEP.frequencyVectorMainColor === "string" ? MEP.frequencyVectorMainColor : "rgba(255,255,255,0.96)",
+            frequencyVectorShiftColor: typeof MEP.frequencyVectorShiftColor === "string" ? MEP.frequencyVectorShiftColor : "rgba(80,210,255,0.92)",
+            frequencyVectorMainWidth: typeof MEP.frequencyVectorMainWidth === "number" ? MEP.frequencyVectorMainWidth : 0.9,
+            frequencyVectorShiftWidth: typeof MEP.frequencyVectorShiftWidth === "number" ? MEP.frequencyVectorShiftWidth : 0.7,
+            frequencyVectorState: typeof MEP.frequencyVectorState === "string" ? MEP.frequencyVectorState : "flat",
+            frequencyVectorSignal: typeof MEP.frequencyVectorSignal === "number" ? MEP.frequencyVectorSignal : 0,
             graphLine: typeof MEP.graphLine === "number" ? MEP.graphLine : 0,
             graphLine2: typeof MEP.graphLine2 === "number" ? MEP.graphLine2 : 0,
             graphLine3: typeof MEP.graphLine3 === "number" ? MEP.graphLine3 : 0,
@@ -1807,6 +1950,16 @@
             // фиксированная стартовая точка этапа для diff-расчёта (1-based от начала истории)
             // 0 = выключено (используется режим "Последние N")
             diffStartIndex: typeof MEP.diffStartIndex === "number" ? MEP.diffStartIndex : 0,
+            diffVectorEnabled: ("diffVectorEnabled" in MEP) ? !!MEP.diffVectorEnabled : true,
+            diffVectorPeriod: typeof MEP.diffVectorPeriod === "number" ? MEP.diffVectorPeriod : 9,
+            diffVectorPhaseShift: typeof MEP.diffVectorPhaseShift === "number" ? MEP.diffVectorPhaseShift : 3,
+            diffVectorFlatEpsilon: typeof MEP.diffVectorFlatEpsilon === "number" ? MEP.diffVectorFlatEpsilon : 0.15,
+            diffVectorMainColor: typeof MEP.diffVectorMainColor === "string" ? MEP.diffVectorMainColor : "rgba(255,255,255,0.96)",
+            diffVectorShiftColor: typeof MEP.diffVectorShiftColor === "string" ? MEP.diffVectorShiftColor : "rgba(80,210,255,0.92)",
+            diffVectorMainWidth: typeof MEP.diffVectorMainWidth === "number" ? MEP.diffVectorMainWidth : 0.9,
+            diffVectorShiftWidth: typeof MEP.diffVectorShiftWidth === "number" ? MEP.diffVectorShiftWidth : 0.7,
+            diffVectorState: typeof MEP.diffVectorState === "string" ? MEP.diffVectorState : "flat",
+            diffVectorSignal: typeof MEP.diffVectorSignal === "number" ? MEP.diffVectorSignal : 0,
 
             // История агрегатов ставок по раундам (oldest -> newest), runtime-only (SAFE MODE / MVP)
             roundPlayersCountHistory: Array.isArray(MEP.roundPlayersCountHistory) ? MEP.roundPlayersCountHistory : [],
@@ -2374,6 +2527,60 @@
                 }
             },
 
+            _calcEMA(values, period) {
+                const src = Array.isArray(values) ? values : [];
+                const p = Math.max(1, Math.floor(Number(period) || 1));
+                const alpha = 2 / (p + 1);
+                const out = [];
+                let prev = null;
+                for (let i = 0; i < src.length; i++) {
+                    const v = Number(src[i]) || 0;
+                    if (prev === null) prev = v;
+                    else prev = alpha * v + (1 - alpha) * prev;
+                    out.push(prev);
+                }
+                return out;
+            },
+
+            _buildVectorSeries(values, opts) {
+                const src = Array.isArray(values) ? values : [];
+                const o = opts && typeof opts === "object" ? opts : {};
+                const clipFrom = Math.max(0, Math.floor(Number(o.clipFrom) || 0));
+                const clipLenRaw = Math.floor(Number(o.clipLen) || src.length);
+                const clipLen = Math.max(0, clipLenRaw);
+                const period = Math.max(1, Math.floor(Number(MEP.State.diffVectorPeriod) || 9));
+                const shift = Math.max(1, Math.floor(Number(MEP.State.diffVectorPhaseShift) || 3));
+                const mainEMA = this._calcEMA(src, period);
+                const shiftedEMA = new Array(mainEMA.length);
+                for (let i = 0; i < mainEMA.length; i++) {
+                    const j = i - shift;
+                    shiftedEMA[i] = j >= 0 ? mainEMA[j] : null;
+                }
+                const from = Math.min(clipFrom, mainEMA.length);
+                const to = Math.min(mainEMA.length, from + clipLen);
+                return {
+                    mainEMA: mainEMA.slice(from, to),
+                    shiftedEMA: shiftedEMA.slice(from, to),
+                    period,
+                    shift,
+                };
+            },
+
+            _updateVectorState(mainEMA, shiftedEMA) {
+                if (!Array.isArray(mainEMA) || !mainEMA.length || !Array.isArray(shiftedEMA) || !shiftedEMA.length) {
+                    MEP.State.diffVectorState = "flat";
+                    MEP.State.diffVectorSignal = 0;
+                    return;
+                }
+                const lastMain = Number(mainEMA[mainEMA.length - 1]) || 0;
+                const lastShiftRaw = shiftedEMA[shiftedEMA.length - 1];
+                const lastShift = Number.isFinite(Number(lastShiftRaw)) ? Number(lastShiftRaw) : lastMain;
+                const signal = lastMain - lastShift;
+                const eps = Math.max(0, Number(MEP.State.diffVectorFlatEpsilon) || 0);
+                MEP.State.diffVectorSignal = signal;
+                MEP.State.diffVectorState = signal > eps ? "up" : signal < -eps ? "down" : "flat";
+            },
+
             render() {
                 const ui = this._ui;
                 if (!ui?.diffSvg) return;
@@ -2424,6 +2631,20 @@
                     const a = Math.abs(Number(v) || 0);
                     if (a > maxAbs) maxAbs = a;
                 }
+
+                const period = Math.max(1, Math.floor(Number(MEP.State.diffVectorPeriod) || 9));
+                const shift = Math.max(1, Math.floor(Number(MEP.State.diffVectorPhaseShift) || 3));
+                const warmup = Math.max(period * 3, shift + period + 10);
+                const extStart = Math.max(0, startIndex - warmup);
+                const extEnd = Math.min(fullSeries.length, startIndex + series.length);
+                const extendedSeries = fullSeries.slice(extStart, extEnd);
+                const clipFrom = Math.max(0, startIndex - extStart);
+
+                const vectorData = this._buildVectorSeries(extendedSeries, {
+                    clipFrom,
+                    clipLen: series.length,
+                });
+                this._updateVectorState(vectorData.mainEMA, vectorData.shiftedEMA);
 
                 // min/max/len labels for FULL selected series (не зависит от плотности)
                 {
@@ -2552,6 +2773,44 @@
 
 					ui.diffSvg.appendChild(rect);
 					});
+
+                  if (MEP.State.diffVectorEnabled !== false && n > 1) {
+                    const toY = (v0) => {
+                        const v = Number(v0) || 0;
+                        return midY - (v / maxAbs) * (midY - 1);
+                    };
+                    const toPoints = (arr) => arr
+                        .map((v, i) => Number.isFinite(Number(v)) ? `${(i * (barW + gap)) + (barW / 2)},${toY(v)}` : "")
+                        .filter(Boolean)
+                        .join(" ");
+
+                    const mainPts = toPoints(vectorData.mainEMA);
+                    const shiftPts = toPoints(vectorData.shiftedEMA);
+
+                    if (mainPts) {
+                        const mainLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                        mainLine.setAttribute("fill", "none");
+                        mainLine.setAttribute("stroke", (MEP.State.diffVectorMainColor || "rgba(255,255,255,0.96)").toString());
+                        mainLine.setAttribute("stroke-width", String(Number(MEP.State.diffVectorMainWidth) || 0.9));
+                        mainLine.setAttribute("stroke-linecap", "round");
+                        mainLine.setAttribute("stroke-linejoin", "round");
+                        mainLine.setAttribute("points", mainPts);
+                        mainLine.setAttribute("pointer-events", "none");
+                        ui.diffSvg.appendChild(mainLine);
+                    }
+
+                    if (shiftPts) {
+                        const shiftLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                        shiftLine.setAttribute("fill", "none");
+                        shiftLine.setAttribute("stroke", (MEP.State.diffVectorShiftColor || "rgba(80,210,255,0.92)").toString());
+                        shiftLine.setAttribute("stroke-width", String(Number(MEP.State.diffVectorShiftWidth) || 0.7));
+                        shiftLine.setAttribute("stroke-linecap", "round");
+                        shiftLine.setAttribute("stroke-linejoin", "round");
+                        shiftLine.setAttribute("points", shiftPts);
+                        shiftLine.setAttribute("pointer-events", "none");
+                        ui.diffSvg.appendChild(shiftLine);
+                    }
+                  }
 
 				  // пунктирные уровни (+ / -) — ПОСЛЕ rect, чтобы были поверх столбиков
 				  appendDiffGuideLines();
@@ -3083,6 +3342,60 @@
                 return out;
             },
 
+            _calcEMA(values, period) {
+                const src = Array.isArray(values) ? values : [];
+                const p = Math.max(1, Math.floor(Number(period) || 1));
+                const alpha = 2 / (p + 1);
+                const out = [];
+                let prev = null;
+                for (let i = 0; i < src.length; i++) {
+                    const v = Number(src[i]) || 0;
+                    if (prev === null) prev = v;
+                    else prev = alpha * v + (1 - alpha) * prev;
+                    out.push(prev);
+                }
+                return out;
+            },
+
+            _buildVectorSeries(values, opts) {
+                const src = Array.isArray(values) ? values : [];
+                const o = opts && typeof opts === "object" ? opts : {};
+                const clipFrom = Math.max(0, Math.floor(Number(o.clipFrom) || 0));
+                const clipLenRaw = Math.floor(Number(o.clipLen) || src.length);
+                const clipLen = Math.max(0, clipLenRaw);
+                const period = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPeriod) || 9));
+                const shift = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPhaseShift) || 3));
+                const mainEMA = this._calcEMA(src, period);
+                const shiftedEMA = new Array(mainEMA.length);
+                for (let i = 0; i < mainEMA.length; i++) {
+                    const j = i - shift;
+                    shiftedEMA[i] = j >= 0 ? mainEMA[j] : null;
+                }
+                const from = Math.min(clipFrom, mainEMA.length);
+                const to = Math.min(mainEMA.length, from + clipLen);
+                return {
+                    mainEMA: mainEMA.slice(from, to),
+                    shiftedEMA: shiftedEMA.slice(from, to),
+                    period,
+                    shift,
+                };
+            },
+
+            _updateVectorState(mainEMA, shiftedEMA) {
+                if (!Array.isArray(mainEMA) || !mainEMA.length || !Array.isArray(shiftedEMA) || !shiftedEMA.length) {
+                    MEP.State.frequencyVectorState = "flat";
+                    MEP.State.frequencyVectorSignal = 0;
+                    return;
+                }
+                const lastMain = Number(mainEMA[mainEMA.length - 1]) || 0;
+                const lastShiftRaw = shiftedEMA[shiftedEMA.length - 1];
+                const lastShift = Number.isFinite(Number(lastShiftRaw)) ? Number(lastShiftRaw) : lastMain;
+                const signal = lastMain - lastShift;
+                const eps = Math.max(0, Number(MEP.State.frequencyVectorFlatEpsilon) || 0);
+                MEP.State.frequencyVectorSignal = signal;
+                MEP.State.frequencyVectorState = signal > eps ? "up" : signal < -eps ? "down" : "flat";
+            },
+
             _ensureTip() {
                 const ui = this._ui;
                 if (!ui?.frequencyGraphSvg) return null;
@@ -3132,10 +3445,18 @@
                 const fullSeries = this._buildSeries(oldestFirst, threshold, period);
 
                 let viewSeries = [];
+                let viewStartIndex = 0;
                 if (MEP.State.frequencyGraphDensitySync) {
                     const masterLen = this._getDiffVisibleLength();
+                    if (fullSeries.length >= masterLen) {
+                        viewStartIndex = Math.max(0, fullSeries.length - masterLen);
+                    } else {
+                        viewStartIndex = 0;
+                    }
                     viewSeries = this._syncToMasterLen(fullSeries, masterLen);
                 } else {
+                    const density = Math.max(10, Math.floor(Number(MEP.State.frequencyGraphDensity || 81) || 81));
+                    viewStartIndex = Math.max(0, fullSeries.length - density);
                     viewSeries = this._tailWithDensity(fullSeries, MEP.State.frequencyGraphDensity);
                 }
 
@@ -3144,6 +3465,20 @@
                 const stageCount = viewSeries.length;
                 const yMax = Math.max(1, ...viewSeries, 1);
                 const points = this._buildPoints(viewSeries, yMax, vbW, vbH);
+
+                const vectorPeriod = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPeriod) || 9));
+                const vectorShift = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPhaseShift) || 3));
+                const warmup = Math.max(vectorPeriod * 3, vectorShift + vectorPeriod + 10);
+                const extStart = Math.max(0, viewStartIndex - warmup);
+                const extEnd = Math.min(fullSeries.length, viewStartIndex);
+                const leftTail = fullSeries.slice(extStart, extEnd);
+                const extendedSeries = leftTail.concat(viewSeries);
+                const clipFrom = leftTail.length;
+                const vectorData = this._buildVectorSeries(extendedSeries, {
+                    clipFrom,
+                    clipLen: viewSeries.length,
+                });
+                this._updateVectorState(vectorData.mainEMA, vectorData.shiftedEMA);
 
                 const base = document.createElementNS("http://www.w3.org/2000/svg", "line");
                 base.setAttribute("x1", "0");
@@ -3196,6 +3531,43 @@
                     pl.setAttribute("stroke-linejoin", "round");
                     pl.setAttribute("stroke-linecap", "round");
                     svg.appendChild(pl);
+
+                    if (MEP.State.frequencyVectorEnabled !== false) {
+                        const makeVectorPolyline = (series, stroke, width) => {
+                            if (!Array.isArray(series) || !series.length) return;
+                            const stepX = series.length <= 1 ? 0 : vbW / (series.length - 1);
+                            const pts = [];
+                            for (let i = 0; i < series.length; i++) {
+                                const raw = series[i];
+                                const v = Number(raw);
+                                if (!Number.isFinite(v)) continue;
+                                const x = stepX * i;
+                                const y = vbH - (v / yMax) * (vbH - 2) - 1;
+                                pts.push(`${x},${Math.max(1, Math.min(vbH - 1, y))}`);
+                            }
+                            if (!pts.length) return;
+                            const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                            line.setAttribute("points", pts.join(" "));
+                            line.setAttribute("fill", "none");
+                            line.setAttribute("stroke", stroke);
+                            line.setAttribute("stroke-width", String(width));
+                            line.setAttribute("stroke-linejoin", "round");
+                            line.setAttribute("stroke-linecap", "round");
+                            line.setAttribute("pointer-events", "none");
+                            svg.appendChild(line);
+                        };
+
+                        makeVectorPolyline(
+                            vectorData.mainEMA,
+                            (MEP.State.frequencyVectorMainColor || "rgba(255,255,255,0.96)").toString(),
+                            Number(MEP.State.frequencyVectorMainWidth) || 0.9
+                        );
+                        makeVectorPolyline(
+                            vectorData.shiftedEMA,
+                            (MEP.State.frequencyVectorShiftColor || "rgba(80,210,255,0.92)").toString(),
+                            Number(MEP.State.frequencyVectorShiftWidth) || 0.7
+                        );
+                    }
 
                     for (const p of points) {
                         const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -3580,38 +3952,30 @@
     </div>
 </div>
 <div class="mep-diff-wrap">
-<div class="mep-diff-lenrow"><span class="mep-diff-len">len: 0</span><span class="mep-diff-lvlwrap"><span class="mep-diff-lvl-sign">+</span><input class="mep-diff-lvl-pos" type="number" min="0" step="1" value="0"><span class="mep-diff-lvl-sign">-</span><input class="mep-diff-lvl-neg" type="number" min="0" step="1" value="0"></span></div>
-    <div class="mep-diff-maxrow"><span class="mep-diff-max">max: +0</span></div>
-    <div class="mep-diff-box">
-        <svg class="mep-diff" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
+    <div class="mep-diff-head">
+        <div class="mep-diff-title">График разниц</div>
+        <button class="mep-diff-collapse" type="button" title="Свернуть параметры">▲</button>
     </div>
-    <div class="mep-diff-minrow"><span class="mep-diff-min">min: -0</span></div>
-</div>
-<div class="mep-two-stat-wrap">
-    <div class="mep-two-head">
-        <div class="mep-two-topbar">
-            <div class="mep-two-toprow">
+    <div class="mep-diff-params">
+        <div class="mep-diff-vector-row">
+            <label class="mep-diff-vector-label"><input class="mep-diff-vector-enabled mep-diff-vector-check" type="checkbox" checked><span>Вектор</span></label>
+            <label class="mep-diff-vector-label"><span>P</span><input class="mep-diff-vector-period" type="number" min="1" step="1" value="9"></label>
+            <label class="mep-diff-vector-label"><span>S</span><input class="mep-diff-vector-shift" type="number" min="1" step="1" value="3"></label>
+            <label class="mep-diff-vector-label"><span>Flat</span><input class="mep-diff-vector-flat" type="number" min="0" step="0.01" value="0.15"></label>
+        </div>
+        <div class="mep-two-params">
+            <div class="mep-two-subrow">
                 <span class="mep-two-head-label">Последние</span>
                 <input class="mep-two-lastn" type="number" min="1" step="1" value="250" />
+                <label class="mep-two-head-right">
+                    <input class="mep-two-all" type="checkbox" />
+                    <span>вся история</span>
+                </label>
             </div>
-            <div class="mep-two-total">
-                <span class="mep-two-total-n">0</span><span class="mep-two-total-sep">|</span
-                ><span class="mep-two-diff zero">0</span>
-            </div>
-            <label class="mep-two-head-right">
-                <input class="mep-two-all" type="checkbox" />
-                <span>вся история</span>
-            </label>
-            <button class="mep-two-collapse" type="button" title="Свернуть параметры">▲</button>
-        </div>
-    </div>
-    <div class="mep-two-body">
-        <div class="mep-two-params">
             <div class="mep-two-subrow">
                 <span class="mep-two-head-label start">Старт</span>
                 <input class="mep-two-start" type="number" min="0" step="1" value="0" />
             </div>
-
             <div class="mep-two-subrow">
                 <span class="mep-two-dens-label">плотность</span>
                 <input class="mep-diff-density" type="number" min="10" step="1" value="81" />
@@ -3621,20 +3985,38 @@
                 </label>
             </div>
         </div>
-        <div class="mep-two-row">
-            <div class="mep-two-left">&gt;= 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt ge">0</span></div>
-            <div class="mep-two-bar">
-                <div class="mep-two-fill ge" style="width: 0%"></div>
+    </div>
+    <div class="mep-two-stat-wrap">
+        <div class="mep-two-head">
+            <div class="mep-two-total">
+                <span class="mep-two-total-n">0</span><span class="mep-two-total-sep">|</span
+                ><span class="mep-two-diff zero">0</span>
             </div>
-            <div class="mep-two-right"><span class="mep-two-pct ge">0%</span></div>
         </div>
-        <div class="mep-two-row">
-            <div class="mep-two-left">&lt; 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt lt">0</span></div>
-            <div class="mep-two-bar">
-                <div class="mep-two-fill lt" style="width: 0%"></div>
+        <div class="mep-two-body">
+            <div class="mep-two-row">
+                <div class="mep-two-left">&gt;= 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt ge">0</span></div>
+                <div class="mep-two-bar">
+                    <div class="mep-two-fill ge" style="width: 0%"></div>
+                </div>
+                <div class="mep-two-right"><span class="mep-two-pct ge">0%</span></div>
             </div>
-            <div class="mep-two-right"><span class="mep-two-pct lt">0%</span></div>
+            <div class="mep-two-row">
+                <div class="mep-two-left">&lt; 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt lt">0</span></div>
+                <div class="mep-two-bar">
+                    <div class="mep-two-fill lt" style="width: 0%"></div>
+                </div>
+                <div class="mep-two-right"><span class="mep-two-pct lt">0%</span></div>
+            </div>
         </div>
+    </div>
+    <div class="mep-diff-lenrow"><span class="mep-diff-len">len: 0</span><span class="mep-diff-lvlwrap"><span class="mep-diff-lvl-sign">+</span><input class="mep-diff-lvl-pos" type="number" min="0" step="1" value="0"><span class="mep-diff-lvl-sign">-</span><input class="mep-diff-lvl-neg" type="number" min="0" step="1" value="0"></span></div>
+    <div class="mep-diff-graph-area">
+        <div class="mep-diff-maxrow"><span class="mep-diff-max">max: +0</span></div>
+        <div class="mep-diff-box">
+            <svg class="mep-diff" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="mep-diff-minrow"><span class="mep-diff-min">min: -0</span></div>
     </div>
 </div>
 <div class="mep-frequency-graph-wrap">
@@ -3649,6 +4031,12 @@
             <label class="mep-frequency-label">Плотн.<input class="mep-frequency-density" type="number" min="10" step="1" value="81" /></label>
             <label class="mep-frequency-label">Гор.линия<input class="mep-frequency-line" type="number" min="0" step="0.1" value="0" /></label>
             <label class="mep-frequency-sync-label"><input class="mep-frequency-sync" type="checkbox" /><span>Синхр.</span></label>
+            <span class="mep-frequency-vector-row">
+                <label class="mep-frequency-vector-label"><input class="mep-frequency-vector-enabled" type="checkbox" checked /><span>Вектор</span></label>
+                <label class="mep-frequency-vector-label"><span>P</span><input class="mep-frequency-vector-period" type="number" min="1" step="1" value="9" /></label>
+                <label class="mep-frequency-vector-label"><span>S</span><input class="mep-frequency-vector-shift" type="number" min="1" step="1" value="3" /></label>
+                <label class="mep-frequency-vector-label"><span>Flat</span><input class="mep-frequency-vector-flat" type="number" min="0" step="0.01" value="0.15" /></label>
+            </span>
         </div>
     </div>
     <div class="mep-frequency-graph-box">
@@ -3810,7 +4198,7 @@
                     panel.insertBefore(mainPanel, mainTabs.nextSibling);
                     panel.insertBefore(gamePanel, mainPanel.nextSibling);
 
-                    for (const node of [body, diffWrap, twoWrap, frequencyWrap, stakeWrap, graphWrap]) {
+                    for (const node of [body, diffWrap, frequencyWrap, stakeWrap, graphWrap]) {
                         if (node) mainContent.appendChild(node);
                     }
                 }
@@ -3839,17 +4227,25 @@
                     statsWrap: panel.querySelector(".mep-stats-wrap"),
 
                     diffWrap: panel.querySelector(".mep-diff-wrap"),
+                    diffHead: panel.querySelector(".mep-diff-head"),
+                    diffTitle: panel.querySelector(".mep-diff-title"),
+                    diffCollapseBtn: panel.querySelector("button.mep-diff-collapse"),
+                    diffParamsWrap: panel.querySelector(".mep-diff-params"),
+                    diffGraphArea: panel.querySelector(".mep-diff-graph-area"),
                     diffSvg: panel.querySelector("svg.mep-diff"),
                     twoWrap: panel.querySelector(".mep-two-stat-wrap"),
                     twoHead: panel.querySelector(".mep-two-head"),
                     twoParamsWrap: panel.querySelector(".mep-two-params"),
-                    twoCollapseBtn: panel.querySelector("button.mep-two-collapse"),
                     twoLastN: panel.querySelector("input.mep-two-lastn"),
                     twoStartInput: panel.querySelector("input.mep-two-start"),
                     diffDensityInput: panel.querySelector("input.mep-diff-density"),
 					diffSyncInput: panel.querySelector("input.mep-diff-sync"),
 					diffPosInput: panel.querySelector("input.mep-diff-lvl-pos"),
 					diffNegInput: panel.querySelector("input.mep-diff-lvl-neg"),
+                    diffVectorEnabledInput: panel.querySelector("input.mep-diff-vector-enabled"),
+                    diffVectorPeriodInput: panel.querySelector("input.mep-diff-vector-period"),
+                    diffVectorShiftInput: panel.querySelector("input.mep-diff-vector-shift"),
+                    diffVectorFlatInput: panel.querySelector("input.mep-diff-vector-flat"),
                     twoAll: panel.querySelector("input.mep-two-all"),
                     twoTotal: panel.querySelector(".mep-two-total"),
                     twoTotalN: panel.querySelector(".mep-two-total-n"),
@@ -3880,6 +4276,10 @@
                     frequencyDensityInput: panel.querySelector("input.mep-frequency-density"),
                     frequencyLineInput: panel.querySelector("input.mep-frequency-line"),
                     frequencySyncInput: panel.querySelector("input.mep-frequency-sync"),
+                    frequencyVectorEnabledInput: panel.querySelector("input.mep-frequency-vector-enabled"),
+                    frequencyVectorPeriodInput: panel.querySelector("input.mep-frequency-vector-period"),
+                    frequencyVectorShiftInput: panel.querySelector("input.mep-frequency-vector-shift"),
+                    frequencyVectorFlatInput: panel.querySelector("input.mep-frequency-vector-flat"),
                     frequencyTip: panel.querySelector(".mep-frequency-tip"),
                     stakeWrap: panel.querySelector(".mep-stake-graph-wrap"),
                     stakeParamsWrap: panel.querySelector(".mep-stake-params"),
@@ -4104,6 +4504,54 @@
                     });
                 }
 
+                if (ui.frequencyVectorEnabledInput) {
+                    ui.frequencyVectorEnabledInput.checked = MEP.State.frequencyVectorEnabled !== false;
+                    ui.frequencyVectorEnabledInput.addEventListener("change", () => {
+                        MEP.State.frequencyVectorEnabled = !!ui.frequencyVectorEnabledInput.checked;
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
+                if (ui.frequencyVectorPeriodInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPeriod) || 9));
+                    MEP.State.frequencyVectorPeriod = current;
+                    ui.frequencyVectorPeriodInput.value = String(current);
+                    ui.frequencyVectorPeriodInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.frequencyVectorPeriodInput.value) || 1));
+                        MEP.State.frequencyVectorPeriod = v;
+                        ui.frequencyVectorPeriodInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
+                if (ui.frequencyVectorShiftInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.frequencyVectorPhaseShift) || 3));
+                    MEP.State.frequencyVectorPhaseShift = current;
+                    ui.frequencyVectorShiftInput.value = String(current);
+                    ui.frequencyVectorShiftInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.frequencyVectorShiftInput.value) || 1));
+                        MEP.State.frequencyVectorPhaseShift = v;
+                        ui.frequencyVectorShiftInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
+                if (ui.frequencyVectorFlatInput) {
+                    const current = Math.max(0, Number(MEP.State.frequencyVectorFlatEpsilon) || 0);
+                    MEP.State.frequencyVectorFlatEpsilon = current;
+                    ui.frequencyVectorFlatInput.value = String(current);
+                    ui.frequencyVectorFlatInput.addEventListener("input", () => {
+                        const v = Math.max(0, Number(ui.frequencyVectorFlatInput.value) || 0);
+                        MEP.State.frequencyVectorFlatEpsilon = v;
+                        ui.frequencyVectorFlatInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.FrequencyGraph?.render?.();
+                    });
+                }
+
                 if (ui.stakeSyncInput) {
                     ui.stakeSyncInput.checked = !!MEP.State.stakeGraphDensitySync;
                     if (ui.stakeDensityInput) ui.stakeDensityInput.disabled = !!MEP.State.stakeGraphDensitySync;
@@ -4222,18 +4670,18 @@
                     });
                 }
 
-                const applyTwoParamsCollapse = () => {
-                    if (!ui.twoWrap || !ui.twoCollapseBtn) return;
-                    const collapsed = !!ui._twoParamsCollapsed;
-                    ui.twoWrap.classList.toggle("mep-collapsed", collapsed);
-                    ui.twoCollapseBtn.textContent = collapsed ? "▼" : "▲";
-                    ui.twoCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                const applyDiffParamsCollapse = () => {
+                    if (!ui.diffWrap || !ui.diffCollapseBtn) return;
+                    const collapsed = !!ui._diffParamsCollapsed;
+                    ui.diffWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.diffCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.diffCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
                 };
-                applyTwoParamsCollapse();
-                if (ui.twoCollapseBtn) {
-                    ui.twoCollapseBtn.addEventListener("click", () => {
-                        ui._twoParamsCollapsed = !ui._twoParamsCollapsed;
-                        applyTwoParamsCollapse();
+                applyDiffParamsCollapse();
+                if (ui.diffCollapseBtn) {
+                    ui.diffCollapseBtn.addEventListener("click", () => {
+                        ui._diffParamsCollapsed = !ui._diffParamsCollapsed;
+                        applyDiffParamsCollapse();
                     });
                 }
 
@@ -4259,6 +4707,22 @@
 
                     if (ui.diffPosInput) ui.diffPosInput.value = String(Math.max(0, Math.floor(Number(MEP.State.diffPosLevel) || 0)));
                     if (ui.diffNegInput) ui.diffNegInput.value = String(Math.max(0, Math.floor(Number(MEP.State.diffNegLevel) || 0)));
+                    if (ui.diffVectorEnabledInput) ui.diffVectorEnabledInput.checked = MEP.State.diffVectorEnabled !== false;
+                    if (ui.diffVectorPeriodInput) {
+                        const p = Math.max(1, Math.floor(Number(MEP.State.diffVectorPeriod) || 9));
+                        MEP.State.diffVectorPeriod = p;
+                        ui.diffVectorPeriodInput.value = String(p);
+                    }
+                    if (ui.diffVectorShiftInput) {
+                        const s = Math.max(1, Math.floor(Number(MEP.State.diffVectorPhaseShift) || 3));
+                        MEP.State.diffVectorPhaseShift = s;
+                        ui.diffVectorShiftInput.value = String(s);
+                    }
+                    if (ui.diffVectorFlatInput) {
+                        const f = Math.max(0, Number(MEP.State.diffVectorFlatEpsilon) || 0);
+                        MEP.State.diffVectorFlatEpsilon = f;
+                        ui.diffVectorFlatInput.value = String(f);
+                    }
                 };
 
                 applyDiffDensityUi();
@@ -4278,6 +4742,44 @@
                         const v = Math.max(0, Math.floor(Number(ui.diffNegInput.value) || 0));
                         ui.diffNegInput.value = String(v);
                         MEP.State.diffNegLevel = v;
+                        MEP.Storage.save();
+                        MEP.DiffGraph?.render?.();
+                    });
+                }
+
+                if (ui.diffVectorEnabledInput) {
+                    ui.diffVectorEnabledInput.addEventListener("change", () => {
+                        MEP.State.diffVectorEnabled = !!ui.diffVectorEnabledInput.checked;
+                        MEP.Storage.save();
+                        MEP.DiffGraph?.render?.();
+                    });
+                }
+
+                if (ui.diffVectorPeriodInput) {
+                    ui.diffVectorPeriodInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.diffVectorPeriodInput.value) || 1));
+                        ui.diffVectorPeriodInput.value = String(v);
+                        MEP.State.diffVectorPeriod = v;
+                        MEP.Storage.save();
+                        MEP.DiffGraph?.render?.();
+                    });
+                }
+
+                if (ui.diffVectorShiftInput) {
+                    ui.diffVectorShiftInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.diffVectorShiftInput.value) || 1));
+                        ui.diffVectorShiftInput.value = String(v);
+                        MEP.State.diffVectorPhaseShift = v;
+                        MEP.Storage.save();
+                        MEP.DiffGraph?.render?.();
+                    });
+                }
+
+                if (ui.diffVectorFlatInput) {
+                    ui.diffVectorFlatInput.addEventListener("input", () => {
+                        const v = Math.max(0, Number(ui.diffVectorFlatInput.value) || 0);
+                        ui.diffVectorFlatInput.value = String(v);
+                        MEP.State.diffVectorFlatEpsilon = v;
                         MEP.Storage.save();
                         MEP.DiffGraph?.render?.();
                     });
