@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.05  ====
+// === crash.js 0.1.5.12  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -209,7 +209,7 @@
 (() => {
     try {
         const MEP = (window.MEP = window.MEP || {});
-        MEP.ver = "0.1.5.05";
+        MEP.ver = "0.1.5.12";
 
         // -------------------------
         // Settings module
@@ -541,6 +541,21 @@
                     stakeGraphBetScale: MEP.State.stakeGraphBetScale,
                     stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
                     stakeGraphShowBet: MEP.State.stakeGraphShowBet,
+                    balanceGraphDensity: MEP.State.balanceGraphDensity,
+                    balanceGraphDensitySync: MEP.State.balanceGraphDensitySync,
+                    balanceGraphAutoHeight: MEP.State.balanceGraphAutoHeight,
+                    balanceGraphScale: MEP.State.balanceGraphScale,
+                    charterRoundsPerHour: MEP.State.charterRoundsPerHour,
+                    charterRoundsPer6Hours: MEP.State.charterRoundsPer6Hours,
+                    charterRoundsPerDay: MEP.State.charterRoundsPerDay,
+                    charterWinsPerHour: MEP.State.charterWinsPerHour,
+                    charterWinsPer6Hours: MEP.State.charterWinsPer6Hours,
+                    charterWinsPerDay: MEP.State.charterWinsPerDay,
+                    charterMaxStakePercent: MEP.State.charterMaxStakePercent,
+                    charterLossesPerHour: MEP.State.charterLossesPerHour,
+                    charterLossesPer6Hours: MEP.State.charterLossesPer6Hours,
+                    charterLossesPerDay: MEP.State.charterLossesPerDay,
+                    charterBreakAfter3LossesMin: MEP.State.charterBreakAfter3LossesMin,
                     frequencyThreshold: MEP.State.frequencyThreshold,
                     frequencyPeriod: MEP.State.frequencyPeriod,
                     frequencyGraphDensity: MEP.State.frequencyGraphDensity,
@@ -606,6 +621,21 @@
                         if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                         if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                         if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
+                        if (typeof data.balanceGraphDensity === "number") MEP.State.balanceGraphDensity = data.balanceGraphDensity;
+                        if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
+                        if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
+                        if (typeof data.balanceGraphScale === "number") MEP.State.balanceGraphScale = data.balanceGraphScale;
+                        if (typeof data.charterRoundsPerHour === "number") MEP.State.charterRoundsPerHour = data.charterRoundsPerHour;
+                        if (typeof data.charterRoundsPer6Hours === "number") MEP.State.charterRoundsPer6Hours = data.charterRoundsPer6Hours;
+                        if (typeof data.charterRoundsPerDay === "number") MEP.State.charterRoundsPerDay = data.charterRoundsPerDay;
+                        if (typeof data.charterWinsPerHour === "number") MEP.State.charterWinsPerHour = data.charterWinsPerHour;
+                        if (typeof data.charterWinsPer6Hours === "number") MEP.State.charterWinsPer6Hours = data.charterWinsPer6Hours;
+                        if (typeof data.charterWinsPerDay === "number") MEP.State.charterWinsPerDay = data.charterWinsPerDay;
+                        if (typeof data.charterMaxStakePercent === "number") MEP.State.charterMaxStakePercent = data.charterMaxStakePercent;
+                        if (typeof data.charterLossesPerHour === "number") MEP.State.charterLossesPerHour = data.charterLossesPerHour;
+                        if (typeof data.charterLossesPer6Hours === "number") MEP.State.charterLossesPer6Hours = data.charterLossesPer6Hours;
+                        if (typeof data.charterLossesPerDay === "number") MEP.State.charterLossesPerDay = data.charterLossesPerDay;
+                        if (typeof data.charterBreakAfter3LossesMin === "number") MEP.State.charterBreakAfter3LossesMin = data.charterBreakAfter3LossesMin;
                         if (typeof data.frequencyThreshold === "number") MEP.State.frequencyThreshold = data.frequencyThreshold;
                         if (typeof data.frequencyPeriod === "number") MEP.State.frequencyPeriod = data.frequencyPeriod;
                         if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
@@ -660,6 +690,21 @@
                     if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                     if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                     if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
+                    if (typeof data.balanceGraphDensity === "number") MEP.State.balanceGraphDensity = data.balanceGraphDensity;
+                    if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
+                    if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
+                    if (typeof data.balanceGraphScale === "number") MEP.State.balanceGraphScale = data.balanceGraphScale;
+                    if (typeof data.charterRoundsPerHour === "number") MEP.State.charterRoundsPerHour = data.charterRoundsPerHour;
+                    if (typeof data.charterRoundsPer6Hours === "number") MEP.State.charterRoundsPer6Hours = data.charterRoundsPer6Hours;
+                    if (typeof data.charterRoundsPerDay === "number") MEP.State.charterRoundsPerDay = data.charterRoundsPerDay;
+                    if (typeof data.charterWinsPerHour === "number") MEP.State.charterWinsPerHour = data.charterWinsPerHour;
+                    if (typeof data.charterWinsPer6Hours === "number") MEP.State.charterWinsPer6Hours = data.charterWinsPer6Hours;
+                    if (typeof data.charterWinsPerDay === "number") MEP.State.charterWinsPerDay = data.charterWinsPerDay;
+                    if (typeof data.charterMaxStakePercent === "number") MEP.State.charterMaxStakePercent = data.charterMaxStakePercent;
+                    if (typeof data.charterLossesPerHour === "number") MEP.State.charterLossesPerHour = data.charterLossesPerHour;
+                    if (typeof data.charterLossesPer6Hours === "number") MEP.State.charterLossesPer6Hours = data.charterLossesPer6Hours;
+                    if (typeof data.charterLossesPerDay === "number") MEP.State.charterLossesPerDay = data.charterLossesPerDay;
+                    if (typeof data.charterBreakAfter3LossesMin === "number") MEP.State.charterBreakAfter3LossesMin = data.charterBreakAfter3LossesMin;
                     if (typeof data.frequencyThreshold === "number") MEP.State.frequencyThreshold = data.frequencyThreshold;
                     if (typeof data.frequencyPeriod === "number") MEP.State.frequencyPeriod = data.frequencyPeriod;
                     if (typeof data.frequencyGraphDensity === "number") MEP.State.frequencyGraphDensity = data.frequencyGraphDensity;
@@ -1027,6 +1072,67 @@
 				#${PANEL_ID} .mep-game-tab-panel.is-active{
 				display:block;
 				}
+				#${PANEL_ID} .mep-charter-form{
+				display:flex;
+				flex-direction:column;
+				gap:6px;
+				}
+				#${PANEL_ID} .mep-charter-sections{
+				display:flex;
+				flex-direction:column;
+				gap:10px;
+				}
+				#${PANEL_ID} .mep-charter-section{
+				border:1px solid rgba(255,255,255,0.14);
+				background: rgba(255,255,255,0.02);
+				padding:8px;
+				}
+				#${PANEL_ID} .mep-charter-section-title{
+				font-size:12px;
+				font-weight:400;
+				opacity:0.95;
+				margin:0 0 6px 0;
+				}
+				#${PANEL_ID} .mep-charter-note{
+				font-size:12px;
+				opacity:0.82;
+				margin: 0 0 8px 0;
+				padding: 4px 6px;
+				border: 1px dashed rgba(255,255,255,0.16);
+				background: rgba(255,255,255,0.02);
+				}
+				#${PANEL_ID} .mep-charter-row{
+				display:grid;
+				grid-template-columns: 1fr 60px auto;
+				align-items:center;
+				gap:10px;
+				padding:4px 6px;
+				border:1px solid rgba(255,255,255,0.12);
+				background: rgba(255,255,255,0.03);
+				}
+				#${PANEL_ID} .mep-charter-label{
+				font-size:12px;
+				font-weight:300;
+				opacity:0.95;
+				}
+				#${PANEL_ID} .mep-charter-input{
+				width:100%;
+				height:26px;
+				border-radius:8px;
+				border:1px solid rgba(255,255,255,0.14);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding:0 8px;
+				box-sizing:border-box;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} .mep-charter-suffix{
+				font-size:12px;
+				opacity:0.9;
+				min-width:28px;
+				text-align:left;
+				}
 				#${PANEL_ID} .mep-game-placeholder{
 				font-size:13px;
 				opacity:0.9;
@@ -1038,6 +1144,7 @@
 				#${PANEL_ID}.mep-unsupported .mep-two-stat-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-frequency-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-stake-graph-wrap,
+				#${PANEL_ID}.mep-unsupported .mep-balance-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-graph-wrap,
 				#${PANEL_ID}.mep-unsupported .mep-modal-overlay{
 				display:none !important;
@@ -1511,10 +1618,22 @@
 				margin-top: 0px;
 				padding-top: 0px;
 				}
+				#${PANEL_ID} .mep-balance-graph-wrap{
+				margin: 12px;
+				margin-bottom: 0;
+				padding: 10px 12px 12px;
+				border: 1px dashed rgba(255,255,255,0.22);
+				background: rgba(255,255,255,0.03);
+				margin-top: 0px;
+				padding-top: 0px;
+				}
 				#${PANEL_ID} .mep-stake-graph-wrap.mep-collapsed .mep-stake-params{
 				display:none;
 				}
 				#${PANEL_ID} .mep-frequency-graph-wrap.mep-collapsed .mep-frequency-params{
+				display:none;
+				}
+				#${PANEL_ID} .mep-balance-graph-wrap.mep-collapsed .mep-balance-params{
 				display:none;
 				}
 				#${PANEL_ID} .mep-graph-wrap.mep-collapsed .mep-graph-controls{
@@ -1522,6 +1641,7 @@
 				}
 				#${PANEL_ID} .mep-frequency-collapse,
 				#${PANEL_ID} .mep-stake-collapse,
+				#${PANEL_ID} .mep-balance-collapse,
 				#${PANEL_ID} .mep-main-graph-collapse{
 				border: 1px solid rgba(255,255,255,0.16);
 				background: rgba(255,255,255,0.07);
@@ -1534,6 +1654,7 @@
 				}
 				#${PANEL_ID} .mep-frequency-collapse:hover,
 				#${PANEL_ID} .mep-stake-collapse:hover,
+				#${PANEL_ID} .mep-balance-collapse:hover,
 				#${PANEL_ID} .mep-main-graph-collapse:hover{
 				background: rgba(255,255,255,0.14);
 				}
@@ -1818,6 +1939,91 @@
 				display:none;
 				z-index:3;
 				}
+				#${PANEL_ID} .mep-balance-params{
+				margin-bottom: 2px;
+				}
+				#${PANEL_ID} .mep-balance-controls{
+				display:inline-flex;
+				align-items:center;
+				gap:10px;
+				font-size:12px;
+				flex-wrap: wrap;
+				justify-content: flex-end;
+				}
+				#${PANEL_ID} .mep-balance-density-label{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				}
+				#${PANEL_ID} input.mep-balance-density{
+				width:52px;
+				border-radius:8px;
+				border: 1px solid rgba(255,255,255,0.10);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding: 0 8px;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} .mep-balance-sync-label{
+				display:inline-flex;
+				align-items:center;
+				gap:6px;
+				cursor:pointer;
+				user-select:none;
+				}
+				#${PANEL_ID} input.mep-balance-sync,
+				#${PANEL_ID} input.mep-balance-auto-height{
+				width:16px;
+				height:16px;
+				-webkit-appearance:none;
+				appearance:none;
+				border-radius:4px;
+				border:1px solid rgba(255,255,255,0.28);
+				background: rgba(255,255,255,0.06);
+				display:inline-grid;
+				place-items:center;
+				cursor:pointer;
+				}
+				#${PANEL_ID} input.mep-balance-sync:checked,
+				#${PANEL_ID} input.mep-balance-auto-height:checked{
+				background: rgba(255,255,255,0.22);
+				border-color: rgba(255,255,255,0.45);
+				}
+				#${PANEL_ID} input.mep-balance-sync:checked::after,
+				#${PANEL_ID} input.mep-balance-auto-height:checked::after{
+				content: "✓";
+				font-size:12px;
+				line-height:1;
+				color: rgba(255,255,255,0.92);
+				}
+				#${PANEL_ID} .mep-balance-graph-box{
+				position:relative;
+				height:92px;
+				border-top:1px solid rgba(255,255,255,0.10);
+				padding-top:0px;
+				margin-top:0px;
+				}
+				#${PANEL_ID} .mep-balance-graph{
+				width:100%;
+				height:100%;
+				display:block;
+				}
+				#${PANEL_ID} .mep-balance-tip{
+				position:absolute;
+				left:10px;
+				top:6px;
+				max-width:240px;
+				white-space:pre-line;
+				font-size:12px;
+				background: rgba(0,0,0,0.75);
+				border:1px solid rgba(255,255,255,0.15);
+				border-radius:10px;
+				padding:6px 8px;
+				pointer-events:none;
+				display:none;
+				z-index:3;
+				}
 				.mep-graph-controls{
 				display:flex;
 				flex-direction: column;      /* как на втором скрине */
@@ -1898,6 +2104,21 @@
             stakeGraphBetScale: typeof MEP.stakeGraphBetScale === "number" ? MEP.stakeGraphBetScale : 10,
             stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
             stakeGraphShowBet: ("stakeGraphShowBet" in MEP) ? !!MEP.stakeGraphShowBet : true,
+            balanceGraphDensity: typeof MEP.balanceGraphDensity === "number" ? MEP.balanceGraphDensity : 81,
+            balanceGraphDensitySync: !!MEP.balanceGraphDensitySync,
+            balanceGraphAutoHeight: !!MEP.balanceGraphAutoHeight,
+            balanceGraphScale: typeof MEP.balanceGraphScale === "number" ? MEP.balanceGraphScale : 10000000,
+            charterRoundsPerHour: typeof MEP.charterRoundsPerHour === "number" ? MEP.charterRoundsPerHour : 0,
+            charterRoundsPer6Hours: typeof MEP.charterRoundsPer6Hours === "number" ? MEP.charterRoundsPer6Hours : 0,
+            charterRoundsPerDay: typeof MEP.charterRoundsPerDay === "number" ? MEP.charterRoundsPerDay : 0,
+            charterWinsPerHour: typeof MEP.charterWinsPerHour === "number" ? MEP.charterWinsPerHour : 0,
+            charterWinsPer6Hours: typeof MEP.charterWinsPer6Hours === "number" ? MEP.charterWinsPer6Hours : 0,
+            charterWinsPerDay: typeof MEP.charterWinsPerDay === "number" ? MEP.charterWinsPerDay : 0,
+            charterMaxStakePercent: typeof MEP.charterMaxStakePercent === "number" ? MEP.charterMaxStakePercent : 0,
+            charterLossesPerHour: typeof MEP.charterLossesPerHour === "number" ? MEP.charterLossesPerHour : 0,
+            charterLossesPer6Hours: typeof MEP.charterLossesPer6Hours === "number" ? MEP.charterLossesPer6Hours : 0,
+            charterLossesPerDay: typeof MEP.charterLossesPerDay === "number" ? MEP.charterLossesPerDay : 0,
+            charterBreakAfter3LossesMin: typeof MEP.charterBreakAfter3LossesMin === "number" ? MEP.charterBreakAfter3LossesMin : 0,
             frequencyThreshold: typeof MEP.frequencyThreshold === "number" ? MEP.frequencyThreshold : 7,
             frequencyPeriod: typeof MEP.frequencyPeriod === "number" ? MEP.frequencyPeriod : 50,
             frequencyGraphDensity: typeof MEP.frequencyGraphDensity === "number" ? MEP.frequencyGraphDensity : 81,
@@ -1964,6 +2185,7 @@
             // История агрегатов ставок по раундам (oldest -> newest), runtime-only (SAFE MODE / MVP)
             roundPlayersCountHistory: Array.isArray(MEP.roundPlayersCountHistory) ? MEP.roundPlayersCountHistory : [],
             roundBetSumHistory: Array.isArray(MEP.roundBetSumHistory) ? MEP.roundBetSumHistory : [],
+            balanceHistory: Array.isArray(MEP.balanceHistory) ? MEP.balanceHistory : [],
         };
 
         // -------------------------
@@ -3268,6 +3490,218 @@
         };
 
         // -------------------------
+        // Balance graph
+        // -------------------------
+        MEP.BalanceGraph = {
+            _ui: null,
+            _lastDebugKey: "",
+            init(ui) {
+                this._ui = ui || null;
+            },
+
+            _toFiniteArray(arr) {
+                if (!Array.isArray(arr)) return [];
+                return arr.map((v) => Number(v)).filter((v) => Number.isFinite(v));
+            },
+
+            _getDiffVisibleLength() {
+                const history = Array.isArray(MEP.State.diffHistory) ? MEP.State.diffHistory : [];
+                const effDensity = MEP.State.diffDensitySync
+                    ? Math.max(10, Math.floor(Number(MEP.State.graphDensity || 100) || 100))
+                    : Math.max(10, Math.floor(Number(MEP.State.diffDensity || MEP.State.diffDensityManual || 81) || 81));
+                if (!history.length) return 0;
+                return Math.min(history.length, effDensity);
+            },
+
+            _tailWithDensity(arr, density) {
+                if (!arr.length) return [];
+                const d = Math.max(10, Math.floor(Number(density || 81) || 81));
+                return arr.slice(Math.max(0, arr.length - d));
+            },
+
+            _syncToMasterLen(arr, masterLen) {
+                if (!Array.isArray(arr) || !arr.length || masterLen <= 0) return [];
+                if (arr.length >= masterLen) return arr.slice(arr.length - masterLen);
+                const pad = new Array(masterLen - arr.length).fill(arr[0]);
+                return pad.concat(arr);
+            },
+
+            _buildPoints(values, totalStages, yMin, yMax, vbW, vbH, autoHeight = false) {
+                if (!values.length || totalStages <= 0) return [];
+                const out = [];
+                const stepX = totalStages <= 1 ? 0 : vbW / (totalStages - 1);
+                const startStage = Math.max(0, totalStages - values.length);
+                let sMin = yMin;
+                let sMax = yMax;
+                if (autoHeight) {
+                    sMin = Math.min(...values);
+                    sMax = Math.max(...values);
+                }
+                for (let i = 0; i < values.length; i++) {
+                    const stage = startStage + i;
+                    const x = stepX * stage;
+                    let y = vbH / 2;
+                    if (sMax !== sMin) {
+                        y = 1 + ((sMax - values[i]) / (sMax - sMin)) * (vbH - 2);
+                    }
+                    out.push({ stage, x, y: Math.max(1, Math.min(vbH - 1, y)), value: values[i] });
+                }
+                return out;
+            },
+
+            _ensureTip() {
+                const ui = this._ui;
+                if (!ui?.balanceGraphSvg) return null;
+                if (ui.balanceTip) return ui.balanceTip;
+                const host = ui.balanceGraphSvg.parentElement;
+                if (!host) return null;
+                const tip = document.createElement("div");
+                tip.className = "mep-balance-tip";
+                host.appendChild(tip);
+                ui.balanceTip = tip;
+                return tip;
+            },
+
+            _setTip(text, xPx) {
+                const ui = this._ui;
+                const tip = this._ensureTip();
+                if (!ui?.balanceGraphSvg || !tip) return;
+                if (!text) {
+                    tip.style.display = "none";
+                    return;
+                }
+                tip.textContent = text;
+                tip.style.display = "block";
+                tip.style.top = "6px";
+                const host = ui.balanceGraphSvg.parentElement;
+                const hostW = host?.clientWidth || 0;
+                const safeX = Number.isFinite(xPx) ? Math.max(6, xPx) : 6;
+                tip.style.left = `${safeX}px`;
+                const tipW = tip.offsetWidth || 0;
+                if (hostW > 0 && tipW > 0) {
+                    const maxLeft = Math.max(6, hostW - tipW - 6);
+                    tip.style.left = `${Math.min(safeX, maxLeft)}px`;
+                }
+            },
+
+            render() {
+                const ui = this._ui;
+                if (!ui?.balanceGraphSvg) return;
+                if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
+                const svg = ui.balanceGraphSvg;
+                svg.innerHTML = "";
+                this._setTip("");
+
+                const balanceRaw = this._toFiniteArray(MEP.State.balanceHistory);
+                const syncOn = !!MEP.State.balanceGraphDensitySync;
+                const autoHeight = !!MEP.State.balanceGraphAutoHeight;
+                let graphScale = Number(MEP.State.balanceGraphScale);
+                if (!Number.isFinite(graphScale) || graphScale <= 0) graphScale = 10000000;
+
+                let balanceViewRaw = [];
+                if (syncOn) {
+                    const masterLen = this._getDiffVisibleLength();
+                    balanceViewRaw = this._syncToMasterLen(balanceRaw, masterLen);
+                } else {
+                    balanceViewRaw = this._tailWithDensity(balanceRaw, MEP.State.balanceGraphDensity);
+                }
+                const balanceViewScaled = balanceViewRaw.map((v) => v * graphScale);
+
+                const vbW = 100;
+                const vbH = 60;
+                const stageCount = balanceViewScaled.length;
+                const scaledMin = balanceViewScaled.length ? Math.min(...balanceViewScaled) : 0;
+                const scaledMax = balanceViewScaled.length ? Math.max(...balanceViewScaled) : 1;
+                const points = this._buildPoints(balanceViewScaled, stageCount, scaledMin, scaledMax, vbW, vbH, autoHeight);
+                const stepX = stageCount <= 1 ? 0 : vbW / (stageCount - 1);
+                const rawByStage = new Array(Math.max(0, stageCount - balanceViewRaw.length)).fill(null).concat(balanceViewRaw);
+                const dbg = `${balanceRaw.length}|${balanceViewRaw.length}|${scaledMin}|${scaledMax}|${points.length}|${graphScale}`;
+                if (dbg !== this._lastDebugKey) {
+                    console.debug("[MEP.BalanceGraph] history len:", balanceRaw.length);
+                    console.debug("[MEP.BalanceGraph] visible raw len:", balanceViewRaw.length);
+                    console.debug("[MEP.BalanceGraph] scaled min/max:", scaledMin, scaledMax);
+                    console.debug("[MEP.BalanceGraph] balanceGraphScale:", graphScale);
+                    console.debug("[MEP.BalanceGraph] points:", points.length);
+                    this._lastDebugKey = dbg;
+                }
+
+                const base = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                base.setAttribute("x1", "0");
+                base.setAttribute("x2", String(vbW));
+                base.setAttribute("y1", String(vbH - 1));
+                base.setAttribute("y2", String(vbH - 1));
+                base.setAttribute("stroke", "rgba(255,255,255,0.20)");
+                base.setAttribute("stroke-width", "0.4");
+                svg.appendChild(base);
+
+                for (let i = 0; i < stageCount; i++) {
+                    const x = stepX * i;
+                    const ln = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    ln.setAttribute("x1", String(x));
+                    ln.setAttribute("x2", String(x));
+                    ln.setAttribute("y1", "0");
+                    ln.setAttribute("y2", String(vbH));
+                    ln.setAttribute("stroke", "rgba(255,255,255,0.13)");
+                    ln.setAttribute("stroke-width", "0.25");
+                    ln.setAttribute("stroke-dasharray", "1.4 1.4");
+                    ln.setAttribute("pointer-events", "none");
+                    svg.appendChild(ln);
+                }
+
+                if (!points.length) {
+                    console.debug("[MEP.BalanceGraph] skipped: empty series");
+                } else {
+                    const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    if (points.length >= 2) {
+                        pl.setAttribute("points", points.map((p) => `${p.x},${p.y}`).join(" "));
+                        pl.setAttribute("fill", "none");
+                        pl.setAttribute("stroke", "rgba(180,241,126,0.95)");
+                        pl.setAttribute("stroke-width", "0.65");
+                        pl.setAttribute("stroke-linejoin", "round");
+                        pl.setAttribute("stroke-linecap", "round");
+                        svg.appendChild(pl);
+                        console.debug("[MEP.BalanceGraph] polyline: yes");
+                    } else {
+                        const p = points[0];
+                        const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        dot.setAttribute("cx", String(p.x));
+                        dot.setAttribute("cy", String(p.y));
+                        dot.setAttribute("r", "1.25");
+                        dot.setAttribute("fill", "rgba(180,241,126,0.95)");
+                        dot.setAttribute("stroke", "rgba(180,241,126,0.95)");
+                        dot.setAttribute("stroke-width", "0.2");
+                        dot.setAttribute("pointer-events", "none");
+                        svg.appendChild(dot);
+                        console.debug("[MEP.BalanceGraph] polyline: no (single point fallback)");
+                    }
+
+                    for (const p of points) {
+                        const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        hit.setAttribute("cx", String(p.x));
+                        hit.setAttribute("cy", String(p.y));
+                        hit.setAttribute("r", "2.8");
+                        hit.setAttribute("fill", "rgba(255,255,255,0.001)");
+                        hit.setAttribute("stroke", "none");
+                        hit.style.cursor = "crosshair";
+
+                        hit.addEventListener("mouseenter", (ev) => {
+                            const box = svg.getBoundingClientRect();
+                            const rawV = Number(rawByStage[p.stage]);
+                            const txt = `Баланс: ${Number.isFinite(rawV) ? rawV.toFixed(8) : "—"}`;
+                            this._setTip(txt, ev.clientX - box.left + 10);
+                        });
+                        hit.addEventListener("mousemove", (ev) => {
+                            const box = svg.getBoundingClientRect();
+                            this._setTip(ui.balanceTip?.textContent || "", ev.clientX - box.left + 10);
+                        });
+                        hit.addEventListener("mouseleave", () => this._setTip(""));
+                        svg.appendChild(hit);
+                    }
+                }
+            },
+        };
+
+        // -------------------------
         // Frequency graph (> threshold in rolling period)
         // -------------------------
         MEP.FrequencyGraph = {
@@ -3628,7 +4062,7 @@
             setGameTab(tab) {
                 const ui = MEP.UI.ui;
                 if (!ui) return;
-                const nextTab = tab === "strategy2" ? "strategy2" : "strategy1";
+                const nextTab = tab === "charter" ? "charter" : tab === "strategy2" ? "strategy2" : "strategy1";
                 ui._gameTab = nextTab;
 
                 if (ui.gameTabButtons?.length) {
@@ -3638,6 +4072,7 @@
                     }
                 }
 
+                ui.charterPanel?.classList.toggle("is-active", nextTab === "charter");
                 ui.strategy1Panel?.classList.toggle("is-active", nextTab === "strategy1");
                 ui.strategy2Panel?.classList.toggle("is-active", nextTab === "strategy2");
             },
@@ -4074,6 +4509,22 @@
         <svg class="mep-stake-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
     </div>
 </div>
+<div class="mep-balance-graph-wrap">
+    <div class="mep-graph-head">
+        <div class="mep-block-title">График баланса</div>
+        <button class="mep-balance-collapse" type="button" title="Свернуть параметры">▲</button>
+    </div>
+    <div class="mep-balance-params">
+        <div class="mep-balance-controls">
+            <label class="mep-balance-density-label">плотн.<input class="mep-balance-density" type="number" min="10" step="1" value="81" /></label>
+            <label class="mep-balance-sync-label"><input class="mep-balance-sync" type="checkbox" /><span>Синхр.</span></label>
+            <label class="mep-balance-sync-label"><input class="mep-balance-auto-height" type="checkbox" /><span>Автовысота</span></label>
+        </div>
+    </div>
+    <div class="mep-balance-graph-box">
+        <svg class="mep-balance-graph" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
+    </div>
+</div>
 <div class="mep-graph-wrap">
     <div class="mep-graph-head">
         <div class="mep-block-title">График</div>
@@ -4163,6 +4614,7 @@
                 const twoWrap = panel.querySelector(".mep-two-stat-wrap");
                 const frequencyWrap = panel.querySelector(".mep-frequency-graph-wrap");
                 const stakeWrap = panel.querySelector(".mep-stake-graph-wrap");
+                const balanceWrap = panel.querySelector(".mep-balance-graph-wrap");
                 const graphWrap = panel.querySelector(".mep-graph-wrap");
 
                 if (header) {
@@ -4183,10 +4635,47 @@
                     gamePanel.className = "mep-tab-panel mep-tab-panel-game";
                     gamePanel.innerHTML = `
 <div class="mep-game-tabs">
-    <button class="mep-game-tab-btn is-active" type="button" data-tab="strategy1">Стратегия1</button>
+    <button class="mep-game-tab-btn is-active" type="button" data-tab="charter">Устав</button>
+    <button class="mep-game-tab-btn" type="button" data-tab="strategy1">Стратегия1</button>
     <button class="mep-game-tab-btn" type="button" data-tab="strategy2">Стратегия2</button>
 </div>
-<div class="mep-game-tab-panel mep-game-tab-panel-strategy1 is-active">
+<div class="mep-game-tab-panel mep-game-tab-panel-charter is-active">
+    <div class="mep-charter-note">0 = без ограничений</div>
+    <div class="mep-charter-sections">
+        <div class="mep-charter-section">
+            <div class="mep-charter-section-title">Нагрузка</div>
+            <div class="mep-charter-form">
+                <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов в час</span><input class="mep-charter-input mep-charter-rounds-hour" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов за 6 часов</span><input class="mep-charter-input mep-charter-rounds-6h" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">общее количество раундов за сутки</span><input class="mep-charter-input mep-charter-rounds-day" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+            </div>
+        </div>
+        <div class="mep-charter-section">
+            <div class="mep-charter-section-title">Результативность</div>
+            <div class="mep-charter-form">
+                <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей в час</span><input class="mep-charter-input mep-charter-wins-hour" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей за 6 часов</span><input class="mep-charter-input mep-charter-wins-6h" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">количество выигрышей за сутки</span><input class="mep-charter-input mep-charter-wins-day" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+            </div>
+        </div>
+        <div class="mep-charter-section">
+            <div class="mep-charter-section-title">Ограничение потерь</div>
+            <div class="mep-charter-form">
+                <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за час</span><input class="mep-charter-input mep-charter-losses-hour" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за 6 часов</span><input class="mep-charter-input mep-charter-losses-6h" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">количество проигрышей за день</span><input class="mep-charter-input mep-charter-losses-day" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix"></span></div>
+                <div class="mep-charter-row"><span class="mep-charter-label">время перерыва после трех подряд проигрышей</span><input class="mep-charter-input mep-charter-break-3loss-min" type="number" min="0" step="1" title="0 = без ограничений" /><span class="mep-charter-suffix">мин</span></div>
+            </div>
+        </div>
+        <div class="mep-charter-section">
+            <div class="mep-charter-section-title">Риск-менеджмент</div>
+            <div class="mep-charter-form">
+                <div class="mep-charter-row"><span class="mep-charter-label">процент макс от баланса для ставки</span><input class="mep-charter-input mep-charter-max-stake-percent" type="number" min="0" step="0.1" title="0 = без ограничений" /><span class="mep-charter-suffix">%</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="mep-game-tab-panel mep-game-tab-panel-strategy1">
     <div class="mep-game-placeholder">Контент стратегии 1</div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-strategy2">
@@ -4198,7 +4687,7 @@
                     panel.insertBefore(mainPanel, mainTabs.nextSibling);
                     panel.insertBefore(gamePanel, mainPanel.nextSibling);
 
-                    for (const node of [body, diffWrap, frequencyWrap, stakeWrap, graphWrap]) {
+                    for (const node of [body, diffWrap, frequencyWrap, stakeWrap, balanceWrap, graphWrap]) {
                         if (node) mainContent.appendChild(node);
                     }
                 }
@@ -4214,8 +4703,20 @@
                     mainPanel: panel.querySelector(".mep-tab-panel-main"),
                     gamePanel: panel.querySelector(".mep-tab-panel-game"),
                     gameTabButtons: [...panel.querySelectorAll("button.mep-game-tab-btn")],
+                    charterPanel: panel.querySelector(".mep-game-tab-panel-charter"),
                     strategy1Panel: panel.querySelector(".mep-game-tab-panel-strategy1"),
                     strategy2Panel: panel.querySelector(".mep-game-tab-panel-strategy2"),
+                    charterRoundsPerHourInput: panel.querySelector("input.mep-charter-rounds-hour"),
+                    charterRoundsPer6HoursInput: panel.querySelector("input.mep-charter-rounds-6h"),
+                    charterRoundsPerDayInput: panel.querySelector("input.mep-charter-rounds-day"),
+                    charterWinsPerHourInput: panel.querySelector("input.mep-charter-wins-hour"),
+                    charterWinsPer6HoursInput: panel.querySelector("input.mep-charter-wins-6h"),
+                    charterWinsPerDayInput: panel.querySelector("input.mep-charter-wins-day"),
+                    charterMaxStakePercentInput: panel.querySelector("input.mep-charter-max-stake-percent"),
+                    charterLossesPerHourInput: panel.querySelector("input.mep-charter-losses-hour"),
+                    charterLossesPer6HoursInput: panel.querySelector("input.mep-charter-losses-6h"),
+                    charterLossesPerDayInput: panel.querySelector("input.mep-charter-losses-day"),
+                    charterBreakAfter3LossesMinInput: panel.querySelector("input.mep-charter-break-3loss-min"),
                     textarea: panel.querySelector("textarea.mep-stats"),
                     copyBtn: panel.querySelector("button.mep-copy"),
                     sendDbBtn: panel.querySelector("button.mep-send-db"),
@@ -4292,6 +4793,13 @@
                     stakeBetScaleInput: panel.querySelector("input.mep-stake-scale-bet"),
                     stakeShowPlayersInput: panel.querySelector("input.mep-stake-show-players"),
                     stakeShowBetInput: panel.querySelector("input.mep-stake-show-bet"),
+                    balanceWrap: panel.querySelector(".mep-balance-graph-wrap"),
+                    balanceParamsWrap: panel.querySelector(".mep-balance-params"),
+                    balanceCollapseBtn: panel.querySelector("button.mep-balance-collapse"),
+                    balanceGraphSvg: panel.querySelector("svg.mep-balance-graph"),
+                    balanceDensityInput: panel.querySelector("input.mep-balance-density"),
+                    balanceSyncInput: panel.querySelector("input.mep-balance-sync"),
+                    balanceAutoHeightInput: panel.querySelector("input.mep-balance-auto-height"),
 
                     xInputs: [...panel.querySelectorAll("input.mep-x")],
                     colorInputs: [...panel.querySelectorAll("input.mep-color")],
@@ -4338,7 +4846,7 @@
                 if (!ui) return;
 
                 ui._mainTab = "main";
-                ui._gameTab = "strategy1";
+                ui._gameTab = "charter";
 
                 if (ui.mainTabButtons?.length) {
                     for (const btn of ui.mainTabButtons) {
@@ -4350,12 +4858,39 @@
                 if (ui.gameTabButtons?.length) {
                     for (const btn of ui.gameTabButtons) {
                         btn.addEventListener("click", () => {
-                            MEP.UI.setGameTab(btn.dataset.tab || "strategy1");
+                            MEP.UI.setGameTab(btn.dataset.tab || "charter");
                         });
                     }
                 }
                 MEP.UI.setMainTab(ui._mainTab);
                 MEP.UI.setGameTab(ui._gameTab);
+
+                const bindCharterInput = (inp, stateKey, step = 1) => {
+                    if (!inp) return;
+                    let current = Number(MEP.State[stateKey]);
+                    if (!Number.isFinite(current) || current < 0) current = 0;
+                    MEP.State[stateKey] = current;
+                    inp.value = String(current);
+                    inp.addEventListener("input", () => {
+                        let v = Number(inp.value);
+                        if (!Number.isFinite(v) || v < 0) v = 0;
+                        if (step === 1) v = Math.floor(v);
+                        MEP.State[stateKey] = v;
+                        inp.value = String(v);
+                        MEP.Storage.save();
+                    });
+                };
+                bindCharterInput(ui.charterRoundsPerHourInput, "charterRoundsPerHour", 1);
+                bindCharterInput(ui.charterRoundsPer6HoursInput, "charterRoundsPer6Hours", 1);
+                bindCharterInput(ui.charterRoundsPerDayInput, "charterRoundsPerDay", 1);
+                bindCharterInput(ui.charterWinsPerHourInput, "charterWinsPerHour", 1);
+                bindCharterInput(ui.charterWinsPer6HoursInput, "charterWinsPer6Hours", 1);
+                bindCharterInput(ui.charterWinsPerDayInput, "charterWinsPerDay", 1);
+                bindCharterInput(ui.charterMaxStakePercentInput, "charterMaxStakePercent", 0.1);
+                bindCharterInput(ui.charterLossesPerHourInput, "charterLossesPerHour", 1);
+                bindCharterInput(ui.charterLossesPer6HoursInput, "charterLossesPer6Hours", 1);
+                bindCharterInput(ui.charterLossesPerDayInput, "charterLossesPerDay", 1);
+                bindCharterInput(ui.charterBreakAfter3LossesMinInput, "charterBreakAfter3LossesMin", 1);
 
                 // -------------------------
                 // Graph controls
@@ -4385,6 +4920,7 @@
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                             if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
+                            if (MEP.State.balanceGraphDensitySync) MEP.BalanceGraph?.render?.();
                         }
 
                         MEP.Storage.save();
@@ -4620,10 +5156,45 @@
                     });
                 }
 
+                if (ui.balanceDensityInput) {
+                    const current = Math.max(10, Math.floor(Number(MEP.State.balanceGraphDensity || 81) || 81));
+                    MEP.State.balanceGraphDensity = current;
+                    ui.balanceDensityInput.value = String(current);
+                    ui.balanceDensityInput.addEventListener("input", () => {
+                        let v = Math.floor(Number(ui.balanceDensityInput.value) || 0);
+                        if (!Number.isFinite(v) || v < 10) v = 10;
+                        MEP.State.balanceGraphDensity = v;
+                        ui.balanceDensityInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.BalanceGraph?.render?.();
+                    });
+                }
+
+                if (ui.balanceSyncInput) {
+                    ui.balanceSyncInput.checked = !!MEP.State.balanceGraphDensitySync;
+                    if (ui.balanceDensityInput) ui.balanceDensityInput.disabled = !!MEP.State.balanceGraphDensitySync;
+                    ui.balanceSyncInput.addEventListener("change", () => {
+                        MEP.State.balanceGraphDensitySync = !!ui.balanceSyncInput.checked;
+                        if (ui.balanceDensityInput) ui.balanceDensityInput.disabled = !!MEP.State.balanceGraphDensitySync;
+                        MEP.Storage.save();
+                        MEP.BalanceGraph?.render?.();
+                    });
+                }
+
+                if (ui.balanceAutoHeightInput) {
+                    ui.balanceAutoHeightInput.checked = !!MEP.State.balanceGraphAutoHeight;
+                    ui.balanceAutoHeightInput.addEventListener("change", () => {
+                        MEP.State.balanceGraphAutoHeight = !!ui.balanceAutoHeightInput.checked;
+                        MEP.Storage.save();
+                        MEP.BalanceGraph?.render?.();
+                    });
+                }
+
                 MEP.Graph?.init?.(ui);
                 MEP.DiffGraph?.init?.(ui);
                 MEP.FrequencyGraph?.init?.(ui);
                 MEP.StakeGraph?.init?.(ui);
+                MEP.BalanceGraph?.init?.(ui);
 
                 const applyFrequencyParamsCollapse = () => {
                     if (!ui.frequencyWrap || !ui.frequencyCollapseBtn) return;
@@ -4652,6 +5223,21 @@
                     ui.stakeCollapseBtn.addEventListener("click", () => {
                         ui._stakeParamsCollapsed = !ui._stakeParamsCollapsed;
                         applyStakeParamsCollapse();
+                    });
+                }
+
+                const applyBalanceParamsCollapse = () => {
+                    if (!ui.balanceWrap || !ui.balanceCollapseBtn) return;
+                    const collapsed = !!ui._balanceParamsCollapsed;
+                    ui.balanceWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.balanceCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.balanceCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyBalanceParamsCollapse();
+                if (ui.balanceCollapseBtn) {
+                    ui.balanceCollapseBtn.addEventListener("click", () => {
+                        ui._balanceParamsCollapsed = !ui._balanceParamsCollapsed;
+                        applyBalanceParamsCollapse();
                     });
                 }
 
@@ -4805,12 +5391,14 @@
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                             if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
+                            if (MEP.State.balanceGraphDensitySync) MEP.BalanceGraph?.render?.();
                         } else {
                             // синхра OFF: меняем только 2-й
                             MEP.State.diffDensity = v;
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                             if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
+                            if (MEP.State.balanceGraphDensitySync) MEP.BalanceGraph?.render?.();
                         }
 
                         MEP.Storage.save();
@@ -4841,6 +5429,7 @@
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                             if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
+                            if (MEP.State.balanceGraphDensitySync) MEP.BalanceGraph?.render?.();
                         } else {
                             // выключили синхру — возвращаем ручное значение 2-го
                             const v = Math.max(10, Math.floor(Number(MEP.State.diffDensityManual || 81) || 81));
@@ -4848,6 +5437,7 @@
                             MEP.DiffGraph?.render?.();
                             if (MEP.State.stakeGraphDensitySync) MEP.StakeGraph?.render?.();
                             if (MEP.State.frequencyGraphDensitySync) MEP.FrequencyGraph?.render?.();
+                            if (MEP.State.balanceGraphDensitySync) MEP.BalanceGraph?.render?.();
                         }
 
                         applyDiffDensityUi();
@@ -5424,6 +6014,7 @@
                 MEP.UI.updateTwoStats();
                 MEP.FrequencyGraph?.render?.();
                 MEP.StakeGraph?.render?.();
+                MEP.BalanceGraph?.render?.();
                 MEP.Graph?.render?.();
             },
 
@@ -6161,6 +6752,9 @@
                                 roundPlayersCountHistory: MEP.State.roundPlayersCountHistory,
                                 roundBetSumHistory: MEP.State.roundBetSumHistory,
                             });
+
+                            const stageKey = (startKey || "").toString().split("|")[0] || (window.MEP?.WS?.last?.roundLikeId ?? "");
+                            MEP.BalanceCapture?.onRoundCommitted?.(stageKey);
                         }
                     }
                     MEP.RoundStakeCapture.state.handledStartKey = startKey;
@@ -6219,6 +6813,219 @@
         };
 
         // -------------------------
+        // Balance capture module (DOM observer, runtime-only history)
+        // -------------------------
+        MEP.BalanceCapture = {
+            state: {
+                observer: null,
+                rebindTimer: null,
+                latestSeenBalance: null,
+                seededInitialBalance: false,
+                lastBalanceStageKey: "",
+                initialSeedTimer: null,
+                initialSeedAttempts: 0,
+            },
+
+            selectors: [
+                'span[data-ds-text="true"].text-neutral-default.ds-body-md-strong',
+                '[data-testid="wallet-balance"]',
+                '[data-testid="user-balance"]',
+                '[data-testid="balance-amount"]',
+                '.wallet-balance',
+                '.balance-amount',
+                '.top-balance',
+                '.account-balance',
+                'header [class*="balance"]',
+            ],
+
+            parseLocaleNumber(rawText) {
+                const text = (rawText ?? "").toString().replace(/\u00a0/g, " ").trim();
+                if (!text) return null;
+                const cleaned = text.replace(/\s+/g, "").replace(/[^0-9,.\-]/g, "");
+                if (!cleaned) return null;
+
+                const hasComma = cleaned.includes(",");
+                const hasDot = cleaned.includes(".");
+                let normalized = cleaned;
+                if (hasComma && hasDot) {
+                    const lastComma = cleaned.lastIndexOf(",");
+                    const lastDot = cleaned.lastIndexOf(".");
+                    if (lastComma > lastDot) normalized = cleaned.replace(/\./g, "").replace(",", ".");
+                    else normalized = cleaned.replace(/,/g, "");
+                } else if (hasComma) {
+                    normalized = cleaned.replace(",", ".");
+                }
+
+                const n = Number.parseFloat(normalized);
+                return Number.isFinite(n) ? n : null;
+            },
+
+            readCurrentBalance() {
+                for (const sel of this.selectors) {
+                    const el = document.querySelector(sel);
+                    if (!el) continue;
+                    const n = this.parseLocaleNumber(el.textContent || "");
+                    if (Number.isFinite(n)) return n;
+                }
+                return null;
+            },
+
+            updateLatestSeenBalance() {
+                const n = this.readCurrentBalance();
+                if (!Number.isFinite(n)) return false;
+                this.state.latestSeenBalance = n;
+                return true;
+            },
+
+            ensureInitialBalance() {
+                const hasLatest = this.updateLatestSeenBalance();
+                if (!hasLatest) return false;
+                const n = Number(this.state.latestSeenBalance);
+                if (!Number.isFinite(n)) return false;
+                if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
+
+                const arr = MEP.State.balanceHistory;
+                if (!arr.length) {
+                    arr.push(n);
+                } else if (arr.length === 1 && Number(arr[0]) === 0) {
+                    arr[0] = n; // fallback overwrite стартового 0
+                } else {
+                    return false;
+                }
+
+                this.state.seededInitialBalance = true;
+                this.state.lastBalanceStageKey = "__initial__";
+                console.debug("[MEP.BalanceCapture] initial seed", { value: n, len: arr.length });
+                MEP.BalanceGraph?.render?.();
+                return true;
+            },
+
+            stopInitialSeedFixTimer() {
+                if (this.state.initialSeedTimer) {
+                    clearInterval(this.state.initialSeedTimer);
+                    this.state.initialSeedTimer = null;
+                    console.debug("[MEP.BalanceCapture] initial seed timer stopped");
+                }
+            },
+
+            tryFixInitialZero() {
+                if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
+                const arr = MEP.State.balanceHistory;
+                const first = arr.length ? Number(arr[0]) : null;
+                const firstValidNonZero = Number.isFinite(first) && first !== 0;
+                if (arr.length > 0 && firstValidNonZero) {
+                    this.stopInitialSeedFixTimer();
+                    return true;
+                }
+
+                this.updateLatestSeenBalance();
+                const cur = Number(this.state.latestSeenBalance);
+                if (Number.isFinite(cur) && cur > 0) {
+                    if (!arr.length) {
+                        arr.push(cur);
+                        this.state.seededInitialBalance = true;
+                        this.state.lastBalanceStageKey = "__initial__";
+                        console.debug("[MEP.BalanceCapture] initial seed fixed by push", { value: cur });
+                        MEP.BalanceGraph?.render?.();
+                    } else if (arr.length >= 1 && Number(arr[0]) === 0) {
+                        arr[0] = cur;
+                        this.state.seededInitialBalance = true;
+                        this.state.lastBalanceStageKey = "__initial__";
+                        console.debug("[MEP.BalanceCapture] initial zero overwritten", { value: cur });
+                        MEP.BalanceGraph?.render?.();
+                    }
+                }
+
+                const firstAfter = arr.length ? Number(arr[0]) : null;
+                if (arr.length > 0 && Number.isFinite(firstAfter) && firstAfter !== 0) {
+                    this.stopInitialSeedFixTimer();
+                    return true;
+                }
+                return false;
+            },
+
+            startInitialSeedFixTimer() {
+                this.stopInitialSeedFixTimer();
+                this.state.initialSeedAttempts = 0;
+                console.debug("[MEP.BalanceCapture] initial seed timer started");
+                this.state.initialSeedTimer = setInterval(() => {
+                    this.state.initialSeedAttempts += 1;
+                    const fixed = this.tryFixInitialZero();
+                    if (fixed) return;
+                    if (this.state.initialSeedAttempts >= 40) {
+                        this.stopInitialSeedFixTimer();
+                        console.warn("[MEP.BalanceCapture] initial seed timer timeout");
+                    }
+                }, 400);
+            },
+
+            pushCurrentBalanceToHistory(stageKey, reason = "round") {
+                const n = Number(this.state.latestSeenBalance);
+                if (!Number.isFinite(n)) return false;
+                if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
+                const sk = (stageKey ?? "").toString().trim();
+                if (!sk) return false;
+                if (this.state.lastBalanceStageKey === sk) return false;
+
+                const arr = MEP.State.balanceHistory;
+                arr.push(n);
+                this.state.lastBalanceStageKey = sk;
+                if (reason === "initial") this.state.seededInitialBalance = true;
+                console.debug("[MEP.BalanceCapture] push", { value: n, stageKey: sk, reason, len: arr.length });
+                MEP.BalanceGraph?.render?.();
+                return true;
+            },
+
+            onMutationTick() {
+                this.updateLatestSeenBalance();
+            },
+
+            onRoundCommitted(stageKey) {
+                this.pushCurrentBalanceToHistory(stageKey, "round");
+            },
+
+            stopIfRunning() {
+                this.stopInitialSeedFixTimer();
+                if (this.state.observer) {
+                    try {
+                        this.state.observer.disconnect();
+                    } catch (e) {}
+                    this.state.observer = null;
+                }
+                if (this.state.rebindTimer) {
+                    clearInterval(this.state.rebindTimer);
+                    this.state.rebindTimer = null;
+                }
+            },
+
+            start() {
+                this.stopIfRunning();
+                if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
+                this.state.lastBalanceStageKey = "";
+                this.state.seededInitialBalance = false;
+                this.state.latestSeenBalance = null;
+
+                this.ensureInitialBalance();
+
+                const body = document.body;
+                if (!body) return;
+
+                this.state.observer = new MutationObserver(() => {
+                    queueMicrotask(() => this.onMutationTick());
+                });
+                this.state.observer.observe(body, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                });
+
+                this.onMutationTick();
+                this.state.rebindTimer = setInterval(() => this.onMutationTick(), 700);
+                this.startInitialSeedFixTimer();
+            },
+        };
+
+        // -------------------------
         // Main module
         // -------------------------
         MEP.Main = {
@@ -6255,6 +7062,7 @@
                 // остановим старые версии наблюдателей
                 MEP.Tracker.stopIfRunning();
                 MEP.RoundStakeCapture.stopIfRunning();
+                MEP.BalanceCapture.stopIfRunning();
 
                 // CSS всегда
                 MEP.Style.injectMinCss();
@@ -6290,6 +7098,7 @@
                 MEP.UI.render();
                 MEP.Tracker.start();
                 MEP.RoundStakeCapture.start();
+                MEP.BalanceCapture.start();
 
                 // экспорт совместимого API
                 MEP.tracker = {
