@@ -1068,12 +1068,47 @@
 				margin: 12px;
 				border: 1px dashed rgba(255,255,255,0.22);
 				border-radius: unset;
-				padding: 12px;
+				padding: 10px 12px 12px;
 				background: rgba(255,255,255,0.03);
 				margin-bottom: 0px;
-				padding-bottom: 0px;
-				padding-top: 3px;
-				
+				padding-top: 0px;
+				}
+				#${PANEL_ID} .mep-diff-head{
+				display:flex;
+				align-items:center;
+				justify-content:space-between;
+				margin-bottom:6px;
+				}
+				#${PANEL_ID} .mep-diff-title{
+				font-size:13px;
+				font-weight:300;
+				opacity:0.95;
+				}
+				#${PANEL_ID} .mep-diff-collapse{
+				border: 1px solid rgba(255,255,255,0.16);
+				background: rgba(255,255,255,0.07);
+				color:#fff;
+				border-radius: 8px;
+				padding: 1px 8px 2px;
+				font-size: 13px;
+				line-height: 1.1;
+				cursor: pointer;
+				}
+				#${PANEL_ID} .mep-diff-collapse:hover{
+				background: rgba(255,255,255,0.14);
+				}
+				#${PANEL_ID} .mep-diff-wrap.mep-collapsed .mep-diff-params{
+				display:none;
+				}
+				#${PANEL_ID} .mep-diff-params{
+				display:flex;
+				flex-direction:column;
+				gap:4px;
+				margin-bottom:6px;
+				}
+				#${PANEL_ID} .mep-diff-graph-area{
+				display:flex;
+				flex-direction:column;
 				}
 				#${PANEL_ID} .mep-diff-box{
 				width:100%;
@@ -1094,9 +1129,8 @@
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
-				margin: 0 0 -2px 0;
+				margin: 0;
 				background-color: #04325b73;
-				flex-direction: row-reverse;
 				}
 
 				#${PANEL_ID} .mep-diff-lvlwrap{
@@ -1131,7 +1165,7 @@
 				display:flex;
 				align-items:center;
 				gap:6px;
-				margin: 0 0 4px 0;
+				margin: 0;
 				flex-wrap: wrap;
 				}
 				#${PANEL_ID} .mep-diff-vector-label{
@@ -1200,33 +1234,8 @@
 
 				#${PANEL_ID} .mep-two-head{
 				display:flex;
-				flex-direction: column;
-				align-items: stretch;
-				gap: 8px;
-				margin: 0px;
-				}
-				#${PANEL_ID} .mep-two-stat-wrap.mep-collapsed .mep-two-body{
-				display:none;
-				}
-				#${PANEL_ID} .mep-two-collapse{
-				border: 1px solid rgba(255,255,255,0.16);
-				background: rgba(255,255,255,0.07);
-				color:#fff;
-				border-radius: 8px;
-				padding: 1px 8px 2px;
-				font-size: 13px;
-				line-height: 1.1;
-				cursor: pointer;
-				}
-				#${PANEL_ID} .mep-two-collapse:hover{
-				background: rgba(255,255,255,0.14);
-				}
-
-				#${PANEL_ID} .mep-two-topbar{
-				display:flex;
-				align-items:center;
-				justify-content:space-between;
-				gap:10px;
+				justify-content:center;
+				margin: 0 0 6px 0;
 				}
 				#${PANEL_ID} .mep-two-total{
 				font-size: 18px;
@@ -1275,6 +1284,11 @@
 				display:flex;
 				align-items:center;
 				gap:8px;
+				}
+				#${PANEL_ID} .mep-two-params{
+				display:flex;
+				flex-direction:column;
+				gap:4px;
 				}
 
 				#${PANEL_ID} .mep-two-head-label{
@@ -3924,44 +3938,31 @@
     </div>
 </div>
 <div class="mep-diff-wrap">
-<div class="mep-diff-lenrow"><span class="mep-diff-len">len: 0</span><span class="mep-diff-lvlwrap"><span class="mep-diff-lvl-sign">+</span><input class="mep-diff-lvl-pos" type="number" min="0" step="1" value="0"><span class="mep-diff-lvl-sign">-</span><input class="mep-diff-lvl-neg" type="number" min="0" step="1" value="0"></span></div>
-    <div class="mep-diff-vector-row">
-        <label class="mep-diff-vector-label"><input class="mep-diff-vector-enabled mep-diff-vector-check" type="checkbox" checked><span>Вектор</span></label>
-        <label class="mep-diff-vector-label"><span>P</span><input class="mep-diff-vector-period" type="number" min="1" step="1" value="9"></label>
-        <label class="mep-diff-vector-label"><span>S</span><input class="mep-diff-vector-shift" type="number" min="1" step="1" value="3"></label>
-        <label class="mep-diff-vector-label"><span>Flat</span><input class="mep-diff-vector-flat" type="number" min="0" step="0.01" value="0.15"></label>
+    <div class="mep-diff-head">
+        <div class="mep-diff-title">График разниц</div>
+        <button class="mep-diff-collapse" type="button" title="Свернуть параметры">▲</button>
     </div>
-    <div class="mep-diff-maxrow"><span class="mep-diff-max">max: +0</span></div>
-    <div class="mep-diff-box">
-        <svg class="mep-diff" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
-    </div>
-    <div class="mep-diff-minrow"><span class="mep-diff-min">min: -0</span></div>
-</div>
-<div class="mep-two-stat-wrap">
-    <div class="mep-two-head">
-        <div class="mep-two-topbar">
-            <div class="mep-two-toprow">
+    <div class="mep-diff-params">
+        <div class="mep-diff-lenrow"><span class="mep-diff-len">len: 0</span><span class="mep-diff-lvlwrap"><span class="mep-diff-lvl-sign">+</span><input class="mep-diff-lvl-pos" type="number" min="0" step="1" value="0"><span class="mep-diff-lvl-sign">-</span><input class="mep-diff-lvl-neg" type="number" min="0" step="1" value="0"></span></div>
+        <div class="mep-diff-vector-row">
+            <label class="mep-diff-vector-label"><input class="mep-diff-vector-enabled mep-diff-vector-check" type="checkbox" checked><span>Вектор</span></label>
+            <label class="mep-diff-vector-label"><span>P</span><input class="mep-diff-vector-period" type="number" min="1" step="1" value="9"></label>
+            <label class="mep-diff-vector-label"><span>S</span><input class="mep-diff-vector-shift" type="number" min="1" step="1" value="3"></label>
+            <label class="mep-diff-vector-label"><span>Flat</span><input class="mep-diff-vector-flat" type="number" min="0" step="0.01" value="0.15"></label>
+        </div>
+        <div class="mep-two-params">
+            <div class="mep-two-subrow">
                 <span class="mep-two-head-label">Последние</span>
                 <input class="mep-two-lastn" type="number" min="1" step="1" value="250" />
+                <label class="mep-two-head-right">
+                    <input class="mep-two-all" type="checkbox" />
+                    <span>вся история</span>
+                </label>
             </div>
-            <div class="mep-two-total">
-                <span class="mep-two-total-n">0</span><span class="mep-two-total-sep">|</span
-                ><span class="mep-two-diff zero">0</span>
-            </div>
-            <label class="mep-two-head-right">
-                <input class="mep-two-all" type="checkbox" />
-                <span>вся история</span>
-            </label>
-            <button class="mep-two-collapse" type="button" title="Свернуть параметры">▲</button>
-        </div>
-    </div>
-    <div class="mep-two-body">
-        <div class="mep-two-params">
             <div class="mep-two-subrow">
                 <span class="mep-two-head-label start">Старт</span>
                 <input class="mep-two-start" type="number" min="0" step="1" value="0" />
             </div>
-
             <div class="mep-two-subrow">
                 <span class="mep-two-dens-label">плотность</span>
                 <input class="mep-diff-density" type="number" min="10" step="1" value="81" />
@@ -3971,6 +3972,23 @@
                 </label>
             </div>
         </div>
+    </div>
+    <div class="mep-diff-graph-area">
+        <div class="mep-diff-maxrow"><span class="mep-diff-max">max: +0</span></div>
+        <div class="mep-diff-box">
+            <svg class="mep-diff" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="mep-diff-minrow"><span class="mep-diff-min">min: -0</span></div>
+    </div>
+</div>
+<div class="mep-two-stat-wrap">
+    <div class="mep-two-head">
+        <div class="mep-two-total">
+            <span class="mep-two-total-n">0</span><span class="mep-two-total-sep">|</span
+            ><span class="mep-two-diff zero">0</span>
+        </div>
+    </div>
+    <div class="mep-two-body">
         <div class="mep-two-row">
             <div class="mep-two-left">&gt;= 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt ge">0</span></div>
             <div class="mep-two-bar">
@@ -4195,11 +4213,15 @@
                     statsWrap: panel.querySelector(".mep-stats-wrap"),
 
                     diffWrap: panel.querySelector(".mep-diff-wrap"),
+                    diffHead: panel.querySelector(".mep-diff-head"),
+                    diffTitle: panel.querySelector(".mep-diff-title"),
+                    diffCollapseBtn: panel.querySelector("button.mep-diff-collapse"),
+                    diffParamsWrap: panel.querySelector(".mep-diff-params"),
+                    diffGraphArea: panel.querySelector(".mep-diff-graph-area"),
                     diffSvg: panel.querySelector("svg.mep-diff"),
                     twoWrap: panel.querySelector(".mep-two-stat-wrap"),
                     twoHead: panel.querySelector(".mep-two-head"),
                     twoParamsWrap: panel.querySelector(".mep-two-params"),
-                    twoCollapseBtn: panel.querySelector("button.mep-two-collapse"),
                     twoLastN: panel.querySelector("input.mep-two-lastn"),
                     twoStartInput: panel.querySelector("input.mep-two-start"),
                     diffDensityInput: panel.querySelector("input.mep-diff-density"),
@@ -4634,18 +4656,18 @@
                     });
                 }
 
-                const applyTwoParamsCollapse = () => {
-                    if (!ui.twoWrap || !ui.twoCollapseBtn) return;
-                    const collapsed = !!ui._twoParamsCollapsed;
-                    ui.twoWrap.classList.toggle("mep-collapsed", collapsed);
-                    ui.twoCollapseBtn.textContent = collapsed ? "▼" : "▲";
-                    ui.twoCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                const applyDiffParamsCollapse = () => {
+                    if (!ui.diffWrap || !ui.diffCollapseBtn) return;
+                    const collapsed = !!ui._diffParamsCollapsed;
+                    ui.diffWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.diffCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.diffCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
                 };
-                applyTwoParamsCollapse();
-                if (ui.twoCollapseBtn) {
-                    ui.twoCollapseBtn.addEventListener("click", () => {
-                        ui._twoParamsCollapsed = !ui._twoParamsCollapsed;
-                        applyTwoParamsCollapse();
+                applyDiffParamsCollapse();
+                if (ui.diffCollapseBtn) {
+                    ui.diffCollapseBtn.addEventListener("click", () => {
+                        ui._diffParamsCollapsed = !ui._diffParamsCollapsed;
+                        applyDiffParamsCollapse();
                     });
                 }
 

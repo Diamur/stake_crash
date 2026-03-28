@@ -48,3 +48,7 @@
 - Добавлены state/persistence поля frequencyVector* + runtime `frequencyVectorState/frequencyVectorSignal`.
 - В frequency controls добавлена компактная строка `Вектор / P / S / Flat` и bind/save/render обработчики.
 - EMA рассчитывается по extendedSeries (left warmup tail + видимое окно), затем clip к видимой части.
+- 2026-03-28: Перестроен UI блока «График разниц» — добавлен header с кнопкой collapse и отдельные зоны params/graph-area.
+- Управляющие контролы окна анализа (`Последние`, `Старт`, `плотность`, `синхр.`, `вся история`) перенесены из верхней части two-stat в diff params.
+- Добавлен отдельный diff collapse-state (`ui._diffParamsCollapsed`) — скрываются только параметры, график с max/min остаётся видимым.
+- Блок `>=2/<2` оставлен отдельной нижней секцией со статистикой (total/diff + бары) без изменения расчётов.
