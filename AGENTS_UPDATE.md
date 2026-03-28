@@ -79,3 +79,8 @@
 - В `MEP.BalanceGraph.render()` внедрено разделение raw/scaled: history хранит raw, геометрия строится по `raw * balanceGraphScale`.
 - Tooltip для balance-графика теперь всегда показывает raw-значение (`toFixed(8)`), без scaled коэффициента.
 - В debug balance-графика добавлены `visible raw len`, `scaled min/max`, `balanceGraphScale`.
+- 2026-03-28: Balance history переведён на round-based commit: мутации/polling обновляют только `latestSeenBalance`.
+- `MEP.BalanceCapture.start()` теперь сразу seed'ит первую точку из текущего DOM-баланса (`__initial__`) и рендерит график.
+- Добавлен `pushCurrentBalanceToHistory(stageKey, reason)` с anti-duplicate по `stageKey` (`lastBalanceStageKey`), а не по value.
+- Коммит баланса встроен в тот же момент, где пишутся `roundPlayersCountHistory/roundBetSumHistory` в `MEP.RoundStakeCapture.captureAfterStart()`.
+- Одинаковые значения баланса между разными stage теперь разрешены; дубль только при повторном том же stageKey.

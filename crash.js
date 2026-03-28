@@ -6570,6 +6570,9 @@
                                 roundPlayersCountHistory: MEP.State.roundPlayersCountHistory,
                                 roundBetSumHistory: MEP.State.roundBetSumHistory,
                             });
+
+                            const stageKey = (startKey || "").toString().split("|")[0] || (window.MEP?.WS?.last?.roundLikeId ?? "");
+                            MEP.BalanceCapture?.onRoundCommitted?.(stageKey);
                         }
                     }
                     MEP.RoundStakeCapture.state.handledStartKey = startKey;
@@ -6634,8 +6637,9 @@
             state: {
                 observer: null,
                 rebindTimer: null,
-                lastValue: null,
-                lastPushTs: 0,
+                latestSeenBalance: null,
+                seededInitialBalance: false,
+                lastBalanceStageKey: "",
             },
 
             selectors: [
@@ -6682,30 +6686,36 @@
                 return null;
             },
 
-            pushBalance(value, source = "dom") {
-                const n = Number(value);
+            updateLatestSeenBalance() {
+                const n = this.readCurrentBalance();
+                if (!Number.isFinite(n)) return false;
+                this.state.latestSeenBalance = n;
+                return true;
+            },
+
+            pushCurrentBalanceToHistory(stageKey, reason = "round") {
+                const n = Number(this.state.latestSeenBalance);
                 if (!Number.isFinite(n)) return false;
                 if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
+                const sk = (stageKey ?? "").toString().trim();
+                if (!sk) return false;
+                if (this.state.lastBalanceStageKey === sk) return false;
 
                 const arr = MEP.State.balanceHistory;
-                const prev = arr.length ? Number(arr[arr.length - 1]) : null;
-                const nowTs = Date.now();
-                const isSameAsPrev = Number.isFinite(prev) && Math.abs(prev - n) < 0.0000001;
-                if (isSameAsPrev && nowTs - this.state.lastPushTs < 800) return false;
-                if (isSameAsPrev) return false;
-
                 arr.push(n);
-                this.state.lastValue = n;
-                this.state.lastPushTs = nowTs;
-                console.debug("[MEP.BalanceCapture] push", { value: n, source, len: arr.length });
+                this.state.lastBalanceStageKey = sk;
+                if (reason === "initial") this.state.seededInitialBalance = true;
+                console.debug("[MEP.BalanceCapture] push", { value: n, stageKey: sk, reason, len: arr.length });
                 MEP.BalanceGraph?.render?.();
                 return true;
             },
 
             onMutationTick() {
-                const current = this.readCurrentBalance();
-                if (!Number.isFinite(current)) return;
-                this.pushBalance(current, "dom");
+                this.updateLatestSeenBalance();
+            },
+
+            onRoundCommitted(stageKey) {
+                this.pushCurrentBalanceToHistory(stageKey, "round");
             },
 
             stopIfRunning() {
@@ -6724,6 +6734,14 @@
             start() {
                 this.stopIfRunning();
                 if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
+                this.state.lastBalanceStageKey = "";
+                this.state.seededInitialBalance = false;
+                this.state.latestSeenBalance = null;
+
+                this.updateLatestSeenBalance();
+                if (!this.state.seededInitialBalance) {
+                    this.pushCurrentBalanceToHistory("__initial__", "initial");
+                }
 
                 const body = document.body;
                 if (!body) return;
