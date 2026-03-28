@@ -1228,8 +1228,20 @@
 				margin-bottom: 0px;
 				margin-top: 0px;
         padding-top: 0px;
-        margin-top: 0px;
-				
+	        margin-top: 0px;
+					
+				}
+				#${PANEL_ID} .mep-diff-wrap > .mep-two-stat-wrap{
+				margin: 6px 0 6px;
+				padding: 8px 10px 9px;
+				border: 1px solid rgba(255,255,255,0.12);
+				background: rgba(255,255,255,0.02);
+				}
+				#${PANEL_ID} .mep-diff-wrap > .mep-diff-params + .mep-two-stat-wrap{
+				margin-top: 4px;
+				}
+				#${PANEL_ID} .mep-diff-wrap > .mep-two-stat-wrap + .mep-diff-graph-area{
+				margin-top: 4px;
 				}
 
 				#${PANEL_ID} .mep-two-head{
@@ -3973,36 +3985,36 @@
             </div>
         </div>
     </div>
+    <div class="mep-two-stat-wrap">
+        <div class="mep-two-head">
+            <div class="mep-two-total">
+                <span class="mep-two-total-n">0</span><span class="mep-two-total-sep">|</span
+                ><span class="mep-two-diff zero">0</span>
+            </div>
+        </div>
+        <div class="mep-two-body">
+            <div class="mep-two-row">
+                <div class="mep-two-left">&gt;= 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt ge">0</span></div>
+                <div class="mep-two-bar">
+                    <div class="mep-two-fill ge" style="width: 0%"></div>
+                </div>
+                <div class="mep-two-right"><span class="mep-two-pct ge">0%</span></div>
+            </div>
+            <div class="mep-two-row">
+                <div class="mep-two-left">&lt; 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt lt">0</span></div>
+                <div class="mep-two-bar">
+                    <div class="mep-two-fill lt" style="width: 0%"></div>
+                </div>
+                <div class="mep-two-right"><span class="mep-two-pct lt">0%</span></div>
+            </div>
+        </div>
+    </div>
     <div class="mep-diff-graph-area">
         <div class="mep-diff-maxrow"><span class="mep-diff-max">max: +0</span></div>
         <div class="mep-diff-box">
             <svg class="mep-diff" viewBox="0 0 100 60" preserveAspectRatio="none"></svg>
         </div>
         <div class="mep-diff-minrow"><span class="mep-diff-min">min: -0</span></div>
-    </div>
-</div>
-<div class="mep-two-stat-wrap">
-    <div class="mep-two-head">
-        <div class="mep-two-total">
-            <span class="mep-two-total-n">0</span><span class="mep-two-total-sep">|</span
-            ><span class="mep-two-diff zero">0</span>
-        </div>
-    </div>
-    <div class="mep-two-body">
-        <div class="mep-two-row">
-            <div class="mep-two-left">&gt;= 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt ge">0</span></div>
-            <div class="mep-two-bar">
-                <div class="mep-two-fill ge" style="width: 0%"></div>
-            </div>
-            <div class="mep-two-right"><span class="mep-two-pct ge">0%</span></div>
-        </div>
-        <div class="mep-two-row">
-            <div class="mep-two-left">&lt; 2 <span class="mep-two-sep">|</span><span class="mep-two-cnt lt">0</span></div>
-            <div class="mep-two-bar">
-                <div class="mep-two-fill lt" style="width: 0%"></div>
-            </div>
-            <div class="mep-two-right"><span class="mep-two-pct lt">0%</span></div>
-        </div>
     </div>
 </div>
 <div class="mep-frequency-graph-wrap">
@@ -4184,7 +4196,7 @@
                     panel.insertBefore(mainPanel, mainTabs.nextSibling);
                     panel.insertBefore(gamePanel, mainPanel.nextSibling);
 
-                    for (const node of [body, diffWrap, twoWrap, frequencyWrap, stakeWrap, graphWrap]) {
+                    for (const node of [body, diffWrap, frequencyWrap, stakeWrap, graphWrap]) {
                         if (node) mainContent.appendChild(node);
                     }
                 }
