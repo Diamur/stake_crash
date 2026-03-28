@@ -35,3 +35,31 @@
 - В `Главная` обёрнут весь прежний основной контент без изменения порядка блоков.
 - Во вкладке `Игра` добавлены подвкладки `Стратегия1` / `Стратегия2` с runtime-only переключением.
 - Добавлены базовые тёмные стили для main/game tab-bar и контейнеров-заглушек стратегий.
+- 2026-03-28: В diff-график добавлены EMA-векторные линии (main + phase-shift) поверх столбиков в общей шкале Y.
+- Добавлены state/persistence поля: diffVectorEnabled/Period/PhaseShift/FlatEpsilon + цвета и ширины линий.
+- В `.mep-diff-wrap` добавлены компактные контролы `Вектор / P / S / Flat` + bind/save/render без отдельного блока.
+- В `MEP.DiffGraph` добавлены helper'ы `_calcEMA`, `_buildVectorSeries`, `_updateVectorState`.
+- Вычисляется и сохраняется сигнал вектора: `MEP.State.diffVectorSignal` и состояние `up/down/flat`.
+- 2026-03-28: Исправлен EMA warmup для diff-вектора — расчёт теперь по extendedSeries (левый скрытый хвост + видимое окно).
+- Добавлен warmup: `max(period*3, phaseShift + period + 10)` для естественного входа EMA в левом крае.
+- shifted EMA больше не стартует фиктивным значением: до появления валидной точки хранится `null`.
+- После расчёта выполняется clip обратно к текущему видимому окну перед отрисовкой polyline.
+- 2026-03-28: Для FrequencyGraph добавлены EMA-векторные overlay-линии (main + phase shift) в том же SVG и шкале Y.
+- Добавлены state/persistence поля frequencyVector* + runtime `frequencyVectorState/frequencyVectorSignal`.
+- В frequency controls добавлена компактная строка `Вектор / P / S / Flat` и bind/save/render обработчики.
+- EMA рассчитывается по extendedSeries (left warmup tail + видимое окно), затем clip к видимой части.
+- 2026-03-28: Перестроен UI блока «График разниц» — добавлен header с кнопкой collapse и отдельные зоны params/graph-area.
+- Управляющие контролы окна анализа (`Последние`, `Старт`, `плотность`, `синхр.`, `вся история`) перенесены из верхней части two-stat в diff params.
+- Добавлен отдельный diff collapse-state (`ui._diffParamsCollapsed`) — скрываются только параметры, график с max/min остаётся видимым.
+- Блок `>=2/<2` оставлен отдельной нижней секцией со статистикой (total/diff + бары) без изменения расчётов.
+- 2026-03-28: Блок `.mep-two-stat-wrap` перемещён внутрь `.mep-diff-wrap` между diff params и diff graph area.
+- Порядок diff-секции теперь: header -> params -> horizontal stats -> graph (max/svg/min).
+- Collapse «График разниц» по-прежнему скрывает только `.mep-diff-params`; stats и graph остаются видимыми.
+- Подправлены отступы/рамки для вложенного stats-блока, чтобы секция выглядела цельной без двойной внешней рамки.
+- 2026-03-28: В diff-секции строка `.mep-diff-lenrow` перенесена из params-блока вниз — между horizontal stats и graph-area.
+- Новый порядок: header -> params -> stats -> len(+/-) -> max/svg/min.
+- Collapse diff-секции не скрывает `.mep-diff-lenrow`, так как она теперь вне `.mep-diff-params`.
+- Подправлен отступ `.mep-diff-lenrow` (нижний 4px) для привязки к maxrow.
+- 2026-03-28: Diff collapse обновлён — теперь в collapsed скрываются `.mep-diff-params`, `.mep-two-stat-wrap` и `.mep-diff-lenrow`.
+- В видимом состоянии при collapse остаются только header и graph-area (max/svg/min).
+- Логика математики/EMA/updateTwoStats/render не изменялась.
