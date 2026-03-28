@@ -56,3 +56,7 @@
 - Порядок diff-секции теперь: header -> params -> horizontal stats -> graph (max/svg/min).
 - Collapse «График разниц» по-прежнему скрывает только `.mep-diff-params`; stats и graph остаются видимыми.
 - Подправлены отступы/рамки для вложенного stats-блока, чтобы секция выглядела цельной без двойной внешней рамки.
+- 2026-03-28: В diff-секции строка `.mep-diff-lenrow` перенесена из params-блока вниз — между horizontal stats и graph-area.
+- Новый порядок: header -> params -> stats -> len(+/-) -> max/svg/min.
+- Collapse diff-секции не скрывает `.mep-diff-lenrow`, так как она теперь вне `.mep-diff-params`.
+- Подправлен отступ `.mep-diff-lenrow` (нижний 4px) для привязки к maxrow.

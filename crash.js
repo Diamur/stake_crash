@@ -1129,7 +1129,7 @@
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
-				margin: 0;
+				margin: 0 0 4px 0;
 				background-color: #04325b73;
 				}
 
@@ -3955,7 +3955,6 @@
         <button class="mep-diff-collapse" type="button" title="Свернуть параметры">▲</button>
     </div>
     <div class="mep-diff-params">
-        <div class="mep-diff-lenrow"><span class="mep-diff-len">len: 0</span><span class="mep-diff-lvlwrap"><span class="mep-diff-lvl-sign">+</span><input class="mep-diff-lvl-pos" type="number" min="0" step="1" value="0"><span class="mep-diff-lvl-sign">-</span><input class="mep-diff-lvl-neg" type="number" min="0" step="1" value="0"></span></div>
         <div class="mep-diff-vector-row">
             <label class="mep-diff-vector-label"><input class="mep-diff-vector-enabled mep-diff-vector-check" type="checkbox" checked><span>Вектор</span></label>
             <label class="mep-diff-vector-label"><span>P</span><input class="mep-diff-vector-period" type="number" min="1" step="1" value="9"></label>
@@ -4009,6 +4008,7 @@
             </div>
         </div>
     </div>
+    <div class="mep-diff-lenrow"><span class="mep-diff-len">len: 0</span><span class="mep-diff-lvlwrap"><span class="mep-diff-lvl-sign">+</span><input class="mep-diff-lvl-pos" type="number" min="0" step="1" value="0"><span class="mep-diff-lvl-sign">-</span><input class="mep-diff-lvl-neg" type="number" min="0" step="1" value="0"></span></div>
     <div class="mep-diff-graph-area">
         <div class="mep-diff-maxrow"><span class="mep-diff-max">max: +0</span></div>
         <div class="mep-diff-box">
