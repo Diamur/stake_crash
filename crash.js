@@ -2459,17 +2459,28 @@
                 return out;
             },
 
-            _buildVectorSeries(values) {
+            _buildVectorSeries(values, opts) {
                 const src = Array.isArray(values) ? values : [];
+                const o = opts && typeof opts === "object" ? opts : {};
+                const clipFrom = Math.max(0, Math.floor(Number(o.clipFrom) || 0));
+                const clipLenRaw = Math.floor(Number(o.clipLen) || src.length);
+                const clipLen = Math.max(0, clipLenRaw);
                 const period = Math.max(1, Math.floor(Number(MEP.State.diffVectorPeriod) || 9));
                 const shift = Math.max(1, Math.floor(Number(MEP.State.diffVectorPhaseShift) || 3));
                 const mainEMA = this._calcEMA(src, period);
                 const shiftedEMA = new Array(mainEMA.length);
                 for (let i = 0; i < mainEMA.length; i++) {
                     const j = i - shift;
-                    shiftedEMA[i] = j >= 0 ? mainEMA[j] : mainEMA[0];
+                    shiftedEMA[i] = j >= 0 ? mainEMA[j] : null;
                 }
-                return { mainEMA, shiftedEMA };
+                const from = Math.min(clipFrom, mainEMA.length);
+                const to = Math.min(mainEMA.length, from + clipLen);
+                return {
+                    mainEMA: mainEMA.slice(from, to),
+                    shiftedEMA: shiftedEMA.slice(from, to),
+                    period,
+                    shift,
+                };
             },
 
             _updateVectorState(mainEMA, shiftedEMA) {
@@ -2479,7 +2490,8 @@
                     return;
                 }
                 const lastMain = Number(mainEMA[mainEMA.length - 1]) || 0;
-                const lastShift = Number(shiftedEMA[shiftedEMA.length - 1]) || 0;
+                const lastShiftRaw = shiftedEMA[shiftedEMA.length - 1];
+                const lastShift = Number.isFinite(Number(lastShiftRaw)) ? Number(lastShiftRaw) : lastMain;
                 const signal = lastMain - lastShift;
                 const eps = Math.max(0, Number(MEP.State.diffVectorFlatEpsilon) || 0);
                 MEP.State.diffVectorSignal = signal;
@@ -2537,7 +2549,18 @@
                     if (a > maxAbs) maxAbs = a;
                 }
 
-                const vectorData = this._buildVectorSeries(series);
+                const period = Math.max(1, Math.floor(Number(MEP.State.diffVectorPeriod) || 9));
+                const shift = Math.max(1, Math.floor(Number(MEP.State.diffVectorPhaseShift) || 3));
+                const warmup = Math.max(period * 3, shift + period + 10);
+                const extStart = Math.max(0, startIndex - warmup);
+                const extEnd = Math.min(fullSeries.length, startIndex + series.length);
+                const extendedSeries = fullSeries.slice(extStart, extEnd);
+                const clipFrom = Math.max(0, startIndex - extStart);
+
+                const vectorData = this._buildVectorSeries(extendedSeries, {
+                    clipFrom,
+                    clipLen: series.length,
+                });
                 this._updateVectorState(vectorData.mainEMA, vectorData.shiftedEMA);
 
                 // min/max/len labels for FULL selected series (не зависит от плотности)
@@ -2674,7 +2697,8 @@
                         return midY - (v / maxAbs) * (midY - 1);
                     };
                     const toPoints = (arr) => arr
-                        .map((v, i) => `${(i * (barW + gap)) + (barW / 2)},${toY(v)}`)
+                        .map((v, i) => Number.isFinite(Number(v)) ? `${(i * (barW + gap)) + (barW / 2)},${toY(v)}` : "")
+                        .filter(Boolean)
                         .join(" ");
 
                     const mainPts = toPoints(vectorData.mainEMA);

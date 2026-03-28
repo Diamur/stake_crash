@@ -40,3 +40,7 @@
 - В `.mep-diff-wrap` добавлены компактные контролы `Вектор / P / S / Flat` + bind/save/render без отдельного блока.
 - В `MEP.DiffGraph` добавлены helper'ы `_calcEMA`, `_buildVectorSeries`, `_updateVectorState`.
 - Вычисляется и сохраняется сигнал вектора: `MEP.State.diffVectorSignal` и состояние `up/down/flat`.
+- 2026-03-28: Исправлен EMA warmup для diff-вектора — расчёт теперь по extendedSeries (левый скрытый хвост + видимое окно).
+- Добавлен warmup: `max(period*3, phaseShift + period + 10)` для естественного входа EMA в левом крае.
+- shifted EMA больше не стартует фиктивным значением: до появления валидной точки хранится `null`.
+- После расчёта выполняется clip обратно к текущему видимому окну перед отрисовкой polyline.
