@@ -88,3 +88,8 @@
 - Initial seed теперь: если history пустая -> push current balance; если history = [0] -> overwrite первого элемента реальным balance.
 - При успешном initial seed сразу вызывается `MEP.BalanceGraph.render()` и выставляется stageKey `__initial__`.
 - Стартовая инициализация `BalanceCapture.start()` переведена на `ensureInitialBalance()` вместо обычного round-push.
+- 2026-03-28: Для жёсткого initial seed добавлен fallback timer в `MEP.BalanceCapture` (400ms, до 40 попыток).
+- Timer правит только первую точку: если history пустая -> push first; если history[0] == 0 -> overwrite history[0] реальным балансом.
+- Добавлены helper'ы `startInitialSeedFixTimer()`, `stopInitialSeedFixTimer()`, `tryFixInitialZero()` с debug-логами start/overwrite/stop/timeout.
+- Timer останавливается автоматически при валидной первой точке (`!= 0`) и не используется для обычного накопления history.
+- Round-based поток записи баланса по stageKey не менялся.

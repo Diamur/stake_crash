@@ -6640,6 +6640,8 @@
                 latestSeenBalance: null,
                 seededInitialBalance: false,
                 lastBalanceStageKey: "",
+                initialSeedTimer: null,
+                initialSeedAttempts: 0,
             },
 
             selectors: [
@@ -6716,6 +6718,65 @@
                 return true;
             },
 
+            stopInitialSeedFixTimer() {
+                if (this.state.initialSeedTimer) {
+                    clearInterval(this.state.initialSeedTimer);
+                    this.state.initialSeedTimer = null;
+                    console.debug("[MEP.BalanceCapture] initial seed timer stopped");
+                }
+            },
+
+            tryFixInitialZero() {
+                if (!Array.isArray(MEP.State.balanceHistory)) MEP.State.balanceHistory = [];
+                const arr = MEP.State.balanceHistory;
+                const first = arr.length ? Number(arr[0]) : null;
+                const firstValidNonZero = Number.isFinite(first) && first !== 0;
+                if (arr.length > 0 && firstValidNonZero) {
+                    this.stopInitialSeedFixTimer();
+                    return true;
+                }
+
+                this.updateLatestSeenBalance();
+                const cur = Number(this.state.latestSeenBalance);
+                if (Number.isFinite(cur) && cur > 0) {
+                    if (!arr.length) {
+                        arr.push(cur);
+                        this.state.seededInitialBalance = true;
+                        this.state.lastBalanceStageKey = "__initial__";
+                        console.debug("[MEP.BalanceCapture] initial seed fixed by push", { value: cur });
+                        MEP.BalanceGraph?.render?.();
+                    } else if (arr.length >= 1 && Number(arr[0]) === 0) {
+                        arr[0] = cur;
+                        this.state.seededInitialBalance = true;
+                        this.state.lastBalanceStageKey = "__initial__";
+                        console.debug("[MEP.BalanceCapture] initial zero overwritten", { value: cur });
+                        MEP.BalanceGraph?.render?.();
+                    }
+                }
+
+                const firstAfter = arr.length ? Number(arr[0]) : null;
+                if (arr.length > 0 && Number.isFinite(firstAfter) && firstAfter !== 0) {
+                    this.stopInitialSeedFixTimer();
+                    return true;
+                }
+                return false;
+            },
+
+            startInitialSeedFixTimer() {
+                this.stopInitialSeedFixTimer();
+                this.state.initialSeedAttempts = 0;
+                console.debug("[MEP.BalanceCapture] initial seed timer started");
+                this.state.initialSeedTimer = setInterval(() => {
+                    this.state.initialSeedAttempts += 1;
+                    const fixed = this.tryFixInitialZero();
+                    if (fixed) return;
+                    if (this.state.initialSeedAttempts >= 40) {
+                        this.stopInitialSeedFixTimer();
+                        console.warn("[MEP.BalanceCapture] initial seed timer timeout");
+                    }
+                }, 400);
+            },
+
             pushCurrentBalanceToHistory(stageKey, reason = "round") {
                 const n = Number(this.state.latestSeenBalance);
                 if (!Number.isFinite(n)) return false;
@@ -6742,6 +6803,7 @@
             },
 
             stopIfRunning() {
+                this.stopInitialSeedFixTimer();
                 if (this.state.observer) {
                     try {
                         this.state.observer.disconnect();
@@ -6777,6 +6839,7 @@
 
                 this.onMutationTick();
                 this.state.rebindTimer = setInterval(() => this.onMutationTick(), 700);
+                this.startInitialSeedFixTimer();
             },
         };
 
