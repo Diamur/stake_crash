@@ -60,3 +60,6 @@
 - Новый порядок: header -> params -> stats -> len(+/-) -> max/svg/min.
 - Collapse diff-секции не скрывает `.mep-diff-lenrow`, так как она теперь вне `.mep-diff-params`.
 - Подправлен отступ `.mep-diff-lenrow` (нижний 4px) для привязки к maxrow.
+- 2026-03-28: Diff collapse обновлён — теперь в collapsed скрываются `.mep-diff-params`, `.mep-two-stat-wrap` и `.mep-diff-lenrow`.
+- В видимом состоянии при collapse остаются только header и graph-area (max/svg/min).
+- Логика математики/EMA/updateTwoStats/render не изменялась.

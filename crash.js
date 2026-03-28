@@ -1097,7 +1097,9 @@
 				#${PANEL_ID} .mep-diff-collapse:hover{
 				background: rgba(255,255,255,0.14);
 				}
-				#${PANEL_ID} .mep-diff-wrap.mep-collapsed .mep-diff-params{
+				#${PANEL_ID} .mep-diff-wrap.mep-collapsed .mep-diff-params,
+				#${PANEL_ID} .mep-diff-wrap.mep-collapsed .mep-two-stat-wrap,
+				#${PANEL_ID} .mep-diff-wrap.mep-collapsed .mep-diff-lenrow{
 				display:none;
 				}
 				#${PANEL_ID} .mep-diff-params{
