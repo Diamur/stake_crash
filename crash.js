@@ -209,6 +209,120 @@
 (() => {
     try {
         const MEP = (window.MEP = window.MEP || {});
+
+        const buildStrategy1DefaultState = () => ({
+            id: "strategy1",
+            name: "Стратегия1",
+            enabled: false,
+            isExecuting: false,
+            executionLocked: false,
+            config: {
+                riskPercent: 0,
+                startStakeMode: "fixed",
+                startStakeValue: 0,
+                startStakeArrayText: "",
+                stakeGrowthMode: "factor",
+                stakeGrowthFactor: 1,
+                stakeGrowthArrayText: "",
+                targetMode: "fixed",
+                targetMultiplierValue: 2,
+                targetMultiplierArrayText: "",
+                maxLosses: 0,
+            },
+            charterCheck: {
+                allowed: true,
+                blockReason: "",
+                roundsHourAllowed: true,
+                rounds6hAllowed: true,
+                roundsDayAllowed: true,
+                winsHourAllowed: true,
+                wins6hAllowed: true,
+                winsDayAllowed: true,
+                lossesHourAllowed: true,
+                losses6hAllowed: true,
+                lossesDayAllowed: true,
+                breakAllowed: true,
+            },
+            cycle: {
+                cycleId: "",
+                isActive: false,
+                startBalance: 0,
+                currentBalance: 0,
+                cyclePnL: 0,
+                totalStakeSum: 0,
+                roundCount: 0,
+                lossCount: 0,
+                winCount: 0,
+                stepIndex: 0,
+                lastStake: 0,
+                lastTargetMultiplier: 0,
+                endReason: "",
+            },
+            counters: {
+                startBalanceBeforeCycle: 0,
+                currentBalanceAfterRound: 0,
+                lastStake: 0,
+                totalStakeSumInCycle: 0,
+                lossRoundCount: 0,
+                winRoundCount: 0,
+            },
+            timers: {
+                nowTs: 0,
+                cycleStartedAtTs: 0,
+                cycleFinishedAtTs: 0,
+                cycleDurationMs: 0,
+                lastRoundStartedAtTs: 0,
+                lastRoundFinishedAtTs: 0,
+                lastRoundResultAtTs: 0,
+                breakStartedAtTs: 0,
+                breakEndsAtTs: 0,
+                isBreakActive: false,
+                hourKey: "",
+                sixHourKey: "",
+                dayKey: "",
+            },
+            conditions: {
+                mode: "all",
+                rules: [],
+                lastResult: {
+                    canBet: false,
+                    shouldEndCycle: false,
+                    reason: "",
+                },
+            },
+            stakePlan: {
+                betAmount: 0,
+                targetMultiplier: 0,
+                allowedByRisk: false,
+                sourceStep: "",
+                calcMode: "",
+                ready: false,
+            },
+            runtime: {
+                lastSignal: "",
+                lastConditionResult: null,
+                lastStakePlanResult: null,
+                lastProcessedRoundId: "",
+                lastProcessedBalanceTs: 0,
+                waitingRoundResult: false,
+                lastCycleAction: "",
+            },
+            ui: {
+                sectionExpanded: true,
+                conditionsExpanded: true,
+                stakeBuilderExpanded: true,
+                cycleInfoExpanded: true,
+            },
+        });
+
+        const buildStrategy2DefaultState = () => ({
+            id: "strategy2",
+            name: "Стратегия2",
+            enabled: false,
+            isExecuting: false,
+            executionLocked: true,
+            runtime: {},
+        });
         MEP.ver = "0.1.5.12";
 
         // -------------------------
@@ -588,6 +702,8 @@
                     diffVectorShiftColor: MEP.State.diffVectorShiftColor,
                     diffVectorMainWidth: MEP.State.diffVectorMainWidth,
                     diffVectorShiftWidth: MEP.State.diffVectorShiftWidth,
+                    strategy1Enabled: !!MEP.State?.strategies?.strategy1?.enabled,
+                    strategy1Config: { ...(MEP.State?.strategies?.strategy1?.config || {}) },
                 };
 
                 const str = JSON.stringify(data);
@@ -668,6 +784,15 @@
                         if (typeof data.diffVectorShiftColor === "string") MEP.State.diffVectorShiftColor = data.diffVectorShiftColor;
                         if (typeof data.diffVectorMainWidth === "number") MEP.State.diffVectorMainWidth = data.diffVectorMainWidth;
                         if (typeof data.diffVectorShiftWidth === "number") MEP.State.diffVectorShiftWidth = data.diffVectorShiftWidth;
+                        if (MEP.State?.strategies?.strategy1) {
+                            if (typeof data.strategy1Enabled === "boolean") MEP.State.strategies.strategy1.enabled = data.strategy1Enabled;
+                            if (data.strategy1Config && typeof data.strategy1Config === "object") {
+                                MEP.State.strategies.strategy1.config = {
+                                    ...MEP.State.strategies.strategy1.config,
+                                    ...data.strategy1Config,
+                                };
+                            }
+                        }
 
                         return true;
                     }
@@ -737,6 +862,15 @@
                     if (typeof data.diffVectorShiftColor === "string") MEP.State.diffVectorShiftColor = data.diffVectorShiftColor;
                     if (typeof data.diffVectorMainWidth === "number") MEP.State.diffVectorMainWidth = data.diffVectorMainWidth;
                     if (typeof data.diffVectorShiftWidth === "number") MEP.State.diffVectorShiftWidth = data.diffVectorShiftWidth;
+                    if (MEP.State?.strategies?.strategy1) {
+                        if (typeof data.strategy1Enabled === "boolean") MEP.State.strategies.strategy1.enabled = data.strategy1Enabled;
+                        if (data.strategy1Config && typeof data.strategy1Config === "object") {
+                            MEP.State.strategies.strategy1.config = {
+                                ...MEP.State.strategies.strategy1.config,
+                                ...data.strategy1Config,
+                            };
+                        }
+                    }
 
                     return true;
                 } catch (e) {
@@ -1132,6 +1266,66 @@
 				opacity:0.9;
 				min-width:28px;
 				text-align:left;
+				}
+				#${PANEL_ID} .mep-strategy-section{
+				border:1px solid rgba(255,255,255,0.14);
+				background: rgba(255,255,255,0.02);
+				padding:8px;
+				margin-bottom:10px;
+				}
+				#${PANEL_ID} .mep-strategy-section-title{
+				font-size:12px;
+				font-weight:400;
+				opacity:0.95;
+				margin:0 0 6px 0;
+				}
+				#${PANEL_ID} .mep-strategy-form{
+				display:flex;
+				flex-direction:column;
+				gap:6px;
+				}
+				#${PANEL_ID} .mep-strategy-row{
+				display:grid;
+				grid-template-columns: 1fr 130px;
+				align-items:center;
+				gap:10px;
+				padding:4px 6px;
+				border:1px solid rgba(255,255,255,0.12);
+				background: rgba(255,255,255,0.03);
+				}
+				#${PANEL_ID} .mep-strategy-label{
+				font-size:12px;
+				font-weight:300;
+				opacity:0.95;
+				}
+				#${PANEL_ID} .mep-strategy-input{
+				width:100%;
+				height:26px;
+				border-radius:8px;
+				border:1px solid rgba(255,255,255,0.14);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding:0 8px;
+				box-sizing:border-box;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} .mep-strategy-status-grid{
+				display:grid;
+				grid-template-columns: 1fr 1fr;
+				gap:6px;
+				}
+				#${PANEL_ID} .mep-strategy-status-grid > div{
+				padding:4px 6px;
+				border:1px solid rgba(255,255,255,0.12);
+				background: rgba(255,255,255,0.03);
+				font-size:12px;
+				}
+				#${PANEL_ID} .mep-strategy-placeholder{
+				font-size:12px;
+				opacity:0.85;
+				line-height:1.35;
+				white-space:pre-line;
 				}
 				#${PANEL_ID} .mep-game-placeholder{
 				font-size:13px;
@@ -2181,6 +2375,11 @@
             diffVectorShiftWidth: typeof MEP.diffVectorShiftWidth === "number" ? MEP.diffVectorShiftWidth : 0.7,
             diffVectorState: typeof MEP.diffVectorState === "string" ? MEP.diffVectorState : "flat",
             diffVectorSignal: typeof MEP.diffVectorSignal === "number" ? MEP.diffVectorSignal : 0,
+            activeStrategyId: null,
+            strategies: {
+                strategy1: buildStrategy1DefaultState(),
+                strategy2: buildStrategy2DefaultState(),
+            },
 
             // История агрегатов ставок по раундам (oldest -> newest), runtime-only (SAFE MODE / MVP)
             roundPlayersCountHistory: Array.isArray(MEP.roundPlayersCountHistory) ? MEP.roundPlayersCountHistory : [],
@@ -4037,6 +4236,152 @@
         };
 
         // -------------------------
+        // Strategy1 module (skeleton)
+        // -------------------------
+        MEP.Strategy1 = {
+            getState() {
+                return MEP.State?.strategies?.strategy1 || null;
+            },
+
+            init() {
+                const st = this.getState();
+                if (!st) return;
+                this.buildStakePlan();
+                this.updateUiCounters();
+            },
+
+            resetCycle() {
+                const st = this.getState();
+                if (!st) return null;
+                const d = buildStrategy1DefaultState();
+                st.cycle = { ...d.cycle };
+                st.counters = { ...d.counters };
+                st.timers = { ...d.timers };
+                st.runtime.waitingRoundResult = false;
+                st.runtime.lastCycleAction = "resetCycle";
+                this.updateUiCounters();
+                return st.cycle;
+            },
+
+            startCycle() {
+                const st = this.getState();
+                if (!st) return false;
+                if (MEP.State.activeStrategyId && MEP.State.activeStrategyId !== st.id) return false;
+                st.isExecuting = true;
+                st.executionLocked = false;
+                MEP.State.activeStrategyId = st.id;
+                st.cycle.isActive = true;
+                st.cycle.cycleId = `s1_${Date.now()}`;
+                st.cycle.endReason = "";
+                st.timers.cycleStartedAtTs = Date.now();
+                st.runtime.lastCycleAction = "startCycle";
+                this.updateUiCounters();
+                return true;
+            },
+
+            finishCycle(reason = "") {
+                const st = this.getState();
+                if (!st) return null;
+                st.cycle.isActive = false;
+                st.isExecuting = false;
+                st.cycle.endReason = (reason || "manual").toString();
+                st.timers.cycleFinishedAtTs = Date.now();
+                st.timers.cycleDurationMs = Math.max(
+                    0,
+                    st.timers.cycleFinishedAtTs - (st.timers.cycleStartedAtTs || st.timers.cycleFinishedAtTs)
+                );
+                if (MEP.State.activeStrategyId === st.id) MEP.State.activeStrategyId = null;
+                st.runtime.lastCycleAction = "finishCycle";
+                this.updateUiCounters();
+                return st.cycle.endReason;
+            },
+
+            checkCharter() {
+                const st = this.getState();
+                if (!st) return { allowed: false, blockReason: "strategy1_not_found" };
+                st.charterCheck.allowed = true;
+                st.charterCheck.blockReason = "";
+                st.runtime.lastCycleAction = "checkCharter";
+                return { ...st.charterCheck };
+            },
+
+            checkConditions() {
+                const st = this.getState();
+                if (!st) return { canBet: false, shouldEndCycle: false, reason: "strategy1_not_found" };
+                const result = { ...st.conditions.lastResult };
+                st.runtime.lastConditionResult = result;
+                st.runtime.lastCycleAction = "checkConditions";
+                this.updateUiCounters();
+                return result;
+            },
+
+            buildStakePlan() {
+                const st = this.getState();
+                if (!st) return { betAmount: 0, targetMultiplier: 0, ready: false };
+                st.stakePlan.calcMode = `${st.config.startStakeMode}:${st.config.stakeGrowthMode}`;
+                st.stakePlan.targetMultiplier = Number(st.config.targetMultiplierValue) || 0;
+                st.stakePlan.betAmount = Number(st.config.startStakeValue) || 0;
+                st.stakePlan.ready = false;
+                st.runtime.lastStakePlanResult = { ...st.stakePlan };
+                st.runtime.lastCycleAction = "buildStakePlan";
+                this.updateUiCounters();
+                return { ...st.stakePlan };
+            },
+
+            updateUiCounters() {
+                const st = this.getState();
+                const ui = MEP.UI?.ui;
+                if (!st || !ui) return;
+
+                if (ui.strategy1ConditionsModeEl) ui.strategy1ConditionsModeEl.textContent = st.conditions.mode || "all";
+                if (ui.strategy1ConditionsCanBetEl)
+                    ui.strategy1ConditionsCanBetEl.textContent = String(!!st.conditions.lastResult?.canBet);
+                if (ui.strategy1ConditionsEndEl)
+                    ui.strategy1ConditionsEndEl.textContent = String(!!st.conditions.lastResult?.shouldEndCycle);
+                if (ui.strategy1ConditionsReasonEl)
+                    ui.strategy1ConditionsReasonEl.textContent = (st.conditions.lastResult?.reason || "—").toString();
+                if (ui.strategy1StakeCalcModeEl)
+                    ui.strategy1StakeCalcModeEl.textContent = (
+                        st.stakePlan.calcMode || `${st.config.startStakeMode}:${st.config.stakeGrowthMode}`
+                    ).toString();
+                if (ui.strategy1TargetCalcModeEl)
+                    ui.strategy1TargetCalcModeEl.textContent = (st.config.targetMode || "fixed").toString();
+                if (ui.strategy1LastBetAmountEl)
+                    ui.strategy1LastBetAmountEl.textContent = String(Number(st.stakePlan.betAmount) || 0);
+                if (ui.strategy1LastTargetMultiplierEl)
+                    ui.strategy1LastTargetMultiplierEl.textContent = String(Number(st.stakePlan.targetMultiplier) || 0);
+                if (ui.strategy1CycleStartBalanceEl)
+                    ui.strategy1CycleStartBalanceEl.textContent = String(
+                        Number(st.counters.startBalanceBeforeCycle) || Number(st.cycle.startBalance) || 0
+                    );
+                if (ui.strategy1CycleCurrentBalanceEl)
+                    ui.strategy1CycleCurrentBalanceEl.textContent = String(
+                        Number(st.counters.currentBalanceAfterRound) || Number(st.cycle.currentBalance) || 0
+                    );
+                if (ui.strategy1CycleLastStakeEl)
+                    ui.strategy1CycleLastStakeEl.textContent = String(
+                        Number(st.counters.lastStake) || Number(st.cycle.lastStake) || 0
+                    );
+                if (ui.strategy1CycleTotalStakeEl)
+                    ui.strategy1CycleTotalStakeEl.textContent = String(
+                        Number(st.counters.totalStakeSumInCycle) || Number(st.cycle.totalStakeSum) || 0
+                    );
+                if (ui.strategy1CycleLossCountEl)
+                    ui.strategy1CycleLossCountEl.textContent = String(
+                        Number(st.counters.lossRoundCount) || Number(st.cycle.lossCount) || 0
+                    );
+                if (ui.strategy1CycleWinCountEl)
+                    ui.strategy1CycleWinCountEl.textContent = String(
+                        Number(st.counters.winRoundCount) || Number(st.cycle.winCount) || 0
+                    );
+                if (ui.strategy1CycleStatusEl)
+                    ui.strategy1CycleStatusEl.textContent = st.cycle.isActive ? "active" : st.isExecuting ? "executing" : "idle";
+                if (ui.strategy1CycleEndReasonEl)
+                    ui.strategy1CycleEndReasonEl.textContent = (st.cycle.endReason || "—").toString();
+            },
+        };
+
+        // -------------------------
         // UI module
         // -------------------------
         MEP.UI = {
@@ -4676,7 +5021,55 @@
     </div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-strategy1">
-    <div class="mep-game-placeholder">Контент стратегии 1</div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Стратегия1 · Управление</div>
+        <div class="mep-strategy-row">
+            <span class="mep-strategy-label">Вкл / Откл стратегии</span>
+            <label class="mep-charter-label"><input class="mep-strategy1-enabled" type="checkbox" /> Включена</label>
+        </div>
+    </div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Входные параметры</div>
+        <div class="mep-strategy-form">
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Процент риска от баланса</span><input class="mep-strategy-input mep-strategy1-risk-percent" type="number" min="0" step="0.1" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Режим начальной ставки</span><select class="mep-strategy-input mep-strategy1-start-stake-mode"><option value="fixed">fixed</option><option value="array">array</option></select></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Начальная ставка</span><input class="mep-strategy-input mep-strategy1-start-stake-value" type="number" min="0" step="0.00000001" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Массив начальных ставок</span><input class="mep-strategy-input mep-strategy1-start-stake-array" type="text" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Режим приращения ставок</span><select class="mep-strategy-input mep-strategy1-stake-growth-mode"><option value="factor">factor</option><option value="array">array</option></select></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Коэффициент приращения ставок</span><input class="mep-strategy-input mep-strategy1-stake-growth-factor" type="number" min="0" step="0.01" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Массив приращения ставок</span><input class="mep-strategy-input mep-strategy1-stake-growth-array" type="text" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Режим целевого множителя</span><select class="mep-strategy-input mep-strategy1-target-mode"><option value="fixed">fixed</option><option value="array">array</option></select></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Целевой множитель игры</span><input class="mep-strategy-input mep-strategy1-target-multiplier" type="number" min="0" step="0.01" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Массив целевых множителей</span><input class="mep-strategy-input mep-strategy1-target-multiplier-array" type="text" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Макс. количество проигрышей</span><input class="mep-strategy-input mep-strategy1-max-losses" type="number" min="0" step="1" /></div>
+        </div>
+    </div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Конструктор условий</div>
+        <div class="mep-strategy-placeholder">Проверка по Уставу + доп. проверки сущностей.
+Режим: <span class="mep-strategy1-conditions-mode">all</span>
+Rules: placeholder (будущий конструктор)
+LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, shouldEndCycle=<span class="mep-strategy1-conditions-end">false</span>, reason=<span class="mep-strategy1-conditions-reason">—</span></div>
+    </div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Конструктор ставок</div>
+        <div class="mep-strategy-placeholder">Режим ставки: <span class="mep-strategy1-stake-calc-mode">—</span>
+Режим target: <span class="mep-strategy1-target-calc-mode">—</span>
+Последний расчёт: betAmount=<span class="mep-strategy1-last-bet-amount">0</span>, targetMultiplier=<span class="mep-strategy1-last-target-multiplier">0</span></div>
+    </div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Цикл стратегии</div>
+        <div class="mep-strategy-status-grid">
+            <div>Стартовый баланс: <span class="mep-strategy1-cycle-start-balance">0</span></div>
+            <div>Текущий баланс: <span class="mep-strategy1-cycle-current-balance">0</span></div>
+            <div>Последняя ставка: <span class="mep-strategy1-cycle-last-stake">0</span></div>
+            <div>Сумма ставок цикла: <span class="mep-strategy1-cycle-total-stake">0</span></div>
+            <div>Проигрышных раундов: <span class="mep-strategy1-cycle-loss-count">0</span></div>
+            <div>Выигрышных раундов: <span class="mep-strategy1-cycle-win-count">0</span></div>
+            <div>Статус цикла: <span class="mep-strategy1-cycle-status">idle</span></div>
+            <div>Причина завершения: <span class="mep-strategy1-cycle-end-reason">—</span></div>
+        </div>
+    </div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-strategy2">
     <div class="mep-game-placeholder">Контент стратегии 2</div>
@@ -4717,6 +5110,34 @@
                     charterLossesPer6HoursInput: panel.querySelector("input.mep-charter-losses-6h"),
                     charterLossesPerDayInput: panel.querySelector("input.mep-charter-losses-day"),
                     charterBreakAfter3LossesMinInput: panel.querySelector("input.mep-charter-break-3loss-min"),
+                    strategy1EnabledInput: panel.querySelector("input.mep-strategy1-enabled"),
+                    strategy1RiskPercentInput: panel.querySelector("input.mep-strategy1-risk-percent"),
+                    strategy1StartStakeModeInput: panel.querySelector("select.mep-strategy1-start-stake-mode"),
+                    strategy1StartStakeValueInput: panel.querySelector("input.mep-strategy1-start-stake-value"),
+                    strategy1StartStakeArrayInput: panel.querySelector("input.mep-strategy1-start-stake-array"),
+                    strategy1StakeGrowthModeInput: panel.querySelector("select.mep-strategy1-stake-growth-mode"),
+                    strategy1StakeGrowthFactorInput: panel.querySelector("input.mep-strategy1-stake-growth-factor"),
+                    strategy1StakeGrowthArrayInput: panel.querySelector("input.mep-strategy1-stake-growth-array"),
+                    strategy1TargetModeInput: panel.querySelector("select.mep-strategy1-target-mode"),
+                    strategy1TargetMultiplierInput: panel.querySelector("input.mep-strategy1-target-multiplier"),
+                    strategy1TargetMultiplierArrayInput: panel.querySelector("input.mep-strategy1-target-multiplier-array"),
+                    strategy1MaxLossesInput: panel.querySelector("input.mep-strategy1-max-losses"),
+                    strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
+                    strategy1ConditionsCanBetEl: panel.querySelector(".mep-strategy1-conditions-canbet"),
+                    strategy1ConditionsEndEl: panel.querySelector(".mep-strategy1-conditions-end"),
+                    strategy1ConditionsReasonEl: panel.querySelector(".mep-strategy1-conditions-reason"),
+                    strategy1StakeCalcModeEl: panel.querySelector(".mep-strategy1-stake-calc-mode"),
+                    strategy1TargetCalcModeEl: panel.querySelector(".mep-strategy1-target-calc-mode"),
+                    strategy1LastBetAmountEl: panel.querySelector(".mep-strategy1-last-bet-amount"),
+                    strategy1LastTargetMultiplierEl: panel.querySelector(".mep-strategy1-last-target-multiplier"),
+                    strategy1CycleStartBalanceEl: panel.querySelector(".mep-strategy1-cycle-start-balance"),
+                    strategy1CycleCurrentBalanceEl: panel.querySelector(".mep-strategy1-cycle-current-balance"),
+                    strategy1CycleLastStakeEl: panel.querySelector(".mep-strategy1-cycle-last-stake"),
+                    strategy1CycleTotalStakeEl: panel.querySelector(".mep-strategy1-cycle-total-stake"),
+                    strategy1CycleLossCountEl: panel.querySelector(".mep-strategy1-cycle-loss-count"),
+                    strategy1CycleWinCountEl: panel.querySelector(".mep-strategy1-cycle-win-count"),
+                    strategy1CycleStatusEl: panel.querySelector(".mep-strategy1-cycle-status"),
+                    strategy1CycleEndReasonEl: panel.querySelector(".mep-strategy1-cycle-end-reason"),
                     textarea: panel.querySelector("textarea.mep-stats"),
                     copyBtn: panel.querySelector("button.mep-copy"),
                     sendDbBtn: panel.querySelector("button.mep-send-db"),
@@ -4891,6 +5312,82 @@
                 bindCharterInput(ui.charterLossesPer6HoursInput, "charterLossesPer6Hours", 1);
                 bindCharterInput(ui.charterLossesPerDayInput, "charterLossesPerDay", 1);
                 bindCharterInput(ui.charterBreakAfter3LossesMinInput, "charterBreakAfter3LossesMin", 1);
+
+                const s1 = MEP.State?.strategies?.strategy1;
+                if (s1) {
+                    const setNonNegNumber = (inp, key, step = 0.1) => {
+                        if (!inp) return;
+                        const n0 = Math.max(0, Number(s1.config[key]) || 0);
+                        s1.config[key] = n0;
+                        inp.value = String(n0);
+                        inp.addEventListener("input", () => {
+                            let v = Number(inp.value);
+                            if (!Number.isFinite(v) || v < 0) v = 0;
+                            if (step === 1) v = Math.floor(v);
+                            s1.config[key] = v;
+                            inp.value = String(v);
+                            MEP.Storage.save();
+                            MEP.Strategy1?.buildStakePlan?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    };
+                    const setModeSelect = (inp, key, allowed) => {
+                        if (!inp) return;
+                        const cur = allowed.includes(s1.config[key]) ? s1.config[key] : allowed[0];
+                        s1.config[key] = cur;
+                        inp.value = cur;
+                        inp.addEventListener("change", () => {
+                            const val = allowed.includes(inp.value) ? inp.value : allowed[0];
+                            s1.config[key] = val;
+                            inp.value = val;
+                            MEP.Storage.save();
+                            MEP.Strategy1?.buildStakePlan?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    };
+                    const setTextInput = (inp, key) => {
+                        if (!inp) return;
+                        inp.value = (s1.config[key] || "").toString();
+                        inp.addEventListener("input", () => {
+                            s1.config[key] = (inp.value || "").toString();
+                            MEP.Storage.save();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    };
+
+                    if (ui.strategy1EnabledInput) {
+                        ui.strategy1EnabledInput.checked = !!s1.enabled;
+                        ui.strategy1EnabledInput.addEventListener("change", () => {
+                            const next = !!ui.strategy1EnabledInput.checked;
+                            const active = MEP.State.activeStrategyId;
+                            if (next && active && active !== "strategy1") {
+                                ui.strategy1EnabledInput.checked = false;
+                                return;
+                            }
+                            s1.enabled = next;
+                            if (!next && active === "strategy1" && !s1.isExecuting) {
+                                MEP.State.activeStrategyId = null;
+                            }
+                            MEP.Storage.save();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+
+                    setNonNegNumber(ui.strategy1RiskPercentInput, "riskPercent", 0.1);
+                    setModeSelect(ui.strategy1StartStakeModeInput, "startStakeMode", ["fixed", "array"]);
+                    setNonNegNumber(ui.strategy1StartStakeValueInput, "startStakeValue", 0.00000001);
+                    setTextInput(ui.strategy1StartStakeArrayInput, "startStakeArrayText");
+                    setModeSelect(ui.strategy1StakeGrowthModeInput, "stakeGrowthMode", ["factor", "array"]);
+                    setNonNegNumber(ui.strategy1StakeGrowthFactorInput, "stakeGrowthFactor", 0.01);
+                    setTextInput(ui.strategy1StakeGrowthArrayInput, "stakeGrowthArrayText");
+                    setModeSelect(ui.strategy1TargetModeInput, "targetMode", ["fixed", "array"]);
+                    setNonNegNumber(ui.strategy1TargetMultiplierInput, "targetMultiplierValue", 0.01);
+                    setTextInput(ui.strategy1TargetMultiplierArrayInput, "targetMultiplierArrayText");
+                    setNonNegNumber(ui.strategy1MaxLossesInput, "maxLosses", 1);
+
+                    MEP.Strategy1?.buildStakePlan?.();
+                    MEP.Strategy1?.updateUiCounters?.();
+                }
 
                 // -------------------------
                 // Graph controls
@@ -6016,6 +6513,7 @@
                 MEP.StakeGraph?.render?.();
                 MEP.BalanceGraph?.render?.();
                 MEP.Graph?.render?.();
+                MEP.Strategy1?.updateUiCounters?.();
             },
 
             async copyOldestFirst() {
@@ -7034,6 +7532,7 @@
 
                 //загрузка настроек
                 MEP.Settings.load();
+                MEP.Strategy1?.init?.();
 
                 // определяем текущую игру и проверяем реестр поддерживаемых
                 MEP.State.gameSlug = MEP.Utils.getGameSlug();
@@ -7069,6 +7568,7 @@
 
                 // панель всегда (чтобы показать "в разработке")
                 MEP.UI.mount();
+                MEP.Strategy1?.init?.();
 
                 // если игра не поддерживается — показываем заглушку и выходим (никакой логики/трекера)
                 if (!MEP.State.gameSupported) {
