@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.12  ====
+// === crash.js 0.1.5.19  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -209,7 +209,133 @@
 (() => {
     try {
         const MEP = (window.MEP = window.MEP || {});
-        MEP.ver = "0.1.5.12";
+
+        const buildStrategy1DefaultState = () => ({
+            id: "strategy1",
+            name: "Стратегия1",
+            enabled: false,
+            isExecuting: false,
+            executionLocked: false,
+            config: {
+                riskPercent: 0,
+                startStakeMode: "fixed",
+                startStakeValue: 0,
+                startStakeArrayText: "",
+                stakeGrowthMode: "factor",
+                stakeGrowthFactor: 1,
+                stakeGrowthArrayText: "",
+                targetMode: "fixed",
+                targetMultiplierValue: 2,
+                targetMultiplierArrayText: "",
+                maxLosses: 0,
+            },
+            charterCheck: {
+                allowed: true,
+                blockReason: "",
+                roundsHourAllowed: true,
+                rounds6hAllowed: true,
+                roundsDayAllowed: true,
+                winsHourAllowed: true,
+                wins6hAllowed: true,
+                winsDayAllowed: true,
+                lossesHourAllowed: true,
+                losses6hAllowed: true,
+                lossesDayAllowed: true,
+                breakAllowed: true,
+            },
+            cycle: {
+                cycleId: "",
+                isActive: false,
+                startBalance: 0,
+                currentBalance: 0,
+                cyclePnL: 0,
+                totalStakeSum: 0,
+                roundCount: 0,
+                lossCount: 0,
+                winCount: 0,
+                stepIndex: 0,
+                lastStake: 0,
+                lastTargetMultiplier: 0,
+                endReason: "",
+            },
+            counters: {
+                startBalanceBeforeCycle: 0,
+                currentBalanceAfterRound: 0,
+                lastStake: 0,
+                totalStakeSumInCycle: 0,
+                lossRoundCount: 0,
+                winRoundCount: 0,
+            },
+            timers: {
+                nowTs: 0,
+                cycleStartedAtTs: 0,
+                cycleFinishedAtTs: 0,
+                cycleDurationMs: 0,
+                lastRoundStartedAtTs: 0,
+                lastRoundFinishedAtTs: 0,
+                lastRoundResultAtTs: 0,
+                breakStartedAtTs: 0,
+                breakEndsAtTs: 0,
+                isBreakActive: false,
+                hourKey: "",
+                sixHourKey: "",
+                dayKey: "",
+            },
+            conditions: {
+                mode: "all",
+                rules: [],
+                lastResult: {
+                    canBet: false,
+                    shouldEndCycle: false,
+                    reason: "",
+                },
+            },
+            stakePlan: {
+                betAmount: 0,
+                targetMultiplier: 0,
+                allowedByRisk: false,
+                sourceStep: "",
+                calcMode: "",
+                ready: false,
+            },
+            runtime: {
+                lastSignal: "",
+                lastConditionResult: null,
+                lastStakePlanResult: null,
+                lastProcessedRoundId: "",
+                lastProcessedBalanceTs: 0,
+                waitingRoundResult: false,
+                lastCycleAction: "",
+                eventLog: [],
+                lastBranchInfo: null,
+                lastFirstBranchResult: null,
+                decisionState: {
+                    canMakeBet: false,
+                    shouldEndCycle: false,
+                    branch: "",
+                    waitReason: "",
+                    statusCode: "idle",
+                    statusText: "Стратегия в ожидании",
+                    lastDecisionAtTs: 0,
+                },
+            },
+            ui: {
+                sectionExpanded: true,
+                conditionsExpanded: true,
+                stakeBuilderExpanded: true,
+                cycleInfoExpanded: true,
+            },
+        });
+
+        const buildStrategy2DefaultState = () => ({
+            id: "strategy2",
+            name: "Стратегия2",
+            enabled: false,
+            isExecuting: false,
+            executionLocked: true,
+            runtime: {},
+        });
+        MEP.ver = "0.1.5.19";
 
         // -------------------------
         // Settings module
@@ -541,6 +667,22 @@
                     stakeGraphBetScale: MEP.State.stakeGraphBetScale,
                     stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
                     stakeGraphShowBet: MEP.State.stakeGraphShowBet,
+                    stakePlayersVectorEnabled: MEP.State.stakePlayersVectorEnabled,
+                    stakePlayersVectorPeriod: MEP.State.stakePlayersVectorPeriod,
+                    stakePlayersVectorPhaseShift: MEP.State.stakePlayersVectorPhaseShift,
+                    stakePlayersVectorFlatEpsilon: MEP.State.stakePlayersVectorFlatEpsilon,
+                    stakePlayersVectorMainColor: MEP.State.stakePlayersVectorMainColor,
+                    stakePlayersVectorShiftColor: MEP.State.stakePlayersVectorShiftColor,
+                    stakePlayersVectorMainWidth: MEP.State.stakePlayersVectorMainWidth,
+                    stakePlayersVectorShiftWidth: MEP.State.stakePlayersVectorShiftWidth,
+                    stakeBetVectorEnabled: MEP.State.stakeBetVectorEnabled,
+                    stakeBetVectorPeriod: MEP.State.stakeBetVectorPeriod,
+                    stakeBetVectorPhaseShift: MEP.State.stakeBetVectorPhaseShift,
+                    stakeBetVectorFlatEpsilon: MEP.State.stakeBetVectorFlatEpsilon,
+                    stakeBetVectorMainColor: MEP.State.stakeBetVectorMainColor,
+                    stakeBetVectorShiftColor: MEP.State.stakeBetVectorShiftColor,
+                    stakeBetVectorMainWidth: MEP.State.stakeBetVectorMainWidth,
+                    stakeBetVectorShiftWidth: MEP.State.stakeBetVectorShiftWidth,
                     balanceGraphDensity: MEP.State.balanceGraphDensity,
                     balanceGraphDensitySync: MEP.State.balanceGraphDensitySync,
                     balanceGraphAutoHeight: MEP.State.balanceGraphAutoHeight,
@@ -588,6 +730,8 @@
                     diffVectorShiftColor: MEP.State.diffVectorShiftColor,
                     diffVectorMainWidth: MEP.State.diffVectorMainWidth,
                     diffVectorShiftWidth: MEP.State.diffVectorShiftWidth,
+                    strategy1Enabled: !!MEP.State?.strategies?.strategy1?.enabled,
+                    strategy1Config: { ...(MEP.State?.strategies?.strategy1?.config || {}) },
                 };
 
                 const str = JSON.stringify(data);
@@ -621,6 +765,22 @@
                         if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                         if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                         if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
+                        if (typeof data.stakePlayersVectorEnabled === "boolean") MEP.State.stakePlayersVectorEnabled = data.stakePlayersVectorEnabled;
+                        if (typeof data.stakePlayersVectorPeriod === "number") MEP.State.stakePlayersVectorPeriod = data.stakePlayersVectorPeriod;
+                        if (typeof data.stakePlayersVectorPhaseShift === "number") MEP.State.stakePlayersVectorPhaseShift = data.stakePlayersVectorPhaseShift;
+                        if (typeof data.stakePlayersVectorFlatEpsilon === "number") MEP.State.stakePlayersVectorFlatEpsilon = data.stakePlayersVectorFlatEpsilon;
+                        if (typeof data.stakePlayersVectorMainColor === "string") MEP.State.stakePlayersVectorMainColor = data.stakePlayersVectorMainColor;
+                        if (typeof data.stakePlayersVectorShiftColor === "string") MEP.State.stakePlayersVectorShiftColor = data.stakePlayersVectorShiftColor;
+                        if (typeof data.stakePlayersVectorMainWidth === "number") MEP.State.stakePlayersVectorMainWidth = data.stakePlayersVectorMainWidth;
+                        if (typeof data.stakePlayersVectorShiftWidth === "number") MEP.State.stakePlayersVectorShiftWidth = data.stakePlayersVectorShiftWidth;
+                        if (typeof data.stakeBetVectorEnabled === "boolean") MEP.State.stakeBetVectorEnabled = data.stakeBetVectorEnabled;
+                        if (typeof data.stakeBetVectorPeriod === "number") MEP.State.stakeBetVectorPeriod = data.stakeBetVectorPeriod;
+                        if (typeof data.stakeBetVectorPhaseShift === "number") MEP.State.stakeBetVectorPhaseShift = data.stakeBetVectorPhaseShift;
+                        if (typeof data.stakeBetVectorFlatEpsilon === "number") MEP.State.stakeBetVectorFlatEpsilon = data.stakeBetVectorFlatEpsilon;
+                        if (typeof data.stakeBetVectorMainColor === "string") MEP.State.stakeBetVectorMainColor = data.stakeBetVectorMainColor;
+                        if (typeof data.stakeBetVectorShiftColor === "string") MEP.State.stakeBetVectorShiftColor = data.stakeBetVectorShiftColor;
+                        if (typeof data.stakeBetVectorMainWidth === "number") MEP.State.stakeBetVectorMainWidth = data.stakeBetVectorMainWidth;
+                        if (typeof data.stakeBetVectorShiftWidth === "number") MEP.State.stakeBetVectorShiftWidth = data.stakeBetVectorShiftWidth;
                         if (typeof data.balanceGraphDensity === "number") MEP.State.balanceGraphDensity = data.balanceGraphDensity;
                         if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
                         if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
@@ -668,6 +828,15 @@
                         if (typeof data.diffVectorShiftColor === "string") MEP.State.diffVectorShiftColor = data.diffVectorShiftColor;
                         if (typeof data.diffVectorMainWidth === "number") MEP.State.diffVectorMainWidth = data.diffVectorMainWidth;
                         if (typeof data.diffVectorShiftWidth === "number") MEP.State.diffVectorShiftWidth = data.diffVectorShiftWidth;
+                        if (MEP.State?.strategies?.strategy1) {
+                            if (typeof data.strategy1Enabled === "boolean") MEP.State.strategies.strategy1.enabled = data.strategy1Enabled;
+                            if (data.strategy1Config && typeof data.strategy1Config === "object") {
+                                MEP.State.strategies.strategy1.config = {
+                                    ...MEP.State.strategies.strategy1.config,
+                                    ...data.strategy1Config,
+                                };
+                            }
+                        }
 
                         return true;
                     }
@@ -690,6 +859,22 @@
                     if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                     if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                     if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
+                    if (typeof data.stakePlayersVectorEnabled === "boolean") MEP.State.stakePlayersVectorEnabled = data.stakePlayersVectorEnabled;
+                    if (typeof data.stakePlayersVectorPeriod === "number") MEP.State.stakePlayersVectorPeriod = data.stakePlayersVectorPeriod;
+                    if (typeof data.stakePlayersVectorPhaseShift === "number") MEP.State.stakePlayersVectorPhaseShift = data.stakePlayersVectorPhaseShift;
+                    if (typeof data.stakePlayersVectorFlatEpsilon === "number") MEP.State.stakePlayersVectorFlatEpsilon = data.stakePlayersVectorFlatEpsilon;
+                    if (typeof data.stakePlayersVectorMainColor === "string") MEP.State.stakePlayersVectorMainColor = data.stakePlayersVectorMainColor;
+                    if (typeof data.stakePlayersVectorShiftColor === "string") MEP.State.stakePlayersVectorShiftColor = data.stakePlayersVectorShiftColor;
+                    if (typeof data.stakePlayersVectorMainWidth === "number") MEP.State.stakePlayersVectorMainWidth = data.stakePlayersVectorMainWidth;
+                    if (typeof data.stakePlayersVectorShiftWidth === "number") MEP.State.stakePlayersVectorShiftWidth = data.stakePlayersVectorShiftWidth;
+                    if (typeof data.stakeBetVectorEnabled === "boolean") MEP.State.stakeBetVectorEnabled = data.stakeBetVectorEnabled;
+                    if (typeof data.stakeBetVectorPeriod === "number") MEP.State.stakeBetVectorPeriod = data.stakeBetVectorPeriod;
+                    if (typeof data.stakeBetVectorPhaseShift === "number") MEP.State.stakeBetVectorPhaseShift = data.stakeBetVectorPhaseShift;
+                    if (typeof data.stakeBetVectorFlatEpsilon === "number") MEP.State.stakeBetVectorFlatEpsilon = data.stakeBetVectorFlatEpsilon;
+                    if (typeof data.stakeBetVectorMainColor === "string") MEP.State.stakeBetVectorMainColor = data.stakeBetVectorMainColor;
+                    if (typeof data.stakeBetVectorShiftColor === "string") MEP.State.stakeBetVectorShiftColor = data.stakeBetVectorShiftColor;
+                    if (typeof data.stakeBetVectorMainWidth === "number") MEP.State.stakeBetVectorMainWidth = data.stakeBetVectorMainWidth;
+                    if (typeof data.stakeBetVectorShiftWidth === "number") MEP.State.stakeBetVectorShiftWidth = data.stakeBetVectorShiftWidth;
                     if (typeof data.balanceGraphDensity === "number") MEP.State.balanceGraphDensity = data.balanceGraphDensity;
                     if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
                     if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
@@ -737,6 +922,15 @@
                     if (typeof data.diffVectorShiftColor === "string") MEP.State.diffVectorShiftColor = data.diffVectorShiftColor;
                     if (typeof data.diffVectorMainWidth === "number") MEP.State.diffVectorMainWidth = data.diffVectorMainWidth;
                     if (typeof data.diffVectorShiftWidth === "number") MEP.State.diffVectorShiftWidth = data.diffVectorShiftWidth;
+                    if (MEP.State?.strategies?.strategy1) {
+                        if (typeof data.strategy1Enabled === "boolean") MEP.State.strategies.strategy1.enabled = data.strategy1Enabled;
+                        if (data.strategy1Config && typeof data.strategy1Config === "object") {
+                            MEP.State.strategies.strategy1.config = {
+                                ...MEP.State.strategies.strategy1.config,
+                                ...data.strategy1Config,
+                            };
+                        }
+                    }
 
                     return true;
                 } catch (e) {
@@ -1132,6 +1326,95 @@
 				opacity:0.9;
 				min-width:28px;
 				text-align:left;
+				}
+				#${PANEL_ID} .mep-strategy-section{
+				border:1px solid rgba(255,255,255,0.14);
+				background: rgba(255,255,255,0.02);
+				padding:8px;
+				margin-bottom:10px;
+				}
+				#${PANEL_ID} .mep-strategy-section-title{
+				font-size:12px;
+				font-weight:400;
+				opacity:0.95;
+				margin:0 0 6px 0;
+				}
+				#${PANEL_ID} .mep-strategy-form{
+				display:flex;
+				flex-direction:column;
+				gap:6px;
+				}
+				#${PANEL_ID} .mep-strategy-row{
+				display:grid;
+				grid-template-columns: 1fr 130px;
+				align-items:center;
+				gap:10px;
+				padding:4px 6px;
+				border:1px solid rgba(255,255,255,0.12);
+				background: rgba(255,255,255,0.03);
+				}
+				#${PANEL_ID} .mep-actions-row {
+				display: flex;
+				gap: 8px;
+				margin-top: 8px;
+				flex-wrap: wrap;
+				}
+				#${PANEL_ID} .mep-strategy-label{
+				font-size:12px;
+				font-weight:300;
+				opacity:0.95;
+				}
+				#${PANEL_ID} .mep-strategy-input{
+				width:100%;
+				height:26px;
+				border-radius:8px;
+				border:1px solid rgba(255,255,255,0.14);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding:0 8px;
+				box-sizing:border-box;
+				font-size:12px;
+				outline:none;
+				}
+				#${PANEL_ID} .mep-strategy-status-grid{
+				display:grid;
+				grid-template-columns: 1fr 1fr;
+				gap:6px;
+				}
+				#${PANEL_ID} .mep-strategy-status-grid > div{
+				padding:4px 6px;
+				border:1px solid rgba(255,255,255,0.12);
+				background: rgba(255,255,255,0.03);
+				font-size:12px;
+				}
+				#${PANEL_ID} .mep-strategy-placeholder{
+				font-size:12px;
+				opacity:0.85;
+				line-height:1.35;
+				white-space:pre-line;
+				}
+				#${PANEL_ID} .mep-strategy-state-grid{
+				display:flex;
+				flex-direction:column;
+				gap:6px;
+				}
+				#${PANEL_ID} .mep-strategy-state-row{
+				display:grid;
+				grid-template-columns: 1fr 1fr;
+				align-items:center;
+				gap:10px;
+				padding:4px 6px;
+				border:1px solid rgba(255,255,255,0.12);
+				background: rgba(255,255,255,0.03);
+				}
+				#${PANEL_ID} .mep-strategy-state-label{
+				font-size:12px;
+				opacity:0.86;
+				}
+				#${PANEL_ID} .mep-strategy-state-value{
+				font-size:12px;
+				font-weight:400;
+				text-align:right;
 				}
 				#${PANEL_ID} .mep-game-placeholder{
 				font-size:13px;
@@ -1788,6 +2071,29 @@
 				flex-wrap: wrap;
 				justify-content: flex-end;
 				}
+				#${PANEL_ID} .mep-stake-vector-row{
+				display:inline-flex;
+				align-items:center;
+				gap:8px;
+				flex-wrap:wrap;
+				font-size:12px;
+				opacity:0.95;
+				}
+				#${PANEL_ID} .mep-stake-vector-label{
+				display:inline-flex;
+				align-items:center;
+				gap:5px;
+				}
+				#${PANEL_ID} .mep-stake-vector-label input[type="number"]{
+				width:50px;
+				border-radius:8px;
+				border:1px solid rgba(255,255,255,0.10);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding:0 8px;
+				font-size:12px;
+				outline:none;
+				}
 				#${PANEL_ID} .mep-stake-density-label{
 				display:inline-flex;
 				align-items:center;
@@ -2104,6 +2410,26 @@
             stakeGraphBetScale: typeof MEP.stakeGraphBetScale === "number" ? MEP.stakeGraphBetScale : 10,
             stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
             stakeGraphShowBet: ("stakeGraphShowBet" in MEP) ? !!MEP.stakeGraphShowBet : true,
+            stakePlayersVectorEnabled: ("stakePlayersVectorEnabled" in MEP) ? !!MEP.stakePlayersVectorEnabled : true,
+            stakePlayersVectorPeriod: typeof MEP.stakePlayersVectorPeriod === "number" ? MEP.stakePlayersVectorPeriod : 9,
+            stakePlayersVectorPhaseShift: typeof MEP.stakePlayersVectorPhaseShift === "number" ? MEP.stakePlayersVectorPhaseShift : 3,
+            stakePlayersVectorFlatEpsilon: typeof MEP.stakePlayersVectorFlatEpsilon === "number" ? MEP.stakePlayersVectorFlatEpsilon : 0.15,
+            stakePlayersVectorMainColor: typeof MEP.stakePlayersVectorMainColor === "string" ? MEP.stakePlayersVectorMainColor : "rgba(255,255,255,0.96)",
+            stakePlayersVectorShiftColor: typeof MEP.stakePlayersVectorShiftColor === "string" ? MEP.stakePlayersVectorShiftColor : "rgba(80,210,255,0.92)",
+            stakePlayersVectorMainWidth: typeof MEP.stakePlayersVectorMainWidth === "number" ? MEP.stakePlayersVectorMainWidth : 0.9,
+            stakePlayersVectorShiftWidth: typeof MEP.stakePlayersVectorShiftWidth === "number" ? MEP.stakePlayersVectorShiftWidth : 0.7,
+            stakePlayersVectorState: typeof MEP.stakePlayersVectorState === "string" ? MEP.stakePlayersVectorState : "flat",
+            stakePlayersVectorSignal: typeof MEP.stakePlayersVectorSignal === "number" ? MEP.stakePlayersVectorSignal : 0,
+            stakeBetVectorEnabled: ("stakeBetVectorEnabled" in MEP) ? !!MEP.stakeBetVectorEnabled : true,
+            stakeBetVectorPeriod: typeof MEP.stakeBetVectorPeriod === "number" ? MEP.stakeBetVectorPeriod : 9,
+            stakeBetVectorPhaseShift: typeof MEP.stakeBetVectorPhaseShift === "number" ? MEP.stakeBetVectorPhaseShift : 3,
+            stakeBetVectorFlatEpsilon: typeof MEP.stakeBetVectorFlatEpsilon === "number" ? MEP.stakeBetVectorFlatEpsilon : 0.15,
+            stakeBetVectorMainColor: typeof MEP.stakeBetVectorMainColor === "string" ? MEP.stakeBetVectorMainColor : "rgba(245,245,245,0.82)",
+            stakeBetVectorShiftColor: typeof MEP.stakeBetVectorShiftColor === "string" ? MEP.stakeBetVectorShiftColor : "rgba(68,192,255,0.78)",
+            stakeBetVectorMainWidth: typeof MEP.stakeBetVectorMainWidth === "number" ? MEP.stakeBetVectorMainWidth : 0.8,
+            stakeBetVectorShiftWidth: typeof MEP.stakeBetVectorShiftWidth === "number" ? MEP.stakeBetVectorShiftWidth : 0.65,
+            stakeBetVectorState: typeof MEP.stakeBetVectorState === "string" ? MEP.stakeBetVectorState : "flat",
+            stakeBetVectorSignal: typeof MEP.stakeBetVectorSignal === "number" ? MEP.stakeBetVectorSignal : 0,
             balanceGraphDensity: typeof MEP.balanceGraphDensity === "number" ? MEP.balanceGraphDensity : 81,
             balanceGraphDensitySync: !!MEP.balanceGraphDensitySync,
             balanceGraphAutoHeight: !!MEP.balanceGraphAutoHeight,
@@ -2181,6 +2507,11 @@
             diffVectorShiftWidth: typeof MEP.diffVectorShiftWidth === "number" ? MEP.diffVectorShiftWidth : 0.7,
             diffVectorState: typeof MEP.diffVectorState === "string" ? MEP.diffVectorState : "flat",
             diffVectorSignal: typeof MEP.diffVectorSignal === "number" ? MEP.diffVectorSignal : 0,
+            activeStrategyId: null,
+            strategies: {
+                strategy1: buildStrategy1DefaultState(),
+                strategy2: buildStrategy2DefaultState(),
+            },
 
             // История агрегатов ставок по раундам (oldest -> newest), runtime-only (SAFE MODE / MVP)
             roundPlayersCountHistory: Array.isArray(MEP.roundPlayersCountHistory) ? MEP.roundPlayersCountHistory : [],
@@ -3335,6 +3666,90 @@
                 return v.toFixed(8).replace(/\.?0+$/, "");
             },
 
+            _calcEMA(values, period) {
+                const p = Math.max(1, Math.floor(Number(period) || 1));
+                if (!Array.isArray(values) || !values.length) return [];
+                const out = new Array(values.length).fill(null);
+                let prev = null;
+                const k = 2 / (p + 1);
+                for (let i = 0; i < values.length; i++) {
+                    const v = Number(values[i]);
+                    if (!Number.isFinite(v)) continue;
+                    if (prev === null) prev = v;
+                    else prev = v * k + prev * (1 - k);
+                    out[i] = prev;
+                }
+                return out;
+            },
+
+            _buildVectorSeries(values, opts = {}) {
+                const src = this._toFiniteArray(values);
+                if (!src.length) return { main: [], shifted: [] };
+                const period = Math.max(1, Math.floor(Number(opts.period) || 1));
+                const phaseShift = Math.max(1, Math.floor(Number(opts.phaseShift) || 1));
+                const visibleLen = Math.max(1, Math.floor(Number(opts.visibleLen) || src.length));
+                const visStart = Math.max(0, src.length - visibleLen);
+                const warmup = Math.max(period * 3, phaseShift + period + 10);
+                const extStart = Math.max(0, visStart - warmup);
+                const ext = src.slice(extStart);
+                const ema = this._calcEMA(ext, period);
+                const shifted = ema.map((v, i) => (i - phaseShift >= 0 ? ema[i - phaseShift] : null));
+                const clipOffset = visStart - extStart;
+                return {
+                    main: ema.slice(clipOffset),
+                    shifted: shifted.slice(clipOffset),
+                };
+            },
+
+            _updateStakeVectorState(mainEMA, shiftedEMA, kind) {
+                const lastMain = (() => {
+                    for (let i = mainEMA.length - 1; i >= 0; i--) if (Number.isFinite(mainEMA[i])) return Number(mainEMA[i]);
+                    return null;
+                })();
+                const lastShift = (() => {
+                    for (let i = shiftedEMA.length - 1; i >= 0; i--) if (Number.isFinite(shiftedEMA[i])) return Number(shiftedEMA[i]);
+                    return null;
+                })();
+                const signal = Number.isFinite(lastMain) && Number.isFinite(lastShift) ? lastMain - lastShift : 0;
+                const eps =
+                    kind === "players"
+                        ? Math.max(0, Number(MEP.State.stakePlayersVectorFlatEpsilon) || 0)
+                        : Math.max(0, Number(MEP.State.stakeBetVectorFlatEpsilon) || 0);
+                const state = signal > eps ? "up" : signal < -eps ? "down" : "flat";
+                if (kind === "players") {
+                    MEP.State.stakePlayersVectorSignal = signal;
+                    MEP.State.stakePlayersVectorState = state;
+                } else {
+                    MEP.State.stakeBetVectorSignal = signal;
+                    MEP.State.stakeBetVectorState = state;
+                }
+            },
+
+            _buildVectorPoints(values, totalStages, yMax, vbW, vbH, autoHeight = false) {
+                if (!Array.isArray(values) || !values.length || totalStages <= 0 || yMax <= 0) return [];
+                const out = [];
+                const stepX = totalStages <= 1 ? 0 : vbW / (totalStages - 1);
+                const startStage = Math.max(0, totalStages - values.length);
+                const finiteVals = values.filter((v) => Number.isFinite(v));
+                const sMin = finiteVals.length ? Math.min(...finiteVals) : 0;
+                const sMax = finiteVals.length ? Math.max(...finiteVals) : 0;
+                for (let i = 0; i < values.length; i++) {
+                    const v = Number(values[i]);
+                    if (!Number.isFinite(v)) continue;
+                    const stage = startStage + i;
+                    const x = stepX * stage;
+                    let y = 0;
+                    if (autoHeight) {
+                        if (sMax === sMin) y = vbH / 2;
+                        else y = 1 + ((sMax - v) / (sMax - sMin)) * (vbH - 2);
+                    } else {
+                        y = vbH - (v / yMax) * (vbH - 2) - 1;
+                    }
+                    out.push({ stage, x, y: Math.max(1, Math.min(vbH - 1, y)), value: v });
+                }
+                return out;
+            },
+
             render() {
                 const ui = this._ui;
                 if (!ui?.stakeGraphSvg) return;
@@ -3405,20 +3820,99 @@
                 const playersPts = this._buildPoints(playersScaledView, stageCount, yMax, vbW, vbH, autoHeight);
                 const betsPts = this._buildPoints(betsScaledView, stageCount, yMax, vbW, vbH, autoHeight);
 
-                const makePolyline = (pts, color) => {
+                const visibleLen = stageCount;
+                const playersMainRaw = this._buildVectorSeries(playersRaw, {
+                    period: MEP.State.stakePlayersVectorPeriod,
+                    phaseShift: MEP.State.stakePlayersVectorPhaseShift,
+                    visibleLen,
+                });
+                const betMainRaw = this._buildVectorSeries(betsRealRaw, {
+                    period: MEP.State.stakeBetVectorPeriod,
+                    phaseShift: MEP.State.stakeBetVectorPhaseShift,
+                    visibleLen,
+                });
+                this._updateStakeVectorState(playersMainRaw.main, playersMainRaw.shifted, "players");
+                this._updateStakeVectorState(betMainRaw.main, betMainRaw.shifted, "bet");
+
+                const leftPadNullable = (arr, len) => {
+                    const base = Array.isArray(arr) ? arr.slice(-len) : [];
+                    if (base.length >= len) return base;
+                    return new Array(len - base.length).fill(null).concat(base);
+                };
+                const playersMainScaled = leftPadNullable(playersMainRaw.main, stageCount).map((v) =>
+                    Number.isFinite(v) ? v * playersScale : null
+                );
+                const playersShiftScaled = leftPadNullable(playersMainRaw.shifted, stageCount).map((v) =>
+                    Number.isFinite(v) ? v * playersScale : null
+                );
+                const betMainScaled = leftPadNullable(betMainRaw.main, stageCount).map((v) =>
+                    Number.isFinite(v) ? v * betScale : null
+                );
+                const betShiftScaled = leftPadNullable(betMainRaw.shifted, stageCount).map((v) =>
+                    Number.isFinite(v) ? v * betScale : null
+                );
+                const playersMainPts = this._buildVectorPoints(playersMainScaled, stageCount, yMax, vbW, vbH, autoHeight);
+                const playersShiftPts = this._buildVectorPoints(playersShiftScaled, stageCount, yMax, vbW, vbH, autoHeight);
+                const betMainPts = this._buildVectorPoints(betMainScaled, stageCount, yMax, vbW, vbH, autoHeight);
+                const betShiftPts = this._buildVectorPoints(betShiftScaled, stageCount, yMax, vbW, vbH, autoHeight);
+
+                const makePolyline = (pts, color, width = 0.55) => {
                     if (!pts.length) return;
                     const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
                     pl.setAttribute("points", pts.map((p) => `${p.x},${p.y}`).join(" "));
                     pl.setAttribute("fill", "none");
                     pl.setAttribute("stroke", color);
-                    pl.setAttribute("stroke-width", "0.55");
+                    pl.setAttribute("stroke-width", String(width));
                     pl.setAttribute("stroke-linejoin", "round");
                     pl.setAttribute("stroke-linecap", "round");
+                    pl.setAttribute("pointer-events", "none");
                     svg.appendChild(pl);
                 };
 
                 if (showPlayers) makePolyline(playersPts, "rgba(112,206,255,0.95)");
                 if (showBet) makePolyline(betsPts, "rgba(255,170,60,0.95)");
+                if (MEP.State.stakePlayersVectorEnabled) {
+                    makePolyline(
+                        playersMainPts,
+                        (MEP.State.stakePlayersVectorMainColor || "rgba(255,255,255,0.96)").toString(),
+                        Number(MEP.State.stakePlayersVectorMainWidth) || 0.9
+                    );
+                    const shiftPl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    if (playersShiftPts.length) {
+                        shiftPl.setAttribute("points", playersShiftPts.map((p) => `${p.x},${p.y}`).join(" "));
+                        shiftPl.setAttribute("fill", "none");
+                        shiftPl.setAttribute("stroke", (MEP.State.stakePlayersVectorShiftColor || "rgba(80,210,255,0.92)").toString());
+                        shiftPl.setAttribute("stroke-width", String(Number(MEP.State.stakePlayersVectorShiftWidth) || 0.7));
+                        shiftPl.setAttribute("stroke-linejoin", "round");
+                        shiftPl.setAttribute("stroke-linecap", "round");
+                        shiftPl.setAttribute("pointer-events", "none");
+                        svg.appendChild(shiftPl);
+                    }
+                }
+                if (MEP.State.stakeBetVectorEnabled) {
+                    const mainPl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    if (betMainPts.length) {
+                        mainPl.setAttribute("points", betMainPts.map((p) => `${p.x},${p.y}`).join(" "));
+                        mainPl.setAttribute("fill", "none");
+                        mainPl.setAttribute("stroke", (MEP.State.stakeBetVectorMainColor || "rgba(245,245,245,0.82)").toString());
+                        mainPl.setAttribute("stroke-width", String(Number(MEP.State.stakeBetVectorMainWidth) || 0.8));
+                        mainPl.setAttribute("stroke-linejoin", "round");
+                        mainPl.setAttribute("stroke-linecap", "round");
+                        mainPl.setAttribute("pointer-events", "none");
+                        svg.appendChild(mainPl);
+                    }
+                    const shiftPl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    if (betShiftPts.length) {
+                        shiftPl.setAttribute("points", betShiftPts.map((p) => `${p.x},${p.y}`).join(" "));
+                        shiftPl.setAttribute("fill", "none");
+                        shiftPl.setAttribute("stroke", (MEP.State.stakeBetVectorShiftColor || "rgba(68,192,255,0.78)").toString());
+                        shiftPl.setAttribute("stroke-width", String(Number(MEP.State.stakeBetVectorShiftWidth) || 0.65));
+                        shiftPl.setAttribute("stroke-linejoin", "round");
+                        shiftPl.setAttribute("stroke-linecap", "round");
+                        shiftPl.setAttribute("pointer-events", "none");
+                        svg.appendChild(shiftPl);
+                    }
+                }
 
                 // tooltip hit targets per series
                 const pPad = new Array(Math.max(0, stageCount - playersView.length)).fill(null).concat(playersView);
@@ -3486,6 +3980,7 @@
                     hit.addEventListener("mouseleave", () => this._setTip(""));
                     svg.appendChild(hit);
                 }
+                MEP.Strategy1?.updateUiCounters?.();
             },
         };
 
@@ -4037,6 +4532,736 @@
         };
 
         // -------------------------
+        // Strategy1 module (skeleton)
+        // -------------------------
+        MEP.Strategy1 = {
+            DECISION_STATUS: {
+                IDLE: "idle",
+                WAITING_SIGNAL: "waiting_signal",
+                BET_ALLOWED: "bet_allowed",
+                CYCLE_SHOULD_END: "cycle_should_end",
+                PAUSED_MANUAL: "paused_manual",
+                WAITING_BALANCE_RECOVERY: "waiting_balance_recovery",
+                CHARTER_BLOCKED: "charter_blocked",
+            },
+
+            getState() {
+                return MEP.State?.strategies?.strategy1 || null;
+            },
+
+            init() {
+                const st = this.getState();
+                if (!st) return;
+                this.buildStakePlan();
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+            },
+
+            resetCycle() {
+                const st = this.getState();
+                if (!st) return null;
+                const d = buildStrategy1DefaultState();
+                st.cycle = { ...d.cycle };
+                st.counters = { ...d.counters };
+                st.timers = { ...d.timers };
+                st.runtime.waitingRoundResult = false;
+                st.runtime.lastCycleAction = "resetCycle";
+                if (MEP.State.activeStrategyId === st.id && !st.cycle.isActive) {
+                    MEP.State.activeStrategyId = null;
+                }
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return st.cycle;
+            },
+
+            getCurrentBalance() {
+                const list = MEP.State?.balanceHistory;
+                if (!Array.isArray(list) || !list.length) return 0;
+                const last = Number(list[list.length - 1]);
+                return Number.isFinite(last) ? last : 0;
+            },
+
+            getNowTs() {
+                return Date.now();
+            },
+
+            buildTimeKeys(ts = this.getNowTs()) {
+                const n = Number(ts);
+                const safeTs = Number.isFinite(n) && n > 0 ? n : this.getNowTs();
+                const d = new Date(safeTs);
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, "0");
+                const day = String(d.getDate()).padStart(2, "0");
+                const h = String(d.getHours()).padStart(2, "0");
+                const sixBlock = Math.floor(d.getHours() / 6);
+                return {
+                    ts: safeTs,
+                    hourKey: `${y}-${m}-${day} ${h}`,
+                    sixHourKey: `${y}-${m}-${day} ${sixBlock}`,
+                    dayKey: `${y}-${m}-${day}`,
+                };
+            },
+
+            pushEvent(type, ts = this.getNowTs()) {
+                const st = this.getState();
+                if (!st || !type) return null;
+                if (!Array.isArray(st.runtime.eventLog)) st.runtime.eventLog = [];
+                const keys = this.buildTimeKeys(ts);
+                st.timers.nowTs = keys.ts;
+                st.timers.hourKey = keys.hourKey;
+                st.timers.sixHourKey = keys.sixHourKey;
+                st.timers.dayKey = keys.dayKey;
+                const ev = {
+                    type: String(type),
+                    ts: keys.ts,
+                    hourKey: keys.hourKey,
+                    sixHourKey: keys.sixHourKey,
+                    dayKey: keys.dayKey,
+                };
+                st.runtime.eventLog.push(ev);
+                const maxLen = 5000;
+                if (st.runtime.eventLog.length > maxLen) {
+                    st.runtime.eventLog.splice(0, st.runtime.eventLog.length - maxLen);
+                }
+                return ev;
+            },
+
+            countEventsByKey(type, keyName, keyValue) {
+                const st = this.getState();
+                if (!st || !Array.isArray(st.runtime.eventLog) || !keyName) return 0;
+                let cnt = 0;
+                for (const ev of st.runtime.eventLog) {
+                    if (!ev || (type && ev.type !== type)) continue;
+                    if (ev[keyName] === keyValue) cnt += 1;
+                }
+                return cnt;
+            },
+
+            getConsecutiveLosses() {
+                const st = this.getState();
+                if (!st || !Array.isArray(st.runtime.eventLog)) return 0;
+                let seq = 0;
+                for (let i = st.runtime.eventLog.length - 1; i >= 0; i -= 1) {
+                    const t = st.runtime.eventLog[i]?.type;
+                    if (t === "loss") {
+                        seq += 1;
+                        continue;
+                    }
+                    if (t === "win") break;
+                }
+                return seq;
+            },
+
+            getCharterBlockStatusText(blockReason = "") {
+                const map = {
+                    rounds_hour_limit: "Устав блокирует — достигнут лимит раундов за час",
+                    rounds_6h_limit: "Устав блокирует — достигнут лимит раундов за 6 часов",
+                    rounds_day_limit: "Устав блокирует — достигнут лимит раундов за сутки",
+                    wins_hour_limit: "Устав блокирует — достигнут лимит выигрышей за час",
+                    wins_6h_limit: "Устав блокирует — достигнут лимит выигрышей за 6 часов",
+                    wins_day_limit: "Устав блокирует — достигнут лимит выигрышей за сутки",
+                    losses_hour_limit: "Устав блокирует — достигнут лимит поражений за час",
+                    losses_6h_limit: "Устав блокирует — достигнут лимит поражений за 6 часов",
+                    losses_day_limit: "Устав блокирует — достигнут лимит поражений за сутки",
+                    break_active: "Активен перерыв после серии проигрышей",
+                };
+                return map[blockReason] || "Ожидание сигнала";
+            },
+
+            applyCharterDecision(charterResult = null) {
+                const st = this.getState();
+                if (!st) return null;
+                const charter = charterResult || this.checkCharter();
+                if (!charter?.allowed) {
+                    return this.updateDecisionState({
+                        canMakeBet: false,
+                        shouldEndCycle: false,
+                        statusCode: this.DECISION_STATUS.CHARTER_BLOCKED,
+                        statusText: this.getCharterBlockStatusText(charter.blockReason),
+                        branch: "",
+                        waitReason: charter.blockReason || "",
+                    });
+                }
+                return charter;
+            },
+
+            routeBranch() {
+                const st = this.getState();
+                if (!st) {
+                    return { branch: "", reason: "strategy1_not_found", lossCount: 0 };
+                }
+                const lossCount = Math.max(0, Number(st.cycle?.lossCount) || 0);
+                if (!st.cycle?.isActive) {
+                    const info = { branch: "", reason: "cycle_inactive", lossCount };
+                    st.runtime.lastBranchInfo = info;
+                    return info;
+                }
+                if (lossCount === 0) {
+                    const info = { branch: "first", reason: "loss_count_zero", lossCount };
+                    st.runtime.lastBranchInfo = info;
+                    return info;
+                }
+                const info = { branch: "second", reason: "loss_count_positive", lossCount };
+                st.runtime.lastBranchInfo = info;
+                return info;
+            },
+
+            getBranchStatusText(branchInfo = {}) {
+                if (branchInfo.branch === "first") return "Первый вход в цикл — используется первая ветка";
+                if (branchInfo.branch === "second") return "Цикл продолжается после минусов — используется вторая ветка";
+                if (branchInfo.reason === "cycle_inactive") return "Цикл не активен — ветка не выбрана";
+                return "Ветка стратегии не выбрана";
+            },
+
+            getLt2Streak() {
+                const list = Array.isArray(MEP.State?.list) ? MEP.State.list : [];
+                let streak = 0;
+                for (let i = 0; i < list.length; i++) {
+                    const n = MEP.Utils.cleanToNum(list[i]);
+                    if (n === null) break;
+                    if (n < 2) streak += 1;
+                    else break;
+                }
+                return streak;
+            },
+
+            getFirstBranchFailText(failedAt = "") {
+                const map = {
+                    streak_lt2: "Раунд пропускаем — ждём 3 подряд результатов меньше 2",
+                    diff_vector: "Раунд пропускаем — ждём сигнал в сущности разниц",
+                    frequency_vector: "Раунд пропускаем — ждём сигнал в сущности частотности",
+                    stake_bet_vector: "Раунд пропускаем — ждём сигнал в сущности ставок",
+                    stake_players_vector: "Раунд пропускаем — ждём сигнал в сущности клиентов",
+                    extra_condition: "Раунд пропускаем — не выполнено дополнительное условие",
+                };
+                return map[failedAt] || "Раунд пропускаем — ждём сигнал первой ветки";
+            },
+
+            checkFirstBranch() {
+                const st = this.getState();
+                const details = {
+                    lt2Streak: this.getLt2Streak(),
+                    diffVectorState: (MEP.State.diffVectorState || "").toString(),
+                    frequencyVectorState: (MEP.State.frequencyVectorState || "").toString(),
+                    stakeBetVectorState: (MEP.State.stakeBetVectorState || "").toString(),
+                    stakePlayersVectorState: (MEP.State.stakePlayersVectorState || "").toString(),
+                    extraConditionPassed: true,
+                };
+                const fail = (failedAt) => {
+                    const res = {
+                        passed: false,
+                        failedAt,
+                        details,
+                        waitReason: failedAt,
+                        statusText: this.getFirstBranchFailText(failedAt),
+                    };
+                    if (st?.runtime) st.runtime.lastFirstBranchResult = res;
+                    return res;
+                };
+
+                if (details.lt2Streak < 3) return fail("streak_lt2");
+                if (details.diffVectorState !== "up") return fail("diff_vector");
+                if (details.frequencyVectorState !== "up") return fail("frequency_vector");
+                if (details.stakeBetVectorState !== "up") return fail("stake_bet_vector");
+                if (details.stakePlayersVectorState !== "up") return fail("stake_players_vector");
+                if (!details.extraConditionPassed) return fail("extra_condition");
+
+                const ok = {
+                    passed: true,
+                    failedAt: "",
+                    details,
+                    waitReason: "",
+                    statusText: "Первая ветка пройдена — ставка разрешена",
+                };
+                if (st?.runtime) st.runtime.lastFirstBranchResult = ok;
+                return ok;
+            },
+
+            checkSecondBranch() {
+                return { passed: false, failedAt: "not_implemented" };
+            },
+
+            isProfitReached() {
+                const st = this.getState();
+                if (!st) return false;
+                return Number(st.cycle.currentBalance) > Number(st.cycle.startBalance);
+            },
+
+            isMaxLossesReached() {
+                const st = this.getState();
+                if (!st) return false;
+                const maxLosses = Math.floor(Number(st.config?.maxLosses) || 0);
+                if (!Number.isFinite(maxLosses) || maxLosses <= 0) return false;
+                return Number(st.cycle.lossCount) >= maxLosses;
+            },
+
+            isMaxStakeReached(nextStake = null) {
+                const st = this.getState();
+                if (!st) return false;
+                const stakePercent = Number(MEP.State?.charterMaxStakePercent) || 0;
+                if (!Number.isFinite(stakePercent) || stakePercent <= 0) return false;
+                const currentBalance = this.getCurrentBalance();
+                const maxAllowedStake = currentBalance * (stakePercent / 100);
+                if (Number.isFinite(Number(nextStake))) {
+                    return Number(nextStake) > maxAllowedStake;
+                }
+                const lastStake = Number(st.cycle?.lastStake) || 0;
+                if (lastStake <= 0) return false;
+                return lastStake > maxAllowedStake;
+            },
+
+            startCycle() {
+                const st = this.getState();
+                if (!st) return false;
+                if (MEP.State.activeStrategyId && MEP.State.activeStrategyId !== st.id) return false;
+                const now = Date.now();
+                const currentBalanceNow = this.getCurrentBalance();
+                st.isExecuting = true;
+                st.executionLocked = false;
+                MEP.State.activeStrategyId = st.id;
+                st.cycle.isActive = true;
+                st.cycle.cycleId = `s1_${now}`;
+                st.cycle.endReason = "";
+                st.cycle.startBalance = currentBalanceNow;
+                st.cycle.currentBalance = currentBalanceNow;
+                st.cycle.cyclePnL = 0;
+                st.cycle.totalStakeSum = 0;
+                st.cycle.roundCount = 0;
+                st.cycle.lossCount = 0;
+                st.cycle.winCount = 0;
+                st.cycle.stepIndex = 0;
+                st.cycle.lastStake = 0;
+                st.cycle.lastTargetMultiplier = 0;
+                st.counters.startBalanceBeforeCycle = currentBalanceNow;
+                st.counters.currentBalanceAfterRound = currentBalanceNow;
+                st.counters.lastStake = 0;
+                st.counters.totalStakeSumInCycle = 0;
+                st.counters.lossRoundCount = 0;
+                st.counters.winRoundCount = 0;
+                st.timers.cycleStartedAtTs = now;
+                st.timers.cycleFinishedAtTs = 0;
+                st.timers.cycleDurationMs = 0;
+                this.pushEvent("cycle_start", now);
+                st.runtime.lastCycleAction = "startCycle";
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return true;
+            },
+
+            finishCycle(reason = "") {
+                const st = this.getState();
+                if (!st) return null;
+                const now = Date.now();
+                st.cycle.isActive = false;
+                st.isExecuting = false;
+                st.cycle.endReason = (reason || "manual").toString();
+                st.timers.cycleFinishedAtTs = now;
+                st.timers.cycleDurationMs = Math.max(
+                    0,
+                    st.timers.cycleFinishedAtTs - (st.timers.cycleStartedAtTs || st.timers.cycleFinishedAtTs)
+                );
+                if (MEP.State.activeStrategyId === st.id) MEP.State.activeStrategyId = null;
+                this.pushEvent("cycle_finish", now);
+                st.runtime.lastCycleAction = "finishCycle";
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return st.cycle.endReason;
+            },
+
+            checkCharter() {
+                const st = this.getState();
+                if (!st) return { allowed: false, blockReason: "strategy1_not_found" };
+                const keys = this.buildTimeKeys(this.getNowTs());
+                st.timers.nowTs = keys.ts;
+                st.timers.hourKey = keys.hourKey;
+                st.timers.sixHourKey = keys.sixHourKey;
+                st.timers.dayKey = keys.dayKey;
+
+                if (!Array.isArray(st.runtime.eventLog)) st.runtime.eventLog = [];
+
+                if (st.timers.isBreakActive && st.timers.breakEndsAtTs > 0 && keys.ts >= st.timers.breakEndsAtTs) {
+                    st.timers.isBreakActive = false;
+                    st.timers.breakStartedAtTs = 0;
+                    st.timers.breakEndsAtTs = 0;
+                }
+
+                // NOTE: break сейчас считается по глобальному runtime eventLog стратегии (не только в рамках текущего цикла).
+                // При необходимости можно добавить отдельный режим break, привязанный строго к активному cycle.
+                const consecutiveLosses = this.getConsecutiveLosses();
+                const breakMin = Math.floor(Number(MEP.State?.charterBreakAfter3LossesMin) || 0);
+                if (!st.timers.isBreakActive && breakMin > 0 && consecutiveLosses >= 3) {
+                    st.timers.isBreakActive = true;
+                    st.timers.breakStartedAtTs = keys.ts;
+                    st.timers.breakEndsAtTs = keys.ts + breakMin * 60 * 1000;
+                    this.pushEvent("break_start", keys.ts);
+                }
+
+                const allowedByLimit = (actual, limit) => {
+                    const lim = Math.floor(Number(limit) || 0);
+                    if (!Number.isFinite(lim) || lim <= 0) return true;
+                    return actual < lim;
+                };
+                const roundsHour = this.countEventsByKey("round", "hourKey", keys.hourKey);
+                const rounds6h = this.countEventsByKey("round", "sixHourKey", keys.sixHourKey);
+                const roundsDay = this.countEventsByKey("round", "dayKey", keys.dayKey);
+                const winsHour = this.countEventsByKey("win", "hourKey", keys.hourKey);
+                const wins6h = this.countEventsByKey("win", "sixHourKey", keys.sixHourKey);
+                const winsDay = this.countEventsByKey("win", "dayKey", keys.dayKey);
+                const lossesHour = this.countEventsByKey("loss", "hourKey", keys.hourKey);
+                const losses6h = this.countEventsByKey("loss", "sixHourKey", keys.sixHourKey);
+                const lossesDay = this.countEventsByKey("loss", "dayKey", keys.dayKey);
+
+                const roundsHourAllowed = allowedByLimit(roundsHour, MEP.State?.charterRoundsPerHour);
+                const rounds6hAllowed = allowedByLimit(rounds6h, MEP.State?.charterRoundsPer6Hours);
+                const roundsDayAllowed = allowedByLimit(roundsDay, MEP.State?.charterRoundsPerDay);
+                const winsHourAllowed = allowedByLimit(winsHour, MEP.State?.charterWinsPerHour);
+                const wins6hAllowed = allowedByLimit(wins6h, MEP.State?.charterWinsPer6Hours);
+                const winsDayAllowed = allowedByLimit(winsDay, MEP.State?.charterWinsPerDay);
+                const lossesHourAllowed = allowedByLimit(lossesHour, MEP.State?.charterLossesPerHour);
+                const losses6hAllowed = allowedByLimit(losses6h, MEP.State?.charterLossesPer6Hours);
+                const lossesDayAllowed = allowedByLimit(lossesDay, MEP.State?.charterLossesPerDay);
+                const breakAllowed = !st.timers.isBreakActive;
+
+                let blockReason = "";
+                if (!roundsHourAllowed) blockReason = "rounds_hour_limit";
+                else if (!rounds6hAllowed) blockReason = "rounds_6h_limit";
+                else if (!roundsDayAllowed) blockReason = "rounds_day_limit";
+                else if (!winsHourAllowed) blockReason = "wins_hour_limit";
+                else if (!wins6hAllowed) blockReason = "wins_6h_limit";
+                else if (!winsDayAllowed) blockReason = "wins_day_limit";
+                else if (!lossesHourAllowed) blockReason = "losses_hour_limit";
+                else if (!losses6hAllowed) blockReason = "losses_6h_limit";
+                else if (!lossesDayAllowed) blockReason = "losses_day_limit";
+                else if (!breakAllowed) blockReason = "break_active";
+
+                st.charterCheck.allowed =
+                    roundsHourAllowed &&
+                    rounds6hAllowed &&
+                    roundsDayAllowed &&
+                    winsHourAllowed &&
+                    wins6hAllowed &&
+                    winsDayAllowed &&
+                    lossesHourAllowed &&
+                    losses6hAllowed &&
+                    lossesDayAllowed &&
+                    breakAllowed;
+                st.charterCheck.blockReason = blockReason;
+                st.charterCheck.roundsHourAllowed = roundsHourAllowed;
+                st.charterCheck.rounds6hAllowed = rounds6hAllowed;
+                st.charterCheck.roundsDayAllowed = roundsDayAllowed;
+                st.charterCheck.winsHourAllowed = winsHourAllowed;
+                st.charterCheck.wins6hAllowed = wins6hAllowed;
+                st.charterCheck.winsDayAllowed = winsDayAllowed;
+                st.charterCheck.lossesHourAllowed = lossesHourAllowed;
+                st.charterCheck.losses6hAllowed = losses6hAllowed;
+                st.charterCheck.lossesDayAllowed = lossesDayAllowed;
+                st.charterCheck.breakAllowed = breakAllowed;
+                st.runtime.lastCycleAction = "checkCharter";
+                return { ...st.charterCheck };
+            },
+
+            checkConditions() {
+                const st = this.getState();
+                if (!st) return { canBet: false, shouldEndCycle: false, reason: "strategy1_not_found" };
+                const result = { ...st.conditions.lastResult };
+                st.runtime.lastConditionResult = result;
+                st.runtime.lastCycleAction = "checkConditions";
+                this.updateUiCounters();
+                return result;
+            },
+
+            buildStakePlan() {
+                const st = this.getState();
+                if (!st) return { betAmount: 0, targetMultiplier: 0, ready: false };
+                st.stakePlan.calcMode = `${st.config.startStakeMode}:${st.config.stakeGrowthMode}`;
+                st.stakePlan.targetMultiplier = Number(st.config.targetMultiplierValue) || 0;
+                st.stakePlan.betAmount = Number(st.config.startStakeValue) || 0;
+                st.stakePlan.ready = false;
+                st.runtime.lastStakePlanResult = { ...st.stakePlan };
+                st.runtime.lastCycleAction = "buildStakePlan";
+                this.updateUiCounters();
+                return { ...st.stakePlan };
+            },
+
+            updateAfterRound(result = {}) {
+                const st = this.getState();
+                if (!st || !st.cycle?.isActive) return false;
+                const tsNow = Date.now();
+                const nextBalanceRaw = Number(result.balance);
+                const nextBalance = Number.isFinite(nextBalanceRaw) ? nextBalanceRaw : this.getCurrentBalance();
+                const stakeRaw = Number(result.stake);
+                const stake = Number.isFinite(stakeRaw) ? stakeRaw : 0;
+                const targetRaw = Number(result.targetMultiplier);
+                const targetMultiplier = Number.isFinite(targetRaw) ? targetRaw : 0;
+                const won = !!result.won;
+                const lost = !!result.lost;
+
+                st.cycle.currentBalance = nextBalance;
+                st.cycle.cyclePnL = nextBalance - (Number(st.cycle.startBalance) || 0);
+                st.cycle.roundCount = (Number(st.cycle.roundCount) || 0) + 1;
+                st.cycle.lastStake = stake;
+                st.cycle.lastTargetMultiplier = targetMultiplier;
+                st.cycle.totalStakeSum = (Number(st.cycle.totalStakeSum) || 0) + stake;
+                st.cycle.stepIndex = (Number(st.cycle.stepIndex) || 0) + 1;
+                if (lost) st.cycle.lossCount = (Number(st.cycle.lossCount) || 0) + 1;
+                if (won) st.cycle.winCount = (Number(st.cycle.winCount) || 0) + 1;
+
+                st.counters.currentBalanceAfterRound = nextBalance;
+                st.counters.lastStake = stake;
+                st.counters.totalStakeSumInCycle = st.cycle.totalStakeSum;
+                st.counters.lossRoundCount = st.cycle.lossCount;
+                st.counters.winRoundCount = st.cycle.winCount;
+
+                const roundTs = Number(result.ts);
+                st.timers.lastRoundResultAtTs = Number.isFinite(roundTs) && roundTs > 0 ? roundTs : tsNow;
+                if (result.roundId !== undefined && result.roundId !== null && String(result.roundId)) {
+                    st.runtime.lastProcessedRoundId = String(result.roundId);
+                }
+                this.pushEvent("round", st.timers.lastRoundResultAtTs);
+                if (won) this.pushEvent("win", st.timers.lastRoundResultAtTs);
+                if (lost) this.pushEvent("loss", st.timers.lastRoundResultAtTs);
+                st.runtime.lastCycleAction = "updateAfterRound";
+
+                if (this.isProfitReached()) {
+                    this.finishCycle("profit_reached");
+                    return true;
+                }
+                if (this.isMaxStakeReached()) {
+                    this.finishCycle("max_stake_reached");
+                    return true;
+                }
+                if (this.isMaxLossesReached()) {
+                    this.finishCycle("max_losses_reached");
+                    return true;
+                }
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return true;
+            },
+
+            updateDecisionState(partial = {}) {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.runtime) st.runtime = {};
+                if (!st.runtime.decisionState || typeof st.runtime.decisionState !== "object") {
+                    const d = buildStrategy1DefaultState();
+                    st.runtime.decisionState = { ...d.runtime.decisionState };
+                }
+                st.runtime.decisionState = {
+                    ...st.runtime.decisionState,
+                    ...(partial && typeof partial === "object" ? partial : {}),
+                    lastDecisionAtTs: Date.now(),
+                };
+                this.updateUiCounters();
+                return { ...st.runtime.decisionState };
+            },
+
+            evaluateDecisionState() {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.enabled) {
+                    return this.updateDecisionState({
+                        canMakeBet: false,
+                        shouldEndCycle: false,
+                        statusCode: this.DECISION_STATUS.IDLE,
+                        statusText: "Стратегия выключена",
+                        branch: "",
+                        waitReason: "",
+                    });
+                }
+                if (!st.cycle?.isActive) {
+                    const hasEndReason = !!(st.cycle?.endReason || "").toString().trim();
+                    return this.updateDecisionState({
+                        canMakeBet: false,
+                        shouldEndCycle: false,
+                        statusCode: this.DECISION_STATUS.IDLE,
+                        statusText: hasEndReason ? "Цикл завершён" : "Ожидание запуска цикла",
+                        branch: "",
+                        waitReason: hasEndReason ? st.cycle.endReason : "Цикл не активирован",
+                    });
+                }
+                const charter = this.checkCharter();
+                if (charter && charter.allowed === false) {
+                    return this.applyCharterDecision(charter);
+                }
+                const branchInfo = this.routeBranch();
+                const branch = branchInfo?.branch || "";
+                if (branch === "first") {
+                    const firstResult = this.checkFirstBranch();
+                    if (st.conditions?.lastResult) {
+                        st.conditions.lastResult.canBet = !!firstResult.passed;
+                        st.conditions.lastResult.shouldEndCycle = false;
+                        st.conditions.lastResult.reason = firstResult.failedAt || "";
+                    }
+                    if (!firstResult.passed) {
+                        return this.updateDecisionState({
+                            canMakeBet: false,
+                            shouldEndCycle: false,
+                            statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                            statusText: firstResult.statusText || "Раунд пропускаем — ждём сигнал первой ветки",
+                            branch: "first",
+                            waitReason: firstResult.waitReason || "first_branch_wait",
+                        });
+                    }
+                    return this.updateDecisionState({
+                        canMakeBet: true,
+                        shouldEndCycle: false,
+                        statusCode: this.DECISION_STATUS.BET_ALLOWED,
+                        statusText: "Первая ветка пройдена — ставка разрешена",
+                        branch: "first",
+                        waitReason: "",
+                    });
+                }
+                if (branch === "second") {
+                    if (st.conditions?.lastResult) {
+                        st.conditions.lastResult.canBet = false;
+                        st.conditions.lastResult.shouldEndCycle = false;
+                        st.conditions.lastResult.reason = "second_branch_not_implemented";
+                    }
+                    return this.updateDecisionState({
+                        canMakeBet: false,
+                        shouldEndCycle: false,
+                        statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                        statusText: "Цикл активен — вторая ветка пока не реализована",
+                        branch: "second",
+                        waitReason: "second_branch_not_implemented",
+                    });
+                }
+                return this.updateDecisionState({
+                    canMakeBet: false,
+                    shouldEndCycle: false,
+                    statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                    statusText: "Цикл активен — ожидание сигнала",
+                    branch,
+                    waitReason: branch ? `branch:${branch}` : "Нет входного сигнала",
+                });
+            },
+
+            updateUiCounters() {
+                const st = this.getState();
+                const ui = MEP.UI?.ui;
+                if (!st || !ui) return;
+                const decision = st.runtime?.decisionState || {};
+
+                if (ui.strategy1ConditionsModeEl) ui.strategy1ConditionsModeEl.textContent = st.conditions.mode || "all";
+                if (ui.strategy1StakePlayersVectorStateEl)
+                    ui.strategy1StakePlayersVectorStateEl.textContent = (MEP.State.stakePlayersVectorState || "—").toString();
+                if (ui.strategy1StakeBetVectorStateEl)
+                    ui.strategy1StakeBetVectorStateEl.textContent = (MEP.State.stakeBetVectorState || "—").toString();
+                const firstBranch = st.runtime?.lastFirstBranchResult || null;
+                if (ui.strategy1FirstBranchPassedEl)
+                    ui.strategy1FirstBranchPassedEl.textContent = firstBranch ? String(!!firstBranch.passed) : "—";
+                if (ui.strategy1FirstBranchLt2El)
+                    ui.strategy1FirstBranchLt2El.textContent = firstBranch
+                        ? String(Number(firstBranch.details?.lt2Streak) || 0)
+                        : "—";
+                if (ui.strategy1FirstBranchDiffEl)
+                    ui.strategy1FirstBranchDiffEl.textContent = firstBranch
+                        ? (firstBranch.details?.diffVectorState || "—").toString()
+                        : "—";
+                if (ui.strategy1FirstBranchFreqEl)
+                    ui.strategy1FirstBranchFreqEl.textContent = firstBranch
+                        ? (firstBranch.details?.frequencyVectorState || "—").toString()
+                        : "—";
+                if (ui.strategy1FirstBranchStakeBetEl)
+                    ui.strategy1FirstBranchStakeBetEl.textContent = firstBranch
+                        ? (firstBranch.details?.stakeBetVectorState || "—").toString()
+                        : "—";
+                if (ui.strategy1FirstBranchStakePlayersEl)
+                    ui.strategy1FirstBranchStakePlayersEl.textContent = firstBranch
+                        ? (firstBranch.details?.stakePlayersVectorState || "—").toString()
+                        : "—";
+                if (ui.strategy1FirstBranchFailedAtEl)
+                    ui.strategy1FirstBranchFailedAtEl.textContent = firstBranch
+                        ? (firstBranch.failedAt || "—").toString()
+                        : "—";
+                if (ui.strategy1FirstBranchWaitReasonEl)
+                    ui.strategy1FirstBranchWaitReasonEl.textContent = firstBranch
+                        ? (firstBranch.waitReason || "—").toString()
+                        : "—";
+                if (ui.strategy1ConditionsCanBetEl)
+                    ui.strategy1ConditionsCanBetEl.textContent = String(!!st.conditions.lastResult?.canBet);
+                if (ui.strategy1ConditionsEndEl)
+                    ui.strategy1ConditionsEndEl.textContent = String(!!st.conditions.lastResult?.shouldEndCycle);
+                if (ui.strategy1ConditionsReasonEl)
+                    ui.strategy1ConditionsReasonEl.textContent = (st.conditions.lastResult?.reason || "—").toString();
+                if (ui.strategy1StakeCalcModeEl)
+                    ui.strategy1StakeCalcModeEl.textContent = (
+                        st.stakePlan.calcMode || `${st.config.startStakeMode}:${st.config.stakeGrowthMode}`
+                    ).toString();
+                if (ui.strategy1TargetCalcModeEl)
+                    ui.strategy1TargetCalcModeEl.textContent = (st.config.targetMode || "fixed").toString();
+                if (ui.strategy1LastBetAmountEl)
+                    ui.strategy1LastBetAmountEl.textContent = String(Number(st.stakePlan.betAmount) || 0);
+                if (ui.strategy1LastTargetMultiplierEl)
+                    ui.strategy1LastTargetMultiplierEl.textContent = String(Number(st.stakePlan.targetMultiplier) || 0);
+                if (ui.strategy1CycleStartBalanceEl)
+                    ui.strategy1CycleStartBalanceEl.textContent = String(
+                        Number(st.counters.startBalanceBeforeCycle) || Number(st.cycle.startBalance) || 0
+                    );
+                if (ui.strategy1CycleCurrentBalanceEl)
+                    ui.strategy1CycleCurrentBalanceEl.textContent = String(
+                        Number(st.counters.currentBalanceAfterRound) || Number(st.cycle.currentBalance) || 0
+                    );
+                if (ui.strategy1CycleLastStakeEl)
+                    ui.strategy1CycleLastStakeEl.textContent = String(
+                        Number(st.counters.lastStake) || Number(st.cycle.lastStake) || 0
+                    );
+                if (ui.strategy1CycleTotalStakeEl)
+                    ui.strategy1CycleTotalStakeEl.textContent = String(
+                        Number(st.counters.totalStakeSumInCycle) || Number(st.cycle.totalStakeSum) || 0
+                    );
+                if (ui.strategy1CycleLossCountEl)
+                    ui.strategy1CycleLossCountEl.textContent = String(
+                        Number(st.counters.lossRoundCount) || Number(st.cycle.lossCount) || 0
+                    );
+                if (ui.strategy1CycleWinCountEl)
+                    ui.strategy1CycleWinCountEl.textContent = String(
+                        Number(st.counters.winRoundCount) || Number(st.cycle.winCount) || 0
+                    );
+                if (ui.strategy1CycleStatusEl)
+                    ui.strategy1CycleStatusEl.textContent = st.cycle.isActive ? "active" : st.isExecuting ? "executing" : "idle";
+                if (ui.strategy1CycleEndReasonEl)
+                    ui.strategy1CycleEndReasonEl.textContent = (st.cycle.endReason || "—").toString();
+                if (ui.strategy1DecisionStatusTextEl)
+                    ui.strategy1DecisionStatusTextEl.textContent = (decision.statusText || "—").toString();
+                if (ui.strategy1DecisionStatusCodeEl)
+                    ui.strategy1DecisionStatusCodeEl.textContent = (decision.statusCode || "—").toString();
+                if (ui.strategy1DecisionCanBetEl)
+                    ui.strategy1DecisionCanBetEl.textContent = String(!!decision.canMakeBet);
+                if (ui.strategy1DecisionEndCycleEl)
+                    ui.strategy1DecisionEndCycleEl.textContent = String(!!decision.shouldEndCycle);
+                if (ui.strategy1DecisionBranchEl)
+                    ui.strategy1DecisionBranchEl.textContent = (decision.branch || "—").toString();
+                if (ui.strategy1DecisionWaitReasonEl)
+                    ui.strategy1DecisionWaitReasonEl.textContent = (decision.waitReason || "—").toString();
+                if (ui.strategy1CharterAllowedEl) ui.strategy1CharterAllowedEl.textContent = String(!!st.charterCheck?.allowed);
+                if (ui.strategy1CharterReasonEl)
+                    ui.strategy1CharterReasonEl.textContent = (st.charterCheck?.blockReason || "—").toString();
+                if (ui.strategy1CharterRoundsHourEl)
+                    ui.strategy1CharterRoundsHourEl.textContent = String(!!st.charterCheck?.roundsHourAllowed);
+                if (ui.strategy1CharterRounds6hEl)
+                    ui.strategy1CharterRounds6hEl.textContent = String(!!st.charterCheck?.rounds6hAllowed);
+                if (ui.strategy1CharterRoundsDayEl)
+                    ui.strategy1CharterRoundsDayEl.textContent = String(!!st.charterCheck?.roundsDayAllowed);
+                if (ui.strategy1CharterWinsHourEl)
+                    ui.strategy1CharterWinsHourEl.textContent = String(!!st.charterCheck?.winsHourAllowed);
+                if (ui.strategy1CharterWins6hEl)
+                    ui.strategy1CharterWins6hEl.textContent = String(!!st.charterCheck?.wins6hAllowed);
+                if (ui.strategy1CharterWinsDayEl)
+                    ui.strategy1CharterWinsDayEl.textContent = String(!!st.charterCheck?.winsDayAllowed);
+                if (ui.strategy1CharterLossesHourEl)
+                    ui.strategy1CharterLossesHourEl.textContent = String(!!st.charterCheck?.lossesHourAllowed);
+                if (ui.strategy1CharterLosses6hEl)
+                    ui.strategy1CharterLosses6hEl.textContent = String(!!st.charterCheck?.losses6hAllowed);
+                if (ui.strategy1CharterLossesDayEl)
+                    ui.strategy1CharterLossesDayEl.textContent = String(!!st.charterCheck?.lossesDayAllowed);
+                if (ui.strategy1CharterBreakEl)
+                    ui.strategy1CharterBreakEl.textContent = String(!!st.charterCheck?.breakAllowed);
+            },
+        };
+
+        // -------------------------
         // UI module
         // -------------------------
         MEP.UI = {
@@ -4492,6 +5717,18 @@
             <label class="mep-stake-density-label">Клиенты масштаб<input class="mep-stake-scale-players" type="number" min="0" step="0.1" value="1" /></label>
             <label class="mep-stake-density-label">Ставки масштаб<input class="mep-stake-scale-bet" type="number" min="0" step="0.1" value="10" /></label>
         </div>
+        <div class="mep-stake-vector-row">
+            <label class="mep-stake-vector-label"><input class="mep-stake-players-vector-enabled" type="checkbox" checked /><span>Клиенты вектор</span></label>
+            <label class="mep-stake-vector-label"><span>P</span><input class="mep-stake-players-vector-period" type="number" min="1" step="1" value="9" /></label>
+            <label class="mep-stake-vector-label"><span>S</span><input class="mep-stake-players-vector-shift" type="number" min="1" step="1" value="3" /></label>
+            <label class="mep-stake-vector-label"><span>Flat</span><input class="mep-stake-players-vector-flat" type="number" min="0" step="0.01" value="0.15" /></label>
+        </div>
+        <div class="mep-stake-vector-row">
+            <label class="mep-stake-vector-label"><input class="mep-stake-bet-vector-enabled" type="checkbox" checked /><span>Ставки вектор</span></label>
+            <label class="mep-stake-vector-label"><span>P</span><input class="mep-stake-bet-vector-period" type="number" min="1" step="1" value="9" /></label>
+            <label class="mep-stake-vector-label"><span>S</span><input class="mep-stake-bet-vector-shift" type="number" min="1" step="1" value="3" /></label>
+            <label class="mep-stake-vector-label"><span>Flat</span><input class="mep-stake-bet-vector-flat" type="number" min="0" step="0.01" value="0.15" /></label>
+        </div>
         <div class="mep-stake-legend">
             <label class="mep-stake-legend-item">
                 <input class="mep-stake-show-players" type="checkbox" checked />
@@ -4676,7 +5913,102 @@
     </div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-strategy1">
-    <div class="mep-game-placeholder">Контент стратегии 1</div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Стратегия1 · Управление</div>
+        <div class="mep-strategy-row">
+            <span class="mep-strategy-label">Вкл / Откл стратегии</span>
+            <label class="mep-charter-label"><input class="mep-strategy1-enabled" type="checkbox" /> Включена</label>
+        </div>
+        <div class="mep-actions-row">
+            <button class="mep-btn mep-strategy1-start-cycle" type="button">Старт цикла</button>
+            <button class="mep-btn mep-strategy1-finish-cycle" type="button">Завершить цикл</button>
+            <button class="mep-btn mep-strategy1-reset-cycle" type="button">Сбросить цикл</button>
+            <button class="mep-btn mep-strategy1-check-charter" type="button">Проверить Устав</button>
+            <button class="mep-btn mep-strategy1-route-branch" type="button">Определить ветку</button>
+            <button class="mep-btn mep-strategy1-check-first-branch" type="button">Проверить 1 ветку</button>
+        </div>
+    </div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Текущее состояние стратегии</div>
+        <div class="mep-strategy-state-grid">
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Статус:</span><span class="mep-strategy-state-value mep-strategy1-decision-status-text">Стратегия в ожидании</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Код статуса:</span><span class="mep-strategy-state-value mep-strategy1-decision-status-code">idle</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Ставка разрешена:</span><span class="mep-strategy-state-value mep-strategy1-decision-canbet">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Нужно завершить цикл:</span><span class="mep-strategy-state-value mep-strategy1-decision-endcycle">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Текущая ветка:</span><span class="mep-strategy-state-value mep-strategy1-decision-branch">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Причина ожидания:</span><span class="mep-strategy-state-value mep-strategy1-decision-waitreason">—</span></div>
+        </div>
+    </div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Входные параметры</div>
+        <div class="mep-strategy-form">
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Процент риска от баланса</span><input class="mep-strategy-input mep-strategy1-risk-percent" type="number" min="0" step="0.1" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Режим начальной ставки</span><select class="mep-strategy-input mep-strategy1-start-stake-mode"><option value="fixed">fixed</option><option value="array">array</option></select></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Начальная ставка</span><input class="mep-strategy-input mep-strategy1-start-stake-value" type="number" min="0" step="0.00000001" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Массив начальных ставок</span><input class="mep-strategy-input mep-strategy1-start-stake-array" type="text" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Режим приращения ставок</span><select class="mep-strategy-input mep-strategy1-stake-growth-mode"><option value="factor">factor</option><option value="array">array</option></select></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Коэффициент приращения ставок</span><input class="mep-strategy-input mep-strategy1-stake-growth-factor" type="number" min="0" step="0.01" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Массив приращения ставок</span><input class="mep-strategy-input mep-strategy1-stake-growth-array" type="text" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Режим целевого множителя</span><select class="mep-strategy-input mep-strategy1-target-mode"><option value="fixed">fixed</option><option value="array">array</option></select></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Целевой множитель игры</span><input class="mep-strategy-input mep-strategy1-target-multiplier" type="number" min="0" step="0.01" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Массив целевых множителей</span><input class="mep-strategy-input mep-strategy1-target-multiplier-array" type="text" /></div>
+            <div class="mep-strategy-row"><span class="mep-strategy-label">Макс. количество проигрышей</span><input class="mep-strategy-input mep-strategy1-max-losses" type="number" min="0" step="1" /></div>
+        </div>
+    </div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Диагностика Устава</div>
+        <div class="mep-strategy-state-grid">
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Устав разрешает:</span><span class="mep-strategy-state-value mep-strategy1-charter-allowed">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Причина блока:</span><span class="mep-strategy-state-value mep-strategy1-charter-reason">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Раунды / час:</span><span class="mep-strategy-state-value mep-strategy1-charter-rounds-hour">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Раунды / 6ч:</span><span class="mep-strategy-state-value mep-strategy1-charter-rounds-6h">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Раунды / сутки:</span><span class="mep-strategy-state-value mep-strategy1-charter-rounds-day">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Победы / час:</span><span class="mep-strategy-state-value mep-strategy1-charter-wins-hour">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Победы / 6ч:</span><span class="mep-strategy-state-value mep-strategy1-charter-wins-6h">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Победы / сутки:</span><span class="mep-strategy-state-value mep-strategy1-charter-wins-day">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Поражения / час:</span><span class="mep-strategy-state-value mep-strategy1-charter-losses-hour">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Поражения / 6ч:</span><span class="mep-strategy-state-value mep-strategy1-charter-losses-6h">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Поражения / сутки:</span><span class="mep-strategy-state-value mep-strategy1-charter-losses-day">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Перерыв разрешает:</span><span class="mep-strategy-state-value mep-strategy1-charter-break">true</span></div>
+        </div>
+    </div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Конструктор условий</div>
+        <div class="mep-strategy-placeholder">Маршрутизация: первый раунд цикла -> first, после минусов -> second.
+Проверка по Уставу + доп. проверки сущностей.
+Режим: <span class="mep-strategy1-conditions-mode">all</span>
+Клиенты EMA: <span class="mep-strategy1-stake-players-vector-state">—</span>
+Ставки EMA: <span class="mep-strategy1-stake-bet-vector-state">—</span>
+FIRST_BRANCH passed: <span class="mep-strategy1-first-branch-passed">—</span>
+LT2 streak: <span class="mep-strategy1-first-branch-lt2">—</span>
+Diff vector: <span class="mep-strategy1-first-branch-diff">—</span>
+Frequency vector: <span class="mep-strategy1-first-branch-freq">—</span>
+Stake bet vector: <span class="mep-strategy1-first-branch-stake-bet">—</span>
+Stake players vector: <span class="mep-strategy1-first-branch-stake-players">—</span>
+Failed at: <span class="mep-strategy1-first-branch-failed-at">—</span>
+Wait reason: <span class="mep-strategy1-first-branch-wait-reason">—</span>
+Rules: placeholder (будущий конструктор)
+LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, shouldEndCycle=<span class="mep-strategy1-conditions-end">false</span>, reason=<span class="mep-strategy1-conditions-reason">—</span></div>
+    </div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Конструктор ставок</div>
+        <div class="mep-strategy-placeholder">Режим ставки: <span class="mep-strategy1-stake-calc-mode">—</span>
+Режим target: <span class="mep-strategy1-target-calc-mode">—</span>
+Последний расчёт: betAmount=<span class="mep-strategy1-last-bet-amount">0</span>, targetMultiplier=<span class="mep-strategy1-last-target-multiplier">0</span></div>
+    </div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Цикл стратегии</div>
+        <div class="mep-strategy-status-grid">
+            <div>Стартовый баланс: <span class="mep-strategy1-cycle-start-balance">0</span></div>
+            <div>Текущий баланс: <span class="mep-strategy1-cycle-current-balance">0</span></div>
+            <div>Последняя ставка: <span class="mep-strategy1-cycle-last-stake">0</span></div>
+            <div>Сумма ставок цикла: <span class="mep-strategy1-cycle-total-stake">0</span></div>
+            <div>Проигрышных раундов: <span class="mep-strategy1-cycle-loss-count">0</span></div>
+            <div>Выигрышных раундов: <span class="mep-strategy1-cycle-win-count">0</span></div>
+            <div>Статус цикла: <span class="mep-strategy1-cycle-status">idle</span></div>
+            <div>Причина завершения: <span class="mep-strategy1-cycle-end-reason">—</span></div>
+        </div>
+    </div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-strategy2">
     <div class="mep-game-placeholder">Контент стратегии 2</div>
@@ -4717,6 +6049,68 @@
                     charterLossesPer6HoursInput: panel.querySelector("input.mep-charter-losses-6h"),
                     charterLossesPerDayInput: panel.querySelector("input.mep-charter-losses-day"),
                     charterBreakAfter3LossesMinInput: panel.querySelector("input.mep-charter-break-3loss-min"),
+                    strategy1EnabledInput: panel.querySelector("input.mep-strategy1-enabled"),
+                    strategy1RiskPercentInput: panel.querySelector("input.mep-strategy1-risk-percent"),
+                    strategy1StartStakeModeInput: panel.querySelector("select.mep-strategy1-start-stake-mode"),
+                    strategy1StartStakeValueInput: panel.querySelector("input.mep-strategy1-start-stake-value"),
+                    strategy1StartStakeArrayInput: panel.querySelector("input.mep-strategy1-start-stake-array"),
+                    strategy1StakeGrowthModeInput: panel.querySelector("select.mep-strategy1-stake-growth-mode"),
+                    strategy1StakeGrowthFactorInput: panel.querySelector("input.mep-strategy1-stake-growth-factor"),
+                    strategy1StakeGrowthArrayInput: panel.querySelector("input.mep-strategy1-stake-growth-array"),
+                    strategy1TargetModeInput: panel.querySelector("select.mep-strategy1-target-mode"),
+                    strategy1TargetMultiplierInput: panel.querySelector("input.mep-strategy1-target-multiplier"),
+                    strategy1TargetMultiplierArrayInput: panel.querySelector("input.mep-strategy1-target-multiplier-array"),
+                    strategy1MaxLossesInput: panel.querySelector("input.mep-strategy1-max-losses"),
+                    strategy1StartCycleBtn: panel.querySelector("button.mep-strategy1-start-cycle"),
+                    strategy1FinishCycleBtn: panel.querySelector("button.mep-strategy1-finish-cycle"),
+                    strategy1ResetCycleBtn: panel.querySelector("button.mep-strategy1-reset-cycle"),
+                    strategy1CheckCharterBtn: panel.querySelector("button.mep-strategy1-check-charter"),
+                    strategy1RouteBranchBtn: panel.querySelector("button.mep-strategy1-route-branch"),
+                    strategy1CheckFirstBranchBtn: panel.querySelector("button.mep-strategy1-check-first-branch"),
+                    strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
+                    strategy1StakePlayersVectorStateEl: panel.querySelector(".mep-strategy1-stake-players-vector-state"),
+                    strategy1StakeBetVectorStateEl: panel.querySelector(".mep-strategy1-stake-bet-vector-state"),
+                    strategy1FirstBranchPassedEl: panel.querySelector(".mep-strategy1-first-branch-passed"),
+                    strategy1FirstBranchLt2El: panel.querySelector(".mep-strategy1-first-branch-lt2"),
+                    strategy1FirstBranchDiffEl: panel.querySelector(".mep-strategy1-first-branch-diff"),
+                    strategy1FirstBranchFreqEl: panel.querySelector(".mep-strategy1-first-branch-freq"),
+                    strategy1FirstBranchStakeBetEl: panel.querySelector(".mep-strategy1-first-branch-stake-bet"),
+                    strategy1FirstBranchStakePlayersEl: panel.querySelector(".mep-strategy1-first-branch-stake-players"),
+                    strategy1FirstBranchFailedAtEl: panel.querySelector(".mep-strategy1-first-branch-failed-at"),
+                    strategy1FirstBranchWaitReasonEl: panel.querySelector(".mep-strategy1-first-branch-wait-reason"),
+                    strategy1ConditionsCanBetEl: panel.querySelector(".mep-strategy1-conditions-canbet"),
+                    strategy1ConditionsEndEl: panel.querySelector(".mep-strategy1-conditions-end"),
+                    strategy1ConditionsReasonEl: panel.querySelector(".mep-strategy1-conditions-reason"),
+                    strategy1StakeCalcModeEl: panel.querySelector(".mep-strategy1-stake-calc-mode"),
+                    strategy1TargetCalcModeEl: panel.querySelector(".mep-strategy1-target-calc-mode"),
+                    strategy1LastBetAmountEl: panel.querySelector(".mep-strategy1-last-bet-amount"),
+                    strategy1LastTargetMultiplierEl: panel.querySelector(".mep-strategy1-last-target-multiplier"),
+                    strategy1CycleStartBalanceEl: panel.querySelector(".mep-strategy1-cycle-start-balance"),
+                    strategy1CycleCurrentBalanceEl: panel.querySelector(".mep-strategy1-cycle-current-balance"),
+                    strategy1CycleLastStakeEl: panel.querySelector(".mep-strategy1-cycle-last-stake"),
+                    strategy1CycleTotalStakeEl: panel.querySelector(".mep-strategy1-cycle-total-stake"),
+                    strategy1CycleLossCountEl: panel.querySelector(".mep-strategy1-cycle-loss-count"),
+                    strategy1CycleWinCountEl: panel.querySelector(".mep-strategy1-cycle-win-count"),
+                    strategy1CycleStatusEl: panel.querySelector(".mep-strategy1-cycle-status"),
+                    strategy1CycleEndReasonEl: panel.querySelector(".mep-strategy1-cycle-end-reason"),
+                    strategy1DecisionStatusTextEl: panel.querySelector(".mep-strategy1-decision-status-text"),
+                    strategy1DecisionStatusCodeEl: panel.querySelector(".mep-strategy1-decision-status-code"),
+                    strategy1DecisionCanBetEl: panel.querySelector(".mep-strategy1-decision-canbet"),
+                    strategy1DecisionEndCycleEl: panel.querySelector(".mep-strategy1-decision-endcycle"),
+                    strategy1DecisionBranchEl: panel.querySelector(".mep-strategy1-decision-branch"),
+                    strategy1DecisionWaitReasonEl: panel.querySelector(".mep-strategy1-decision-waitreason"),
+                    strategy1CharterAllowedEl: panel.querySelector(".mep-strategy1-charter-allowed"),
+                    strategy1CharterReasonEl: panel.querySelector(".mep-strategy1-charter-reason"),
+                    strategy1CharterRoundsHourEl: panel.querySelector(".mep-strategy1-charter-rounds-hour"),
+                    strategy1CharterRounds6hEl: panel.querySelector(".mep-strategy1-charter-rounds-6h"),
+                    strategy1CharterRoundsDayEl: panel.querySelector(".mep-strategy1-charter-rounds-day"),
+                    strategy1CharterWinsHourEl: panel.querySelector(".mep-strategy1-charter-wins-hour"),
+                    strategy1CharterWins6hEl: panel.querySelector(".mep-strategy1-charter-wins-6h"),
+                    strategy1CharterWinsDayEl: panel.querySelector(".mep-strategy1-charter-wins-day"),
+                    strategy1CharterLossesHourEl: panel.querySelector(".mep-strategy1-charter-losses-hour"),
+                    strategy1CharterLosses6hEl: panel.querySelector(".mep-strategy1-charter-losses-6h"),
+                    strategy1CharterLossesDayEl: panel.querySelector(".mep-strategy1-charter-losses-day"),
+                    strategy1CharterBreakEl: panel.querySelector(".mep-strategy1-charter-break"),
                     textarea: panel.querySelector("textarea.mep-stats"),
                     copyBtn: panel.querySelector("button.mep-copy"),
                     sendDbBtn: panel.querySelector("button.mep-send-db"),
@@ -4793,6 +6187,14 @@
                     stakeBetScaleInput: panel.querySelector("input.mep-stake-scale-bet"),
                     stakeShowPlayersInput: panel.querySelector("input.mep-stake-show-players"),
                     stakeShowBetInput: panel.querySelector("input.mep-stake-show-bet"),
+                    stakePlayersVectorEnabledInput: panel.querySelector("input.mep-stake-players-vector-enabled"),
+                    stakePlayersVectorPeriodInput: panel.querySelector("input.mep-stake-players-vector-period"),
+                    stakePlayersVectorShiftInput: panel.querySelector("input.mep-stake-players-vector-shift"),
+                    stakePlayersVectorFlatInput: panel.querySelector("input.mep-stake-players-vector-flat"),
+                    stakeBetVectorEnabledInput: panel.querySelector("input.mep-stake-bet-vector-enabled"),
+                    stakeBetVectorPeriodInput: panel.querySelector("input.mep-stake-bet-vector-period"),
+                    stakeBetVectorShiftInput: panel.querySelector("input.mep-stake-bet-vector-shift"),
+                    stakeBetVectorFlatInput: panel.querySelector("input.mep-stake-bet-vector-flat"),
                     balanceWrap: panel.querySelector(".mep-balance-graph-wrap"),
                     balanceParamsWrap: panel.querySelector(".mep-balance-params"),
                     balanceCollapseBtn: panel.querySelector("button.mep-balance-collapse"),
@@ -4891,6 +6293,121 @@
                 bindCharterInput(ui.charterLossesPer6HoursInput, "charterLossesPer6Hours", 1);
                 bindCharterInput(ui.charterLossesPerDayInput, "charterLossesPerDay", 1);
                 bindCharterInput(ui.charterBreakAfter3LossesMinInput, "charterBreakAfter3LossesMin", 1);
+
+                const s1 = MEP.State?.strategies?.strategy1;
+                if (s1) {
+                    const setNonNegNumber = (inp, key, step = 0.1) => {
+                        if (!inp) return;
+                        const n0 = Math.max(0, Number(s1.config[key]) || 0);
+                        s1.config[key] = n0;
+                        inp.value = String(n0);
+                        inp.addEventListener("input", () => {
+                            let v = Number(inp.value);
+                            if (!Number.isFinite(v) || v < 0) v = 0;
+                            if (step === 1) v = Math.floor(v);
+                            s1.config[key] = v;
+                            inp.value = String(v);
+                            MEP.Storage.save();
+                            MEP.Strategy1?.buildStakePlan?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    };
+                    const setModeSelect = (inp, key, allowed) => {
+                        if (!inp) return;
+                        const cur = allowed.includes(s1.config[key]) ? s1.config[key] : allowed[0];
+                        s1.config[key] = cur;
+                        inp.value = cur;
+                        inp.addEventListener("change", () => {
+                            const val = allowed.includes(inp.value) ? inp.value : allowed[0];
+                            s1.config[key] = val;
+                            inp.value = val;
+                            MEP.Storage.save();
+                            MEP.Strategy1?.buildStakePlan?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    };
+                    const setTextInput = (inp, key) => {
+                        if (!inp) return;
+                        inp.value = (s1.config[key] || "").toString();
+                        inp.addEventListener("input", () => {
+                            s1.config[key] = (inp.value || "").toString();
+                            MEP.Storage.save();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    };
+
+                    if (ui.strategy1EnabledInput) {
+                        ui.strategy1EnabledInput.checked = !!s1.enabled;
+                        ui.strategy1EnabledInput.addEventListener("change", () => {
+                            const next = !!ui.strategy1EnabledInput.checked;
+                            const active = MEP.State.activeStrategyId;
+                            if (next && active && active !== "strategy1") {
+                                ui.strategy1EnabledInput.checked = false;
+                                return;
+                            }
+                            s1.enabled = next;
+                            if (!next && active === "strategy1" && !s1.isExecuting) {
+                                MEP.State.activeStrategyId = null;
+                            }
+                            MEP.Storage.save();
+                            MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1StartCycleBtn) {
+                        ui.strategy1StartCycleBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.startCycle?.();
+                        });
+                    }
+                    if (ui.strategy1FinishCycleBtn) {
+                        ui.strategy1FinishCycleBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.finishCycle?.("manual_stop");
+                        });
+                    }
+                    if (ui.strategy1ResetCycleBtn) {
+                        ui.strategy1ResetCycleBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.resetCycle?.();
+                        });
+                    }
+                    if (ui.strategy1CheckCharterBtn) {
+                        ui.strategy1CheckCharterBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.checkCharter?.();
+                            MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1RouteBranchBtn) {
+                        ui.strategy1RouteBranchBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.routeBranch?.();
+                            MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1CheckFirstBranchBtn) {
+                        ui.strategy1CheckFirstBranchBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.routeBranch?.();
+                            MEP.Strategy1?.checkFirstBranch?.();
+                            MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+
+                    setNonNegNumber(ui.strategy1RiskPercentInput, "riskPercent", 0.1);
+                    setModeSelect(ui.strategy1StartStakeModeInput, "startStakeMode", ["fixed", "array"]);
+                    setNonNegNumber(ui.strategy1StartStakeValueInput, "startStakeValue", 0.00000001);
+                    setTextInput(ui.strategy1StartStakeArrayInput, "startStakeArrayText");
+                    setModeSelect(ui.strategy1StakeGrowthModeInput, "stakeGrowthMode", ["factor", "array"]);
+                    setNonNegNumber(ui.strategy1StakeGrowthFactorInput, "stakeGrowthFactor", 0.01);
+                    setTextInput(ui.strategy1StakeGrowthArrayInput, "stakeGrowthArrayText");
+                    setModeSelect(ui.strategy1TargetModeInput, "targetMode", ["fixed", "array"]);
+                    setNonNegNumber(ui.strategy1TargetMultiplierInput, "targetMultiplierValue", 0.01);
+                    setTextInput(ui.strategy1TargetMultiplierArrayInput, "targetMultiplierArrayText");
+                    setNonNegNumber(ui.strategy1MaxLossesInput, "maxLosses", 1);
+
+                    MEP.Strategy1?.checkCharter?.();
+                    MEP.Strategy1?.buildStakePlan?.();
+                    MEP.Strategy1?.updateUiCounters?.();
+                }
 
                 // -------------------------
                 // Graph controls
@@ -5151,6 +6668,96 @@
                     ui.stakeShowBetInput.checked = MEP.State.stakeGraphShowBet !== false;
                     ui.stakeShowBetInput.addEventListener("change", () => {
                         MEP.State.stakeGraphShowBet = !!ui.stakeShowBetInput.checked;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakePlayersVectorEnabledInput) {
+                    ui.stakePlayersVectorEnabledInput.checked = MEP.State.stakePlayersVectorEnabled !== false;
+                    ui.stakePlayersVectorEnabledInput.addEventListener("change", () => {
+                        MEP.State.stakePlayersVectorEnabled = !!ui.stakePlayersVectorEnabledInput.checked;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakePlayersVectorPeriodInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.stakePlayersVectorPeriod) || 9));
+                    MEP.State.stakePlayersVectorPeriod = current;
+                    ui.stakePlayersVectorPeriodInput.value = String(current);
+                    ui.stakePlayersVectorPeriodInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.stakePlayersVectorPeriodInput.value) || 1));
+                        MEP.State.stakePlayersVectorPeriod = v;
+                        ui.stakePlayersVectorPeriodInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakePlayersVectorShiftInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.stakePlayersVectorPhaseShift) || 3));
+                    MEP.State.stakePlayersVectorPhaseShift = current;
+                    ui.stakePlayersVectorShiftInput.value = String(current);
+                    ui.stakePlayersVectorShiftInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.stakePlayersVectorShiftInput.value) || 1));
+                        MEP.State.stakePlayersVectorPhaseShift = v;
+                        ui.stakePlayersVectorShiftInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakePlayersVectorFlatInput) {
+                    const current = Math.max(0, Number(MEP.State.stakePlayersVectorFlatEpsilon) || 0);
+                    MEP.State.stakePlayersVectorFlatEpsilon = current;
+                    ui.stakePlayersVectorFlatInput.value = String(current);
+                    ui.stakePlayersVectorFlatInput.addEventListener("input", () => {
+                        const v = Math.max(0, Number(ui.stakePlayersVectorFlatInput.value) || 0);
+                        MEP.State.stakePlayersVectorFlatEpsilon = v;
+                        ui.stakePlayersVectorFlatInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakeBetVectorEnabledInput) {
+                    ui.stakeBetVectorEnabledInput.checked = MEP.State.stakeBetVectorEnabled !== false;
+                    ui.stakeBetVectorEnabledInput.addEventListener("change", () => {
+                        MEP.State.stakeBetVectorEnabled = !!ui.stakeBetVectorEnabledInput.checked;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakeBetVectorPeriodInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.stakeBetVectorPeriod) || 9));
+                    MEP.State.stakeBetVectorPeriod = current;
+                    ui.stakeBetVectorPeriodInput.value = String(current);
+                    ui.stakeBetVectorPeriodInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.stakeBetVectorPeriodInput.value) || 1));
+                        MEP.State.stakeBetVectorPeriod = v;
+                        ui.stakeBetVectorPeriodInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakeBetVectorShiftInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.stakeBetVectorPhaseShift) || 3));
+                    MEP.State.stakeBetVectorPhaseShift = current;
+                    ui.stakeBetVectorShiftInput.value = String(current);
+                    ui.stakeBetVectorShiftInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.stakeBetVectorShiftInput.value) || 1));
+                        MEP.State.stakeBetVectorPhaseShift = v;
+                        ui.stakeBetVectorShiftInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakeBetVectorFlatInput) {
+                    const current = Math.max(0, Number(MEP.State.stakeBetVectorFlatEpsilon) || 0);
+                    MEP.State.stakeBetVectorFlatEpsilon = current;
+                    ui.stakeBetVectorFlatInput.value = String(current);
+                    ui.stakeBetVectorFlatInput.addEventListener("input", () => {
+                        const v = Math.max(0, Number(ui.stakeBetVectorFlatInput.value) || 0);
+                        MEP.State.stakeBetVectorFlatEpsilon = v;
+                        ui.stakeBetVectorFlatInput.value = String(v);
                         MEP.Storage.save();
                         MEP.StakeGraph?.render?.();
                     });
@@ -6016,6 +7623,7 @@
                 MEP.StakeGraph?.render?.();
                 MEP.BalanceGraph?.render?.();
                 MEP.Graph?.render?.();
+                MEP.Strategy1?.updateUiCounters?.();
             },
 
             async copyOldestFirst() {
@@ -7034,6 +8642,7 @@
 
                 //загрузка настроек
                 MEP.Settings.load();
+                MEP.Strategy1?.init?.();
 
                 // определяем текущую игру и проверяем реестр поддерживаемых
                 MEP.State.gameSlug = MEP.Utils.getGameSlug();
@@ -7069,6 +8678,9 @@
 
                 // панель всегда (чтобы показать "в разработке")
                 MEP.UI.mount();
+                MEP.Strategy1?.init?.();
+                MEP.Strategy1?.evaluateDecisionState?.();
+                MEP.Strategy1?.updateUiCounters?.();
 
                 // если игра не поддерживается — показываем заглушку и выходим (никакой логики/трекера)
                 if (!MEP.State.gameSupported) {
