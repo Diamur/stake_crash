@@ -179,3 +179,8 @@
 - `startNewCycle()` теперь вручную очищает waiting-recovery runtime флаги перед запуском нового цикла; `updateAfterRound()` обновляет waiting-recovery через `refreshWaitingBalanceRecovery()`.
 - В Strategy1 UI добавлены кнопки `Ждать восстановления` / `Снять ожидание`, refs+bind, и diagnostics-поля waiting recovery (active/reason/target/current/reached/startedAt/reachedAt).
 - В system messages добавлены значимые переходы waiting recovery: вход, выход, и единоразовое сообщение при первом достижении целевого баланса.
+
+- 2026-03-29: Strategy1 Этап 15 — добавлены config toggles FIRST/SECOND_BRANCH (enabled/disabled) с сохранением через существующий strategy1.config persistence path.
+- Добавлен helper `buildConditionResult()` (`enabled/passed/effectivePassed/waitReason/statusText/details`) и интеграция условий-массивов в `checkFirstBranch()` и `checkSecondBranch()`.
+- SECOND max-stake special-case теперь зависит от toggle: при `secondCondMaxStakeEnabled=false` ветка не блокируется и `shouldEndCycle` по max-stake не ставится.
+- В UI «Конструктор условий» добавлены чекбоксы toggles и компактная диагностика raw/effective для FIRST/SECOND условий (через отдельные diag containers).
