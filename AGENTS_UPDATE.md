@@ -185,3 +185,8 @@
 - Для SECOND max_stake добавлено правило toggle-aware: при выключенном `secondCondMaxStakeEnabled` блокировка и `shouldEndCycle` по max stake не срабатывают.
 - В UI Strategy1 добавлены checkbox-переключатели условий, refs/bind и живой ререндер после клика (`save -> evaluateDecisionState -> updateUiCounters`).
 - В diagnostics добавлены компактные строки по каждому условию: `on/raw/eff` для FIRST и SECOND веток.
+- 2026-03-29: Strategy1 Этап 16 — добавлен runtime/config слой status+voice events (event codes, emitStatusEvent, emitVoiceEvent, announceStateTransition) без TTS/autoclick.
+- В runtime добавлены lastVoice/lastStatus + lastAnnounced* поля; в config добавлены voiceEnabled/statusEventsEnabled/voiceCooldownMs (через текущий strategy1.config persistence path).
+- Подключены переходы: start/finish/new cycle, pause/resume, waiting recovery on/off/reached, permission/branch transitions, round outcome events.
+- Добавлен cooldown/dedupe для voice (voiceCooldownMs) и state-dedupe для branch/permission transition событий.
+- В Strategy1 UI добавлены controls Voice/Status/Cooldown и diagnostics Last voice/status event + ts; обновлены refs/bind/updateUiCounters.
