@@ -306,6 +306,15 @@
                 lastProcessedBalanceTs: 0,
                 waitingRoundResult: false,
                 lastCycleAction: "",
+                decisionState: {
+                    canMakeBet: false,
+                    shouldEndCycle: false,
+                    branch: "",
+                    waitReason: "",
+                    statusCode: "idle",
+                    statusText: "Стратегия в ожидании",
+                    lastDecisionAtTs: 0,
+                },
             },
             ui: {
                 sectionExpanded: true,
@@ -1326,6 +1335,29 @@
 				opacity:0.85;
 				line-height:1.35;
 				white-space:pre-line;
+				}
+				#${PANEL_ID} .mep-strategy-state-grid{
+				display:flex;
+				flex-direction:column;
+				gap:6px;
+				}
+				#${PANEL_ID} .mep-strategy-state-row{
+				display:grid;
+				grid-template-columns: 1fr 1fr;
+				align-items:center;
+				gap:10px;
+				padding:4px 6px;
+				border:1px solid rgba(255,255,255,0.12);
+				background: rgba(255,255,255,0.03);
+				}
+				#${PANEL_ID} .mep-strategy-state-label{
+				font-size:12px;
+				opacity:0.86;
+				}
+				#${PANEL_ID} .mep-strategy-state-value{
+				font-size:12px;
+				font-weight:400;
+				text-align:right;
 				}
 				#${PANEL_ID} .mep-game-placeholder{
 				font-size:13px;
@@ -4239,6 +4271,15 @@
         // Strategy1 module (skeleton)
         // -------------------------
         MEP.Strategy1 = {
+            DECISION_STATUS: {
+                IDLE: "idle",
+                WAITING_SIGNAL: "waiting_signal",
+                BET_ALLOWED: "bet_allowed",
+                CYCLE_SHOULD_END: "cycle_should_end",
+                PAUSED_MANUAL: "paused_manual",
+                WAITING_BALANCE_RECOVERY: "waiting_balance_recovery",
+            },
+
             getState() {
                 return MEP.State?.strategies?.strategy1 || null;
             },
@@ -4247,6 +4288,7 @@
                 const st = this.getState();
                 if (!st) return;
                 this.buildStakePlan();
+                this.evaluateDecisionState();
                 this.updateUiCounters();
             },
 
@@ -4259,6 +4301,7 @@
                 st.timers = { ...d.timers };
                 st.runtime.waitingRoundResult = false;
                 st.runtime.lastCycleAction = "resetCycle";
+                this.evaluateDecisionState();
                 this.updateUiCounters();
                 return st.cycle;
             },
@@ -4275,6 +4318,7 @@
                 st.cycle.endReason = "";
                 st.timers.cycleStartedAtTs = Date.now();
                 st.runtime.lastCycleAction = "startCycle";
+                this.evaluateDecisionState();
                 this.updateUiCounters();
                 return true;
             },
@@ -4292,6 +4336,7 @@
                 );
                 if (MEP.State.activeStrategyId === st.id) MEP.State.activeStrategyId = null;
                 st.runtime.lastCycleAction = "finishCycle";
+                this.evaluateDecisionState();
                 this.updateUiCounters();
                 return st.cycle.endReason;
             },
@@ -4328,10 +4373,61 @@
                 return { ...st.stakePlan };
             },
 
+            updateDecisionState(partial = {}) {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.runtime) st.runtime = {};
+                if (!st.runtime.decisionState || typeof st.runtime.decisionState !== "object") {
+                    const d = buildStrategy1DefaultState();
+                    st.runtime.decisionState = { ...d.runtime.decisionState };
+                }
+                st.runtime.decisionState = {
+                    ...st.runtime.decisionState,
+                    ...(partial && typeof partial === "object" ? partial : {}),
+                    lastDecisionAtTs: Date.now(),
+                };
+                this.updateUiCounters();
+                return { ...st.runtime.decisionState };
+            },
+
+            evaluateDecisionState() {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.enabled) {
+                    return this.updateDecisionState({
+                        canMakeBet: false,
+                        shouldEndCycle: false,
+                        statusCode: this.DECISION_STATUS.IDLE,
+                        statusText: "Стратегия выключена",
+                        branch: "",
+                        waitReason: "",
+                    });
+                }
+                if (!st.cycle?.isActive) {
+                    return this.updateDecisionState({
+                        canMakeBet: false,
+                        shouldEndCycle: false,
+                        statusCode: this.DECISION_STATUS.IDLE,
+                        statusText: "Ожидание запуска цикла",
+                        branch: "",
+                        waitReason: "Цикл не активирован",
+                    });
+                }
+                return this.updateDecisionState({
+                    canMakeBet: false,
+                    shouldEndCycle: false,
+                    statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                    statusText: "Цикл активен — ожидание сигнала",
+                    branch: "",
+                    waitReason: "Нет входного сигнала",
+                });
+            },
+
             updateUiCounters() {
                 const st = this.getState();
                 const ui = MEP.UI?.ui;
                 if (!st || !ui) return;
+                const decision = st.runtime?.decisionState || {};
 
                 if (ui.strategy1ConditionsModeEl) ui.strategy1ConditionsModeEl.textContent = st.conditions.mode || "all";
                 if (ui.strategy1ConditionsCanBetEl)
@@ -4378,6 +4474,18 @@
                     ui.strategy1CycleStatusEl.textContent = st.cycle.isActive ? "active" : st.isExecuting ? "executing" : "idle";
                 if (ui.strategy1CycleEndReasonEl)
                     ui.strategy1CycleEndReasonEl.textContent = (st.cycle.endReason || "—").toString();
+                if (ui.strategy1DecisionStatusTextEl)
+                    ui.strategy1DecisionStatusTextEl.textContent = (decision.statusText || "—").toString();
+                if (ui.strategy1DecisionStatusCodeEl)
+                    ui.strategy1DecisionStatusCodeEl.textContent = (decision.statusCode || "—").toString();
+                if (ui.strategy1DecisionCanBetEl)
+                    ui.strategy1DecisionCanBetEl.textContent = String(!!decision.canMakeBet);
+                if (ui.strategy1DecisionEndCycleEl)
+                    ui.strategy1DecisionEndCycleEl.textContent = String(!!decision.shouldEndCycle);
+                if (ui.strategy1DecisionBranchEl)
+                    ui.strategy1DecisionBranchEl.textContent = (decision.branch || "—").toString();
+                if (ui.strategy1DecisionWaitReasonEl)
+                    ui.strategy1DecisionWaitReasonEl.textContent = (decision.waitReason || "—").toString();
             },
         };
 
@@ -5029,6 +5137,17 @@
         </div>
     </div>
     <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Текущее состояние стратегии</div>
+        <div class="mep-strategy-state-grid">
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Статус:</span><span class="mep-strategy-state-value mep-strategy1-decision-status-text">Стратегия в ожидании</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Код статуса:</span><span class="mep-strategy-state-value mep-strategy1-decision-status-code">idle</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Ставка разрешена:</span><span class="mep-strategy-state-value mep-strategy1-decision-canbet">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Нужно завершить цикл:</span><span class="mep-strategy-state-value mep-strategy1-decision-endcycle">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Текущая ветка:</span><span class="mep-strategy-state-value mep-strategy1-decision-branch">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Причина ожидания:</span><span class="mep-strategy-state-value mep-strategy1-decision-waitreason">—</span></div>
+        </div>
+    </div>
+    <div class="mep-strategy-section">
         <div class="mep-strategy-section-title">Входные параметры</div>
         <div class="mep-strategy-form">
             <div class="mep-strategy-row"><span class="mep-strategy-label">Процент риска от баланса</span><input class="mep-strategy-input mep-strategy1-risk-percent" type="number" min="0" step="0.1" /></div>
@@ -5138,6 +5257,12 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1CycleWinCountEl: panel.querySelector(".mep-strategy1-cycle-win-count"),
                     strategy1CycleStatusEl: panel.querySelector(".mep-strategy1-cycle-status"),
                     strategy1CycleEndReasonEl: panel.querySelector(".mep-strategy1-cycle-end-reason"),
+                    strategy1DecisionStatusTextEl: panel.querySelector(".mep-strategy1-decision-status-text"),
+                    strategy1DecisionStatusCodeEl: panel.querySelector(".mep-strategy1-decision-status-code"),
+                    strategy1DecisionCanBetEl: panel.querySelector(".mep-strategy1-decision-canbet"),
+                    strategy1DecisionEndCycleEl: panel.querySelector(".mep-strategy1-decision-endcycle"),
+                    strategy1DecisionBranchEl: panel.querySelector(".mep-strategy1-decision-branch"),
+                    strategy1DecisionWaitReasonEl: panel.querySelector(".mep-strategy1-decision-waitreason"),
                     textarea: panel.querySelector("textarea.mep-stats"),
                     copyBtn: panel.querySelector("button.mep-copy"),
                     sendDbBtn: panel.querySelector("button.mep-send-db"),
@@ -5369,6 +5494,7 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                                 MEP.State.activeStrategyId = null;
                             }
                             MEP.Storage.save();
+                            MEP.Strategy1?.evaluateDecisionState?.();
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
@@ -7569,6 +7695,8 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                 // панель всегда (чтобы показать "в разработке")
                 MEP.UI.mount();
                 MEP.Strategy1?.init?.();
+                MEP.Strategy1?.evaluateDecisionState?.();
+                MEP.Strategy1?.updateUiCounters?.();
 
                 // если игра не поддерживается — показываем заглушку и выходим (никакой логики/трекера)
                 if (!MEP.State.gameSupported) {

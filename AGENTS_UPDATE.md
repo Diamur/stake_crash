@@ -106,3 +106,8 @@
 - На все charter input добавлен `title="0 = без ограничений"`.
 - Логика state/storage/bind не менялась: 0 сохраняется как 0 и интерпретируется как отключённый лимит по UI-правилу.
 - 2026-03-28: Добавлен сухой каркас `Стратегия1` во вкладке `Игра` (state-реестр стратегий, Strategy1 module-заглушка, UI-секции параметров/условий/ставок/цикла, refs+bind, persistence только `enabled+config`, execution guard через `activeStrategyId` без автоклика/боевой ставки).
+- 2026-03-29: Strategy1 Этап 1 — добавлен runtime-блок `decisionState` (canMakeBet/shouldEndCycle/branch/waitReason/statusCode/statusText/lastDecisionAtTs) в default state.
+- В `MEP.Strategy1` добавлены `DECISION_STATUS`, `updateDecisionState(partial)` и `evaluateDecisionState()`; evaluate вызывается на init, toggle enabled и в start/finish/reset cycle.
+- Во вкладке `Игра -> Стратегия1` добавлен отдельный блок «Текущее состояние стратегии» с 6 диагностическими полями (status/code/canBet/endCycle/branch/waitReason).
+- `updateUiCounters()` расширен выводом decisionState; добавлены соответствующие refs в `MEP.UI.ui`.
+- Persistence не изменён: по-прежнему сохраняются только `strategy1.enabled` и `strategy1.config`; decisionState runtime-only.
