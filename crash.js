@@ -314,6 +314,9 @@
                 lastFirstBranchResult: null,
                 lastSecondBranchResult: null,
                 lastBetPermissionResult: null,
+                lastRoundOutcome: "",
+                lastRoundResult: null,
+                lastCycleSnapshot: null,
                 decisionState: {
                     canMakeBet: false,
                     shouldEndCycle: false,
@@ -340,7 +343,7 @@
             executionLocked: true,
             runtime: {},
         });
-        MEP.ver = "0.1.5.21";
+        MEP.ver = "0.1.5.22";
 
         // -------------------------
         // Settings module
@@ -5227,60 +5230,166 @@
                 return { ...plan };
             },
 
+            normalizeRoundResult(result = {}) {
+                const raw = result && typeof result === "object" ? result : {};
+                const balanceNum = Number(raw.balance);
+                const stakeNum = Number(raw.stake);
+                const targetNum = Number(raw.targetMultiplier);
+                const tsNum = Number(raw.ts);
+                const rawMultiplierNum = Number(raw.rawMultiplier);
+                const fallbackBalance = this.getCurrentBalance();
+                const roundIdRaw = raw.roundId !== undefined && raw.roundId !== null ? String(raw.roundId).trim() : "";
+                return {
+                    balance: Number.isFinite(balanceNum) ? balanceNum : fallbackBalance,
+                    stake: Number.isFinite(stakeNum) ? stakeNum : 0,
+                    targetMultiplier: Number.isFinite(targetNum) ? targetNum : 0,
+                    won: !!raw.won,
+                    lost: !!raw.lost,
+                    roundId: roundIdRaw,
+                    ts: Number.isFinite(tsNum) && tsNum > 0 ? tsNum : Date.now(),
+                    rawMultiplier: Number.isFinite(rawMultiplierNum) ? rawMultiplierNum : null,
+                    resultKind: (raw.resultKind || "").toString(),
+                };
+            },
+
+            deriveRoundOutcome(normalizedResult = {}, previousBalance = 0) {
+                const n = normalizedResult && typeof normalizedResult === "object" ? normalizedResult : {};
+                const nextBalance = Number(n.balance);
+                const prevBalance = Number(previousBalance);
+                const targetMultiplier = Number(n.targetMultiplier);
+                const rawMultiplier = Number(n.rawMultiplier);
+                if (n.won === true) return { isWin: true, isLoss: false, isUnknown: false, outcomeCode: "win" };
+                if (n.lost === true) return { isWin: false, isLoss: true, isUnknown: false, outcomeCode: "loss" };
+                if (Number.isFinite(rawMultiplier) && Number.isFinite(targetMultiplier) && targetMultiplier > 1) {
+                    if (rawMultiplier >= targetMultiplier) return { isWin: true, isLoss: false, isUnknown: false, outcomeCode: "win" };
+                    if (rawMultiplier < targetMultiplier) return { isWin: false, isLoss: true, isUnknown: false, outcomeCode: "loss" };
+                }
+                if (Number.isFinite(nextBalance) && Number.isFinite(prevBalance)) {
+                    if (nextBalance > prevBalance) return { isWin: true, isLoss: false, isUnknown: false, outcomeCode: "win" };
+                    if (nextBalance < prevBalance) return { isWin: false, isLoss: true, isUnknown: false, outcomeCode: "loss" };
+                }
+                return { isWin: false, isLoss: false, isUnknown: true, outcomeCode: "unknown" };
+            },
+
             updateAfterRound(result = {}) {
                 const st = this.getState();
-                if (!st || !st.cycle?.isActive) return false;
-                const tsNow = Date.now();
-                const nextBalanceRaw = Number(result.balance);
-                const nextBalance = Number.isFinite(nextBalanceRaw) ? nextBalanceRaw : this.getCurrentBalance();
-                const stakeRaw = Number(result.stake);
-                const stake = Number.isFinite(stakeRaw) ? stakeRaw : 0;
-                const targetRaw = Number(result.targetMultiplier);
-                const targetMultiplier = Number.isFinite(targetRaw) ? targetRaw : 0;
-                const won = !!result.won;
-                const lost = !!result.lost;
+                if (!st) {
+                    return {
+                        applied: false,
+                        reason: "strategy1_not_found",
+                        outcome: "unknown",
+                        finished: false,
+                        finishReason: "",
+                        cycleSnapshot: null,
+                        permission: null,
+                    };
+                }
+                if (!st.enabled) {
+                    this.updateUiCounters();
+                    return {
+                        applied: false,
+                        reason: "strategy_disabled",
+                        outcome: "unknown",
+                        finished: false,
+                        finishReason: "",
+                        cycleSnapshot: null,
+                        permission: null,
+                    };
+                }
+                if (!st.cycle?.isActive) {
+                    this.updateUiCounters();
+                    return {
+                        applied: false,
+                        reason: "cycle_inactive",
+                        outcome: "unknown",
+                        finished: false,
+                        finishReason: "",
+                        cycleSnapshot: null,
+                        permission: null,
+                    };
+                }
 
-                st.cycle.currentBalance = nextBalance;
-                st.cycle.cyclePnL = nextBalance - (Number(st.cycle.startBalance) || 0);
+                const normalized = this.normalizeRoundResult(result);
+                const previousRoundId = (st.runtime?.lastProcessedRoundId || "").toString();
+                if (normalized.roundId && previousRoundId && normalized.roundId === previousRoundId) {
+                    this.updateUiCounters();
+                    return {
+                        applied: false,
+                        reason: "duplicate_round",
+                        outcome: "unknown",
+                        finished: false,
+                        finishReason: "",
+                        cycleSnapshot: st.runtime?.lastCycleSnapshot ? { ...st.runtime.lastCycleSnapshot } : null,
+                        permission: st.runtime?.lastBetPermissionResult ? { ...st.runtime.lastBetPermissionResult } : null,
+                    };
+                }
+
+                const previousCycleBalance = Number(st.cycle.currentBalance) || 0;
+                const outcome = this.deriveRoundOutcome(normalized, previousCycleBalance);
+
+                st.cycle.currentBalance = normalized.balance;
+                st.cycle.cyclePnL = normalized.balance - (Number(st.cycle.startBalance) || 0);
                 st.cycle.roundCount = (Number(st.cycle.roundCount) || 0) + 1;
-                st.cycle.lastStake = stake;
-                st.cycle.lastTargetMultiplier = targetMultiplier;
-                st.cycle.totalStakeSum = (Number(st.cycle.totalStakeSum) || 0) + stake;
-                st.cycle.stepIndex = (Number(st.cycle.stepIndex) || 0) + 1;
-                if (lost) st.cycle.lossCount = (Number(st.cycle.lossCount) || 0) + 1;
-                if (won) st.cycle.winCount = (Number(st.cycle.winCount) || 0) + 1;
+                st.cycle.lastStake = normalized.stake;
+                st.cycle.lastTargetMultiplier = normalized.targetMultiplier;
+                st.cycle.totalStakeSum = (Number(st.cycle.totalStakeSum) || 0) + normalized.stake;
+                if (outcome.isLoss) st.cycle.lossCount = (Number(st.cycle.lossCount) || 0) + 1;
+                if (outcome.isWin) st.cycle.winCount = (Number(st.cycle.winCount) || 0) + 1;
+                st.cycle.stepIndex = Math.max(0, Number(st.cycle.lossCount) || 0);
 
-                st.counters.currentBalanceAfterRound = nextBalance;
-                st.counters.lastStake = stake;
+                st.counters.currentBalanceAfterRound = normalized.balance;
+                st.counters.lastStake = normalized.stake;
                 st.counters.totalStakeSumInCycle = st.cycle.totalStakeSum;
                 st.counters.lossRoundCount = st.cycle.lossCount;
                 st.counters.winRoundCount = st.cycle.winCount;
 
-                const roundTs = Number(result.ts);
-                st.timers.lastRoundResultAtTs = Number.isFinite(roundTs) && roundTs > 0 ? roundTs : tsNow;
-                if (result.roundId !== undefined && result.roundId !== null && String(result.roundId)) {
-                    st.runtime.lastProcessedRoundId = String(result.roundId);
-                }
-                this.pushEvent("round", st.timers.lastRoundResultAtTs);
-                if (won) this.pushEvent("win", st.timers.lastRoundResultAtTs);
-                if (lost) this.pushEvent("loss", st.timers.lastRoundResultAtTs);
-                st.runtime.lastCycleAction = "updateAfterRound";
+                st.timers.lastRoundResultAtTs = normalized.ts;
+                st.timers.lastRoundFinishedAtTs = normalized.ts;
 
-                if (this.isProfitReached()) {
-                    this.finishCycle("profit_reached");
-                    return true;
+                if (normalized.roundId) st.runtime.lastProcessedRoundId = normalized.roundId;
+                st.runtime.waitingRoundResult = false;
+                st.runtime.lastCycleAction = "updateAfterRound";
+                st.runtime.lastRoundOutcome = outcome.outcomeCode;
+                st.runtime.lastRoundResult = { ...normalized };
+
+                this.pushEvent("round", normalized.ts);
+                if (outcome.isWin) this.pushEvent("win", normalized.ts);
+                if (outcome.isLoss) this.pushEvent("loss", normalized.ts);
+
+                let finishReason = "";
+                if (this.isProfitReached()) finishReason = "profit_reached";
+                else if (this.isMaxLossesReached()) finishReason = "max_losses_reached";
+
+                let finished = false;
+                if (finishReason === "profit_reached" || finishReason === "max_losses_reached") {
+                    this.finishCycle(finishReason);
+                    finished = true;
                 }
-                if (this.isMaxStakeReached()) {
-                    this.finishCycle("max_stake_reached");
-                    return true;
-                }
-                if (this.isMaxLossesReached()) {
-                    this.finishCycle("max_losses_reached");
-                    return true;
-                }
-                this.evaluateDecisionState();
+
+                const cycleSnapshot = {
+                    cycleId: (st.cycle.cycleId || "").toString(),
+                    currentBalance: Number(st.cycle.currentBalance) || 0,
+                    cyclePnL: Number(st.cycle.cyclePnL) || 0,
+                    totalStakeSum: Number(st.cycle.totalStakeSum) || 0,
+                    roundCount: Number(st.cycle.roundCount) || 0,
+                    lossCount: Number(st.cycle.lossCount) || 0,
+                    winCount: Number(st.cycle.winCount) || 0,
+                    endReason: (st.cycle.endReason || "").toString(),
+                };
+                st.runtime.lastCycleSnapshot = { ...cycleSnapshot };
+
+                const permission = this.evaluateDecisionState();
                 this.updateUiCounters();
-                return true;
+
+                return {
+                    applied: true,
+                    reason: "",
+                    outcome: outcome.outcomeCode,
+                    finished,
+                    finishReason: finished ? finishReason : "",
+                    cycleSnapshot,
+                    permission: permission ? { ...permission } : null,
+                };
             },
 
             updateDecisionState(partial = {}) {
@@ -5636,6 +5745,24 @@
                     ui.strategy1CycleStatusEl.textContent = st.cycle.isActive ? "active" : st.isExecuting ? "executing" : "idle";
                 if (ui.strategy1CycleEndReasonEl)
                     ui.strategy1CycleEndReasonEl.textContent = (st.cycle.endReason || "—").toString();
+                if (ui.strategy1LastRoundOutcomeEl)
+                    ui.strategy1LastRoundOutcomeEl.textContent = (st.runtime?.lastRoundOutcome || "—").toString();
+                if (ui.strategy1LastRoundIdEl)
+                    ui.strategy1LastRoundIdEl.textContent = (st.runtime?.lastRoundResult?.roundId || "—").toString();
+                if (ui.strategy1LastRoundBalanceEl) {
+                    const lastRoundBal = Number(st.runtime?.lastRoundResult?.balance);
+                    ui.strategy1LastRoundBalanceEl.textContent = Number.isFinite(lastRoundBal)
+                        ? lastRoundBal.toFixed(8).replace(/\.?0+$/, "")
+                        : "—";
+                }
+                if (ui.strategy1CyclePnlEl)
+                    ui.strategy1CyclePnlEl.textContent = String(Number(st.cycle.cyclePnL) || 0);
+                if (ui.strategy1CycleRoundCountEl)
+                    ui.strategy1CycleRoundCountEl.textContent = String(Number(st.cycle.roundCount) || 0);
+                if (ui.strategy1CycleFinishedEl)
+                    ui.strategy1CycleFinishedEl.textContent = String(!st.cycle.isActive);
+                if (ui.strategy1CycleFinishReasonEl)
+                    ui.strategy1CycleFinishReasonEl.textContent = (st.cycle.endReason || "—").toString();
                 if (ui.strategy1DecisionStatusTextEl)
                     ui.strategy1DecisionStatusTextEl.textContent = (decision.statusText || "—").toString();
                 if (ui.strategy1DecisionStatusCodeEl)
@@ -6353,6 +6480,8 @@
             <button class="mep-btn mep-strategy1-check-second-branch" type="button">Проверить 2 ветку</button>
             <button class="mep-btn mep-strategy1-build-stake-plan" type="button">Проверить план ставки</button>
             <button class="mep-btn mep-strategy1-evaluate-bet-permission" type="button">Проверить допуск к ставке</button>
+            <button class="mep-btn mep-strategy1-test-round-win" type="button">Тест win</button>
+            <button class="mep-btn mep-strategy1-test-round-loss" type="button">Тест loss</button>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -6457,6 +6586,13 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
             <div>Выигрышных раундов: <span class="mep-strategy1-cycle-win-count">0</span></div>
             <div>Статус цикла: <span class="mep-strategy1-cycle-status">idle</span></div>
             <div>Причина завершения: <span class="mep-strategy1-cycle-end-reason">—</span></div>
+            <div>Last round outcome: <span class="mep-strategy1-last-round-outcome">—</span></div>
+            <div>Last round id: <span class="mep-strategy1-last-round-id">—</span></div>
+            <div>Last round balance: <span class="mep-strategy1-last-round-balance">—</span></div>
+            <div>Cycle PnL: <span class="mep-strategy1-cycle-pnl">0</span></div>
+            <div>Cycle round count: <span class="mep-strategy1-cycle-round-count">0</span></div>
+            <div>Finished: <span class="mep-strategy1-cycle-finished">false</span></div>
+            <div>Finish reason: <span class="mep-strategy1-cycle-finish-reason">—</span></div>
         </div>
     </div>
 </div>
@@ -6520,6 +6656,8 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1CheckSecondBranchBtn: panel.querySelector("button.mep-strategy1-check-second-branch"),
                     strategy1BuildStakePlanBtn: panel.querySelector("button.mep-strategy1-build-stake-plan"),
                     strategy1EvaluateBetPermissionBtn: panel.querySelector("button.mep-strategy1-evaluate-bet-permission"),
+                    strategy1TestRoundWinBtn: panel.querySelector("button.mep-strategy1-test-round-win"),
+                    strategy1TestRoundLossBtn: panel.querySelector("button.mep-strategy1-test-round-loss"),
                     strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
                     strategy1StakePlayersVectorStateEl: panel.querySelector(".mep-strategy1-stake-players-vector-state"),
                     strategy1StakeBetVectorStateEl: panel.querySelector(".mep-strategy1-stake-bet-vector-state"),
@@ -6565,6 +6703,13 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1CycleWinCountEl: panel.querySelector(".mep-strategy1-cycle-win-count"),
                     strategy1CycleStatusEl: panel.querySelector(".mep-strategy1-cycle-status"),
                     strategy1CycleEndReasonEl: panel.querySelector(".mep-strategy1-cycle-end-reason"),
+                    strategy1LastRoundOutcomeEl: panel.querySelector(".mep-strategy1-last-round-outcome"),
+                    strategy1LastRoundIdEl: panel.querySelector(".mep-strategy1-last-round-id"),
+                    strategy1LastRoundBalanceEl: panel.querySelector(".mep-strategy1-last-round-balance"),
+                    strategy1CyclePnlEl: panel.querySelector(".mep-strategy1-cycle-pnl"),
+                    strategy1CycleRoundCountEl: panel.querySelector(".mep-strategy1-cycle-round-count"),
+                    strategy1CycleFinishedEl: panel.querySelector(".mep-strategy1-cycle-finished"),
+                    strategy1CycleFinishReasonEl: panel.querySelector(".mep-strategy1-cycle-finish-reason"),
                     strategy1DecisionStatusTextEl: panel.querySelector(".mep-strategy1-decision-status-text"),
                     strategy1DecisionStatusCodeEl: panel.querySelector(".mep-strategy1-decision-status-code"),
                     strategy1DecisionCanBetEl: panel.querySelector(".mep-strategy1-decision-canbet"),
@@ -6886,6 +7031,38 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     if (ui.strategy1EvaluateBetPermissionBtn) {
                         ui.strategy1EvaluateBetPermissionBtn.addEventListener("click", () => {
                             MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1TestRoundWinBtn) {
+                        ui.strategy1TestRoundWinBtn.addEventListener("click", () => {
+                            const stNow = MEP.State?.strategies?.strategy1;
+                            const currentBalance = MEP.Strategy1?.getCurrentBalance?.() || 0;
+                            MEP.Strategy1?.updateAfterRound?.({
+                                balance: currentBalance + 0.00000001,
+                                stake: Number(stNow?.stakePlan?.betAmount) || 0,
+                                targetMultiplier: Number(stNow?.stakePlan?.targetMultiplier) || 2,
+                                won: true,
+                                roundId: `test_win_${Date.now()}`,
+                                ts: Date.now(),
+                                resultKind: "debug",
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1TestRoundLossBtn) {
+                        ui.strategy1TestRoundLossBtn.addEventListener("click", () => {
+                            const stNow = MEP.State?.strategies?.strategy1;
+                            const currentBalance = MEP.Strategy1?.getCurrentBalance?.() || 0;
+                            MEP.Strategy1?.updateAfterRound?.({
+                                balance: Math.max(0, currentBalance - 0.00000001),
+                                stake: Number(stNow?.stakePlan?.betAmount) || 0,
+                                targetMultiplier: Number(stNow?.stakePlan?.targetMultiplier) || 2,
+                                lost: true,
+                                roundId: `test_loss_${Date.now()}`,
+                                ts: Date.now(),
+                                resultKind: "debug",
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }

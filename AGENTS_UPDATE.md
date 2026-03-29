@@ -153,3 +153,8 @@
 - `evaluateDecisionState()` упрощён до тонкой обёртки: вызывает `evaluateBetPermission()` и синхронизирует `runtime.decisionState` через `updateDecisionState()`.
 - Централизована синхронизация `conditions.lastResult` внутри `evaluateBetPermission()`, добавлен runtime-only `lastBetPermissionResult` (без persistence).
 - В UI добавлены diagnostics permission-result (allowed/stage/reason/shouldEndCycle) и debug-кнопка `Проверить допуск к ставке` (ref + bind).
+- 2026-03-29: Strategy1 Этап 10 — `updateAfterRound()` переведён в канонический post-round pipeline: normalize input -> derive outcome -> update cycle/counters/timers/runtime -> finish checks -> re-evaluate permission/UI.
+- Добавлены helper’ы `normalizeRoundResult(result)` и `deriveRoundOutcome(normalized, previousBalance)` с fallback-логикой по rawMultiplier/balance.
+- Добавлена защита от дубликатов раунда (`duplicate_round`) по `roundId` и guard на `strategy_disabled` / `cycle_inactive`.
+- Post-round finish ограничен причинами `profit_reached` и `max_losses_reached`; max stake остаётся в decision-layer (SECOND_BRANCH/evaluateBetPermission).
+- В UI добавлены post-round diagnostics (last outcome/id/balance, cyclePnL/roundCount, finished/finishReason) и debug-кнопки `Тест win` / `Тест loss`.
