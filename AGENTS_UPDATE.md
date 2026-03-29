@@ -180,3 +180,8 @@
 - В Strategy1 UI добавлены кнопки `Ждать восстановления` / `Снять ожидание`, refs+bind, и diagnostics-поля waiting recovery (active/reason/target/current/reached/startedAt/reachedAt).
 - В system messages добавлены значимые переходы waiting recovery: вход, выход, и единоразовое сообщение при первом достижении целевого баланса.
 
+- 2026-03-29: Strategy1 Этап 15 — добавлены config toggles для FIRST/SECOND_BRANCH условий (on/off) с persistence через существующий `strategy1.config` save/load.
+- `checkFirstBranch()` и `checkSecondBranch()` переведены на condition-модель (`enabled/raw passed/effectivePassed`) и возвращают расширенную diagnostics `conditions[]`.
+- Для SECOND max_stake добавлено правило toggle-aware: при выключенном `secondCondMaxStakeEnabled` блокировка и `shouldEndCycle` по max stake не срабатывают.
+- В UI Strategy1 добавлены checkbox-переключатели условий, refs/bind и живой ререндер после клика (`save -> evaluateDecisionState -> updateUiCounters`).
+- В diagnostics добавлены компактные строки по каждому условию: `on/raw/eff` для FIRST и SECOND веток.

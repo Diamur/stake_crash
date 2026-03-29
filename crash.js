@@ -228,6 +228,16 @@
                 targetMultiplierValue: 2,
                 targetMultiplierArrayText: "",
                 maxLosses: 0,
+                firstCondLt2StreakEnabled: true,
+                firstCondDiffVectorEnabled: true,
+                firstCondFrequencyVectorEnabled: true,
+                firstCondStakeBetVectorEnabled: true,
+                firstCondStakePlayersVectorEnabled: true,
+                firstCondExtraEnabled: false,
+                secondCondMaxLossesEnabled: true,
+                secondCondMaxStakeEnabled: true,
+                secondCondDiffVectorEnabled: true,
+                secondCondFrequencyVectorEnabled: true,
             },
             charterCheck: {
                 allowed: true,
@@ -4823,6 +4833,7 @@
             getFirstBranchFailText(failedAt = "") {
                 const map = {
                     streak_lt2: "Раунд пропускаем — ждём 3 подряд результатов меньше 2",
+                    lt2_streak: "Раунд пропускаем — ждём 3 подряд результатов меньше 2",
                     diff_vector: "Раунд пропускаем — ждём сигнал в сущности разниц",
                     frequency_vector: "Раунд пропускаем — ждём сигнал в сущности частотности",
                     stake_bet_vector: "Раунд пропускаем — ждём сигнал в сущности ставок",
@@ -4847,8 +4858,23 @@
                 return map[failedAt] || "Раунд пропускаем — ждём сигнал второй ветки";
             },
 
+            buildConditionResult({ key = "", enabled = true, passed = false, waitReason = "", statusText = "", details = {} } = {}) {
+                const rawPassed = !!passed;
+                const isEnabled = !!enabled;
+                return {
+                    key: (key || "").toString(),
+                    enabled: isEnabled,
+                    passed: rawPassed,
+                    effectivePassed: isEnabled ? rawPassed : true,
+                    waitReason: (waitReason || "").toString(),
+                    statusText: (statusText || "").toString(),
+                    details: details && typeof details === "object" ? { ...details } : {},
+                };
+            },
+
             checkFirstBranch() {
                 const st = this.getState();
+                const config = st?.config || {};
                 const details = {
                     lt2Streak: this.getLt2Streak(),
                     diffVectorState: (MEP.State.diffVectorState || "").toString(),
@@ -4857,24 +4883,69 @@
                     stakePlayersVectorState: (MEP.State.stakePlayersVectorState || "").toString(),
                     extraConditionPassed: true,
                 };
-                const fail = (failedAt) => {
+                const conditions = [
+                    this.buildConditionResult({
+                        key: "lt2_streak",
+                        enabled: config.firstCondLt2StreakEnabled !== false,
+                        passed: details.lt2Streak >= 3,
+                        waitReason: "lt2_streak",
+                        statusText: this.getFirstBranchFailText("streak_lt2"),
+                        details: { lt2Streak: details.lt2Streak },
+                    }),
+                    this.buildConditionResult({
+                        key: "diff_vector",
+                        enabled: config.firstCondDiffVectorEnabled !== false,
+                        passed: details.diffVectorState === "up",
+                        waitReason: "diff_vector",
+                        statusText: this.getFirstBranchFailText("diff_vector"),
+                        details: { state: details.diffVectorState },
+                    }),
+                    this.buildConditionResult({
+                        key: "frequency_vector",
+                        enabled: config.firstCondFrequencyVectorEnabled !== false,
+                        passed: details.frequencyVectorState === "up",
+                        waitReason: "frequency_vector",
+                        statusText: this.getFirstBranchFailText("frequency_vector"),
+                        details: { state: details.frequencyVectorState },
+                    }),
+                    this.buildConditionResult({
+                        key: "stake_bet_vector",
+                        enabled: config.firstCondStakeBetVectorEnabled !== false,
+                        passed: details.stakeBetVectorState === "up",
+                        waitReason: "stake_bet_vector",
+                        statusText: this.getFirstBranchFailText("stake_bet_vector"),
+                        details: { state: details.stakeBetVectorState },
+                    }),
+                    this.buildConditionResult({
+                        key: "stake_players_vector",
+                        enabled: config.firstCondStakePlayersVectorEnabled !== false,
+                        passed: details.stakePlayersVectorState === "up",
+                        waitReason: "stake_players_vector",
+                        statusText: this.getFirstBranchFailText("stake_players_vector"),
+                        details: { state: details.stakePlayersVectorState },
+                    }),
+                    this.buildConditionResult({
+                        key: "extra_condition",
+                        enabled: !!config.firstCondExtraEnabled,
+                        passed: true,
+                        waitReason: "extra_condition",
+                        statusText: "Дополнительное условие пока не задано",
+                        details: { placeholder: true },
+                    }),
+                ];
+                const firstFailed = conditions.find((cond) => !cond.effectivePassed);
+                if (firstFailed) {
                     const res = {
                         passed: false,
-                        failedAt,
+                        failedAt: firstFailed.key,
                         details,
-                        waitReason: failedAt,
-                        statusText: this.getFirstBranchFailText(failedAt),
+                        waitReason: firstFailed.waitReason || firstFailed.key,
+                        statusText: firstFailed.statusText || this.getFirstBranchFailText(firstFailed.key),
+                        conditions,
                     };
                     if (st?.runtime) st.runtime.lastFirstBranchResult = res;
                     return res;
-                };
-
-                if (details.lt2Streak < 3) return fail("streak_lt2");
-                if (details.diffVectorState !== "up") return fail("diff_vector");
-                if (details.frequencyVectorState !== "up") return fail("frequency_vector");
-                if (details.stakeBetVectorState !== "up") return fail("stake_bet_vector");
-                if (details.stakePlayersVectorState !== "up") return fail("stake_players_vector");
-                if (!details.extraConditionPassed) return fail("extra_condition");
+                }
 
                 const ok = {
                     passed: true,
@@ -4882,6 +4953,7 @@
                     details,
                     waitReason: "",
                     statusText: "Первая ветка пройдена — ставка разрешена",
+                    conditions,
                 };
                 if (st?.runtime) st.runtime.lastFirstBranchResult = ok;
                 return ok;
@@ -4897,6 +4969,7 @@
                     statusText: "Стратегия1 не найдена",
                     shouldEndCycle: false,
                     endReason: "",
+                    conditions: [],
                 };
                 if (!st) return fallback;
 
@@ -4905,6 +4978,7 @@
                 const lossCount = Math.max(0, Number(st.cycle?.lossCount) || 0);
                 const maxLosses = Math.max(0, Math.floor(Number(st.config?.maxLosses) || 0));
                 const stakePlan = this.buildStakePlan();
+                const config = st?.config || {};
                 const diffVectorState = (MEP.State.diffVectorState || "").toString();
                 const frequencyVectorState = (MEP.State.frequencyVectorState || "").toString();
 
@@ -4920,49 +4994,95 @@
                     stakePlanInvalidReason: (stakePlan?.invalidReason || "").toString(),
                 };
 
-                const fail = (failedAt, opts = {}) => {
+                if (branch !== "second") {
                     const res = {
                         passed: false,
-                        failedAt,
+                        failedAt: "not_second_branch",
                         details,
-                        waitReason: (opts.waitReason || failedAt || "").toString(),
-                        statusText: opts.statusText || this.getSecondBranchFailText(failedAt, details),
-                        shouldEndCycle: !!opts.shouldEndCycle,
-                        endReason: (opts.endReason || "").toString(),
+                        waitReason: "not_second_branch",
+                        statusText: this.getSecondBranchFailText("not_second_branch", details),
+                        shouldEndCycle: false,
+                        endReason: "",
+                        conditions: [],
                     };
                     if (st?.runtime) st.runtime.lastSecondBranchResult = res;
                     return res;
-                };
-
-                if (branch !== "second") {
-                    return fail("not_second_branch", {
-                        waitReason: "not_second_branch",
-                    });
-                }
-                if (maxLosses > 0 && lossCount >= maxLosses) {
-                    return fail("max_losses", { waitReason: "max_losses" });
                 }
 
+                const invalidReason = (stakePlan?.invalidReason || "").toString();
+                const maxStakeRawPassed =
+                    !!stakePlan?.ready || (invalidReason !== "max_stake_exceeded" && invalidReason !== "max_stake_not_allowed");
+                const conditions = [
+                    this.buildConditionResult({
+                        key: "max_losses",
+                        enabled: config.secondCondMaxLossesEnabled !== false,
+                        passed: maxLosses <= 0 ? true : lossCount < maxLosses,
+                        waitReason: "max_losses",
+                        statusText: this.getSecondBranchFailText("max_losses", details),
+                        details: { lossCount, maxLosses },
+                    }),
+                    this.buildConditionResult({
+                        key: "max_stake",
+                        enabled: config.secondCondMaxStakeEnabled !== false,
+                        passed: maxStakeRawPassed,
+                        waitReason: maxStakeRawPassed ? "max_stake" : "max_stake_reached",
+                        statusText: this.getSecondBranchFailText("max_stake", details),
+                        details: {
+                            stakePlanReady: !!stakePlan?.ready,
+                            stakePlanInvalidReason: invalidReason,
+                        },
+                    }),
+                    this.buildConditionResult({
+                        key: "diff_vector",
+                        enabled: config.secondCondDiffVectorEnabled !== false,
+                        passed: diffVectorState === "up",
+                        waitReason: "diff_vector",
+                        statusText: this.getSecondBranchFailText("diff_vector", details),
+                        details: { state: diffVectorState },
+                    }),
+                    this.buildConditionResult({
+                        key: "frequency_vector",
+                        enabled: config.secondCondFrequencyVectorEnabled !== false,
+                        passed: frequencyVectorState === "up",
+                        waitReason: "frequency_vector",
+                        statusText: this.getSecondBranchFailText("frequency_vector", details),
+                        details: { state: frequencyVectorState },
+                    }),
+                ];
+                const firstFailed = conditions.find((cond) => !cond.effectivePassed);
+                if (firstFailed) {
+                    const maxStakeEnabled = config.secondCondMaxStakeEnabled !== false;
+                    const shouldEndCycle =
+                        firstFailed.key === "max_stake" &&
+                        maxStakeEnabled &&
+                        !maxStakeRawPassed &&
+                        (invalidReason === "max_stake_exceeded" || invalidReason === "max_stake_not_allowed");
+                    const res = {
+                        passed: false,
+                        failedAt: firstFailed.key,
+                        details,
+                        waitReason: shouldEndCycle ? "max_stake_reached" : firstFailed.waitReason || firstFailed.key,
+                        statusText: firstFailed.statusText || this.getSecondBranchFailText(firstFailed.key, details),
+                        shouldEndCycle,
+                        endReason: shouldEndCycle ? "max_stake_reached" : "",
+                        conditions,
+                    };
+                    if (st?.runtime) st.runtime.lastSecondBranchResult = res;
+                    return res;
+                }
                 if (!stakePlan?.ready) {
-                    const invalidReason = (stakePlan?.invalidReason || "").toString();
-                    if (invalidReason === "max_stake_exceeded" || invalidReason === "max_stake_not_allowed") {
-                        return fail("max_stake", {
-                            waitReason: "max_stake_reached",
-                            shouldEndCycle: true,
-                            endReason: "max_stake_reached",
-                            statusText: this.getSecondBranchFailText("max_stake", details),
-                        });
-                    }
-                    return fail("stake_plan_invalid", {
+                    const res = {
+                        passed: false,
+                        failedAt: "stake_plan_invalid",
+                        details,
                         waitReason: invalidReason || "stake_plan_invalid",
-                    });
-                }
-
-                if (diffVectorState !== "up") {
-                    return fail("diff_vector", { waitReason: "diff_vector" });
-                }
-                if (frequencyVectorState !== "up") {
-                    return fail("frequency_vector", { waitReason: "frequency_vector" });
+                        statusText: this.getSecondBranchFailText("stake_plan_invalid", details),
+                        shouldEndCycle: false,
+                        endReason: "",
+                        conditions,
+                    };
+                    if (st?.runtime) st.runtime.lastSecondBranchResult = res;
+                    return res;
                 }
 
                 const ok = {
@@ -4973,6 +5093,7 @@
                     statusText: "Вторая ветка пройдена — ставка разрешена",
                     shouldEndCycle: false,
                     endReason: "",
+                    conditions,
                 };
                 if (st?.runtime) st.runtime.lastSecondBranchResult = ok;
                 return ok;
@@ -6013,7 +6134,40 @@
                     ui.strategy1StakePlayersVectorStateEl.textContent = (MEP.State.stakePlayersVectorState || "—").toString();
                 if (ui.strategy1StakeBetVectorStateEl)
                     ui.strategy1StakeBetVectorStateEl.textContent = (MEP.State.stakeBetVectorState || "—").toString();
+                const cfg = st.config || {};
+                if (ui.strategy1FirstCondLt2EnabledInput) ui.strategy1FirstCondLt2EnabledInput.checked = cfg.firstCondLt2StreakEnabled !== false;
+                if (ui.strategy1FirstCondDiffEnabledInput) ui.strategy1FirstCondDiffEnabledInput.checked = cfg.firstCondDiffVectorEnabled !== false;
+                if (ui.strategy1FirstCondFrequencyEnabledInput)
+                    ui.strategy1FirstCondFrequencyEnabledInput.checked = cfg.firstCondFrequencyVectorEnabled !== false;
+                if (ui.strategy1FirstCondStakeBetEnabledInput)
+                    ui.strategy1FirstCondStakeBetEnabledInput.checked = cfg.firstCondStakeBetVectorEnabled !== false;
+                if (ui.strategy1FirstCondStakePlayersEnabledInput)
+                    ui.strategy1FirstCondStakePlayersEnabledInput.checked = cfg.firstCondStakePlayersVectorEnabled !== false;
+                if (ui.strategy1FirstCondExtraEnabledInput) ui.strategy1FirstCondExtraEnabledInput.checked = !!cfg.firstCondExtraEnabled;
+                if (ui.strategy1SecondCondMaxLossesEnabledInput)
+                    ui.strategy1SecondCondMaxLossesEnabledInput.checked = cfg.secondCondMaxLossesEnabled !== false;
+                if (ui.strategy1SecondCondMaxStakeEnabledInput)
+                    ui.strategy1SecondCondMaxStakeEnabledInput.checked = cfg.secondCondMaxStakeEnabled !== false;
+                if (ui.strategy1SecondCondDiffEnabledInput) ui.strategy1SecondCondDiffEnabledInput.checked = cfg.secondCondDiffVectorEnabled !== false;
+                if (ui.strategy1SecondCondFrequencyEnabledInput)
+                    ui.strategy1SecondCondFrequencyEnabledInput.checked = cfg.secondCondFrequencyVectorEnabled !== false;
                 const firstBranch = st.runtime?.lastFirstBranchResult || null;
+                const renderConditionLine = (cond) => {
+                    if (!cond || typeof cond !== "object") return "—";
+                    const key = (cond.key || "condition").toString();
+                    const nameMap = {
+                        lt2_streak: "LT2 streak",
+                        diff_vector: "Diff EMA",
+                        frequency_vector: "Freq EMA",
+                        stake_bet_vector: "StakeBet EMA",
+                        stake_players_vector: "StakePlayers EMA",
+                        extra_condition: "Extra",
+                        max_losses: "MaxLosses",
+                        max_stake: "MaxStake",
+                    };
+                    const label = nameMap[key] || key;
+                    return `${label} — on:${!!cond.enabled} raw:${!!cond.passed} eff:${!!cond.effectivePassed}`;
+                };
                 if (ui.strategy1FirstBranchPassedEl)
                     ui.strategy1FirstBranchPassedEl.textContent = firstBranch ? String(!!firstBranch.passed) : "—";
                 if (ui.strategy1FirstBranchLt2El)
@@ -6044,6 +6198,11 @@
                     ui.strategy1FirstBranchWaitReasonEl.textContent = firstBranch
                         ? (firstBranch.waitReason || "—").toString()
                         : "—";
+                if (ui.strategy1FirstConditionsDiagWrap) {
+                    const rows = Array.isArray(firstBranch?.conditions) ? firstBranch.conditions : [];
+                    if (!rows.length) ui.strategy1FirstConditionsDiagWrap.textContent = "—";
+                    else ui.strategy1FirstConditionsDiagWrap.innerHTML = rows.map(renderConditionLine).join("<br/>");
+                }
                 const secondBranch = st.runtime?.lastSecondBranchResult || null;
                 if (ui.strategy1SecondBranchPassedEl)
                     ui.strategy1SecondBranchPassedEl.textContent = secondBranch ? String(!!secondBranch.passed) : "—";
@@ -6087,6 +6246,11 @@
                     ui.strategy1SecondBranchWaitReasonEl.textContent = secondBranch
                         ? (secondBranch.waitReason || "—").toString()
                         : "—";
+                if (ui.strategy1SecondConditionsDiagWrap) {
+                    const rows = Array.isArray(secondBranch?.conditions) ? secondBranch.conditions : [];
+                    if (!rows.length) ui.strategy1SecondConditionsDiagWrap.textContent = "—";
+                    else ui.strategy1SecondConditionsDiagWrap.innerHTML = rows.map(renderConditionLine).join("<br/>");
+                }
                 if (ui.strategy1ConditionsCanBetEl)
                     ui.strategy1ConditionsCanBetEl.textContent = String(!!st.conditions.lastResult?.canBet);
                 if (ui.strategy1ConditionsEndEl)
@@ -7018,6 +7182,14 @@
 Режим: <span class="mep-strategy1-conditions-mode">all</span>
 Клиенты EMA: <span class="mep-strategy1-stake-players-vector-state">—</span>
 Ставки EMA: <span class="mep-strategy1-stake-bet-vector-state">—</span>
+<div class="mep-strategy-subtitle">FIRST_BRANCH toggles</div>
+<label class="mep-charter-label"><input class="mep-strategy1-first-cond-lt2-enabled" type="checkbox" /> LT2 streak</label>
+<label class="mep-charter-label"><input class="mep-strategy1-first-cond-diff-enabled" type="checkbox" /> Diff EMA</label>
+<label class="mep-charter-label"><input class="mep-strategy1-first-cond-frequency-enabled" type="checkbox" /> Frequency EMA</label>
+<label class="mep-charter-label"><input class="mep-strategy1-first-cond-stake-bet-enabled" type="checkbox" /> Stake Bet EMA</label>
+<label class="mep-charter-label"><input class="mep-strategy1-first-cond-stake-players-enabled" type="checkbox" /> Stake Players EMA</label>
+<label class="mep-charter-label"><input class="mep-strategy1-first-cond-extra-enabled" type="checkbox" /> Extra</label>
+<div class="mep-strategy1-first-conditions-diag-wrap">—</div>
 FIRST_BRANCH passed: <span class="mep-strategy1-first-branch-passed">—</span>
 LT2 streak: <span class="mep-strategy1-first-branch-lt2">—</span>
 Diff vector: <span class="mep-strategy1-first-branch-diff">—</span>
@@ -7026,6 +7198,12 @@ Stake bet vector: <span class="mep-strategy1-first-branch-stake-bet">—</span>
 Stake players vector: <span class="mep-strategy1-first-branch-stake-players">—</span>
 Failed at: <span class="mep-strategy1-first-branch-failed-at">—</span>
 Wait reason: <span class="mep-strategy1-first-branch-wait-reason">—</span>
+<div class="mep-strategy-subtitle">SECOND_BRANCH toggles</div>
+<label class="mep-charter-label"><input class="mep-strategy1-second-cond-max-losses-enabled" type="checkbox" /> Max losses</label>
+<label class="mep-charter-label"><input class="mep-strategy1-second-cond-max-stake-enabled" type="checkbox" /> Max stake</label>
+<label class="mep-charter-label"><input class="mep-strategy1-second-cond-diff-enabled" type="checkbox" /> Diff EMA</label>
+<label class="mep-charter-label"><input class="mep-strategy1-second-cond-frequency-enabled" type="checkbox" /> Frequency EMA</label>
+<div class="mep-strategy1-second-conditions-diag-wrap">—</div>
 SECOND_BRANCH passed: <span class="mep-strategy1-second-branch-passed">—</span>
 Loss count: <span class="mep-strategy1-second-branch-loss-count">—</span>
 Max losses: <span class="mep-strategy1-second-branch-max-losses">—</span>
@@ -7126,6 +7304,16 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1TargetMultiplierInput: panel.querySelector("input.mep-strategy1-target-multiplier"),
                     strategy1TargetMultiplierArrayInput: panel.querySelector("input.mep-strategy1-target-multiplier-array"),
                     strategy1MaxLossesInput: panel.querySelector("input.mep-strategy1-max-losses"),
+                    strategy1FirstCondLt2EnabledInput: panel.querySelector("input.mep-strategy1-first-cond-lt2-enabled"),
+                    strategy1FirstCondDiffEnabledInput: panel.querySelector("input.mep-strategy1-first-cond-diff-enabled"),
+                    strategy1FirstCondFrequencyEnabledInput: panel.querySelector("input.mep-strategy1-first-cond-frequency-enabled"),
+                    strategy1FirstCondStakeBetEnabledInput: panel.querySelector("input.mep-strategy1-first-cond-stake-bet-enabled"),
+                    strategy1FirstCondStakePlayersEnabledInput: panel.querySelector("input.mep-strategy1-first-cond-stake-players-enabled"),
+                    strategy1FirstCondExtraEnabledInput: panel.querySelector("input.mep-strategy1-first-cond-extra-enabled"),
+                    strategy1SecondCondMaxLossesEnabledInput: panel.querySelector("input.mep-strategy1-second-cond-max-losses-enabled"),
+                    strategy1SecondCondMaxStakeEnabledInput: panel.querySelector("input.mep-strategy1-second-cond-max-stake-enabled"),
+                    strategy1SecondCondDiffEnabledInput: panel.querySelector("input.mep-strategy1-second-cond-diff-enabled"),
+                    strategy1SecondCondFrequencyEnabledInput: panel.querySelector("input.mep-strategy1-second-cond-frequency-enabled"),
                     strategy1StartCycleBtn: panel.querySelector("button.mep-strategy1-start-cycle"),
                     strategy1FinishCycleBtn: panel.querySelector("button.mep-strategy1-finish-cycle"),
                     strategy1HardExitBtn: panel.querySelector("button.mep-strategy1-hard-exit"),
@@ -7168,6 +7356,8 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1SecondBranchShouldEndEl: panel.querySelector(".mep-strategy1-second-branch-should-end"),
                     strategy1SecondBranchEndReasonEl: panel.querySelector(".mep-strategy1-second-branch-end-reason"),
                     strategy1SecondBranchWaitReasonEl: panel.querySelector(".mep-strategy1-second-branch-wait-reason"),
+                    strategy1FirstConditionsDiagWrap: panel.querySelector(".mep-strategy1-first-conditions-diag-wrap"),
+                    strategy1SecondConditionsDiagWrap: panel.querySelector(".mep-strategy1-second-conditions-diag-wrap"),
                     strategy1ConditionsCanBetEl: panel.querySelector(".mep-strategy1-conditions-canbet"),
                     strategy1ConditionsEndEl: panel.querySelector(".mep-strategy1-conditions-end"),
                     strategy1ConditionsReasonEl: panel.querySelector(".mep-strategy1-conditions-reason"),
@@ -7456,6 +7646,17 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                             s1.config[key] = (inp.value || "").toString();
                             MEP.Storage.save();
                             MEP.Strategy1?.buildStakePlan?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    };
+                    const setToggleInput = (inp, key, defaultValue) => {
+                        if (!inp) return;
+                        if (typeof s1.config[key] !== "boolean") s1.config[key] = !!defaultValue;
+                        inp.checked = !!s1.config[key];
+                        inp.addEventListener("change", () => {
+                            s1.config[key] = !!inp.checked;
+                            MEP.Storage.save();
+                            MEP.Strategy1?.evaluateDecisionState?.();
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     };
@@ -7796,6 +7997,16 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     setNonNegNumber(ui.strategy1TargetMultiplierInput, "targetMultiplierValue", 0.01);
                     setTextInput(ui.strategy1TargetMultiplierArrayInput, "targetMultiplierArrayText");
                     setNonNegNumber(ui.strategy1MaxLossesInput, "maxLosses", 1);
+                    setToggleInput(ui.strategy1FirstCondLt2EnabledInput, "firstCondLt2StreakEnabled", true);
+                    setToggleInput(ui.strategy1FirstCondDiffEnabledInput, "firstCondDiffVectorEnabled", true);
+                    setToggleInput(ui.strategy1FirstCondFrequencyEnabledInput, "firstCondFrequencyVectorEnabled", true);
+                    setToggleInput(ui.strategy1FirstCondStakeBetEnabledInput, "firstCondStakeBetVectorEnabled", true);
+                    setToggleInput(ui.strategy1FirstCondStakePlayersEnabledInput, "firstCondStakePlayersVectorEnabled", true);
+                    setToggleInput(ui.strategy1FirstCondExtraEnabledInput, "firstCondExtraEnabled", false);
+                    setToggleInput(ui.strategy1SecondCondMaxLossesEnabledInput, "secondCondMaxLossesEnabled", true);
+                    setToggleInput(ui.strategy1SecondCondMaxStakeEnabledInput, "secondCondMaxStakeEnabled", true);
+                    setToggleInput(ui.strategy1SecondCondDiffEnabledInput, "secondCondDiffVectorEnabled", true);
+                    setToggleInput(ui.strategy1SecondCondFrequencyEnabledInput, "secondCondFrequencyVectorEnabled", true);
 
                     MEP.Strategy1?.checkCharter?.();
                     MEP.Strategy1?.buildStakePlan?.();
