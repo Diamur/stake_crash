@@ -307,6 +307,7 @@
                 waitingRoundResult: false,
                 lastCycleAction: "",
                 eventLog: [],
+                lastBranchInfo: null,
                 decisionState: {
                     canMakeBet: false,
                     shouldEndCycle: false,
@@ -4415,10 +4416,47 @@
                         shouldEndCycle: false,
                         statusCode: this.DECISION_STATUS.CHARTER_BLOCKED,
                         statusText: this.getCharterBlockStatusText(charter.blockReason),
+                        branch: "",
                         waitReason: charter.blockReason || "",
                     });
                 }
                 return charter;
+            },
+
+            routeBranch() {
+                const st = this.getState();
+                if (!st) {
+                    return { branch: "", reason: "strategy1_not_found", lossCount: 0 };
+                }
+                const lossCount = Math.max(0, Number(st.cycle?.lossCount) || 0);
+                if (!st.cycle?.isActive) {
+                    const info = { branch: "", reason: "cycle_inactive", lossCount };
+                    st.runtime.lastBranchInfo = info;
+                    return info;
+                }
+                if (lossCount === 0) {
+                    const info = { branch: "first", reason: "loss_count_zero", lossCount };
+                    st.runtime.lastBranchInfo = info;
+                    return info;
+                }
+                const info = { branch: "second", reason: "loss_count_positive", lossCount };
+                st.runtime.lastBranchInfo = info;
+                return info;
+            },
+
+            getBranchStatusText(branchInfo = {}) {
+                if (branchInfo.branch === "first") return "Первый вход в цикл — используется первая ветка";
+                if (branchInfo.branch === "second") return "Цикл продолжается после минусов — используется вторая ветка";
+                if (branchInfo.reason === "cycle_inactive") return "Цикл не активен — ветка не выбрана";
+                return "Ветка стратегии не выбрана";
+            },
+
+            checkFirstBranch() {
+                return { passed: false, failedAt: "not_implemented" };
+            },
+
+            checkSecondBranch() {
+                return { passed: false, failedAt: "not_implemented" };
             },
 
             isProfitReached() {
@@ -4525,6 +4563,8 @@
                     st.timers.breakEndsAtTs = 0;
                 }
 
+                // NOTE: break сейчас считается по глобальному runtime eventLog стратегии (не только в рамках текущего цикла).
+                // При необходимости можно добавить отдельный режим break, привязанный строго к активному cycle.
                 const consecutiveLosses = this.getConsecutiveLosses();
                 const breakMin = Math.floor(Number(MEP.State?.charterBreakAfter3LossesMin) || 0);
                 if (!st.timers.isBreakActive && breakMin > 0 && consecutiveLosses >= 3) {
@@ -4722,13 +4762,21 @@
                 if (charter && charter.allowed === false) {
                     return this.applyCharterDecision(charter);
                 }
+                const branchInfo = this.routeBranch();
+                const branch = branchInfo?.branch || "";
+                const branchText = this.getBranchStatusText(branchInfo);
                 return this.updateDecisionState({
                     canMakeBet: false,
                     shouldEndCycle: false,
                     statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                    statusText: "Цикл активен — ожидание сигнала",
-                    branch: "",
-                    waitReason: "Нет входного сигнала",
+                    statusText:
+                        branch === "first"
+                            ? "Цикл активен — ожидание сигнала по первой ветке"
+                            : branch === "second"
+                              ? "Цикл активен — ожидание сигнала по второй ветке"
+                              : "Цикл активен — ожидание сигнала",
+                    branch,
+                    waitReason: branch ? `branch:${branch}` : branchText,
                 });
             },
 
@@ -5472,6 +5520,7 @@
             <button class="mep-btn mep-strategy1-finish-cycle" type="button">Завершить цикл</button>
             <button class="mep-btn mep-strategy1-reset-cycle" type="button">Сбросить цикл</button>
             <button class="mep-btn mep-strategy1-check-charter" type="button">Проверить Устав</button>
+            <button class="mep-btn mep-strategy1-route-branch" type="button">Определить ветку</button>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -5520,7 +5569,8 @@
     </div>
     <div class="mep-strategy-section">
         <div class="mep-strategy-section-title">Конструктор условий</div>
-        <div class="mep-strategy-placeholder">Проверка по Уставу + доп. проверки сущностей.
+        <div class="mep-strategy-placeholder">Маршрутизация: первый раунд цикла -> first, после минусов -> second.
+Проверка по Уставу + доп. проверки сущностей.
 Режим: <span class="mep-strategy1-conditions-mode">all</span>
 Rules: placeholder (будущий конструктор)
 LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, shouldEndCycle=<span class="mep-strategy1-conditions-end">false</span>, reason=<span class="mep-strategy1-conditions-reason">—</span></div>
@@ -5600,6 +5650,7 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1FinishCycleBtn: panel.querySelector("button.mep-strategy1-finish-cycle"),
                     strategy1ResetCycleBtn: panel.querySelector("button.mep-strategy1-reset-cycle"),
                     strategy1CheckCharterBtn: panel.querySelector("button.mep-strategy1-check-charter"),
+                    strategy1RouteBranchBtn: panel.querySelector("button.mep-strategy1-route-branch"),
                     strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
                     strategy1ConditionsCanBetEl: panel.querySelector(".mep-strategy1-conditions-canbet"),
                     strategy1ConditionsEndEl: panel.querySelector(".mep-strategy1-conditions-end"),
@@ -5887,6 +5938,13 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     if (ui.strategy1CheckCharterBtn) {
                         ui.strategy1CheckCharterBtn.addEventListener("click", () => {
                             MEP.Strategy1?.checkCharter?.();
+                            MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1RouteBranchBtn) {
+                        ui.strategy1RouteBranchBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.routeBranch?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
                             MEP.Strategy1?.updateUiCounters?.();
                         });

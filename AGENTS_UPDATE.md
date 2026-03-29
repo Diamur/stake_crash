@@ -122,3 +122,8 @@
 - Реализован break после 3 подряд `loss` при `charterBreakAfter3LossesMin > 0` с `break_start` и таймерами `isBreakActive/breakStartedAtTs/breakEndsAtTs`.
 - `evaluateDecisionState()` теперь учитывает Устав в активном цикле и выдаёт `statusCode=charter_blocked`, не завершая цикл автоматически.
 - В UI Strategy1 добавлены кнопка `Проверить Устав` и секция диагностики `charterCheck` (refs + updateUiCounters + bind).
+- 2026-03-29: Strategy1 Этап 4 — добавлен `routeBranch()` (branch/reason/lossCount) с каноном: lossCount=0 -> first, lossCount>0 -> second.
+- Добавлены `getBranchStatusText()` и runtime `lastBranchInfo` (runtime-only, без persistence), плюс optional заглушки `checkFirstBranch/checkSecondBranch` как not_implemented.
+- `evaluateDecisionState()` для активного цикла теперь учитывает routeBranch после успешного charter-check и выставляет `branch`, `statusText` и `waitReason` по ветке.
+- При charter block branch очищается (`""`), статус `charter_blocked` сохраняется, цикл не завершается автоматически.
+- В UI Strategy1 добавлены подсказка маршрутизации и debug-кнопка `Определить ветку` (ref + bind + вызов routeBranch/evaluate/updateUi).
