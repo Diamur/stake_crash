@@ -324,6 +324,13 @@
                 hardExitRequested: false,
                 hardExitAtTs: 0,
                 hardExitReason: "",
+                waitingBalanceRecoveryActive: false,
+                waitingBalanceRecoveryReason: "",
+                waitingBalanceRecoveryStartedAtTs: 0,
+                waitingBalanceRecoveryTargetBalance: 0,
+                waitingBalanceRecoveryCurrentBalance: 0,
+                waitingBalanceRecoveryReached: false,
+                waitingBalanceRecoveryReachedAtTs: 0,
                 systemMessages: [],
                 lastActionResponse: null,
                 decisionState: {
@@ -352,7 +359,7 @@
             executionLocked: true,
             runtime: {},
         });
-        MEP.ver = "0.1.5.25";
+        MEP.ver = "0.1.5.26";
 
         // -------------------------
         // Settings module
@@ -4617,6 +4624,14 @@
                     return data.applied ? "Цикл поставлен на ручную паузу" : "Пауза не применена";
                 if (a === "resumeCycle")
                     return data.applied ? "Ручная пауза снята" : "Продолжение не применено: пауза не активна";
+                if (a === "enterWaitingBalanceRecovery")
+                    return data.applied
+                        ? "Включён режим ожидания восстановления баланса"
+                        : "Режим ожидания не включён";
+                if (a === "exitWaitingBalanceRecovery")
+                    return data.applied
+                        ? "Режим ожидания восстановления баланса отключён"
+                        : "Режим ожидания не выключен";
                 if (a === "evaluateBetPermission")
                     return data.allowed ? "Допуск к ставке разрешён" : "Допуск к ставке отклонён";
                 if (a === "buildStakePlan") return data.ready ? "План ставки готов" : "План ставки невалиден";
@@ -5147,10 +5162,113 @@
                 if (st.cycle?.isActive) return { applied: false, reason: "cycle_already_active" };
                 st.runtime.hardExitRequested = false;
                 st.runtime.hardExitReason = "";
+                if (st.runtime.waitingBalanceRecoveryActive) {
+                    st.runtime.waitingBalanceRecoveryActive = false;
+                    st.runtime.waitingBalanceRecoveryReason = "";
+                    st.runtime.waitingBalanceRecoveryStartedAtTs = 0;
+                    st.runtime.waitingBalanceRecoveryTargetBalance = 0;
+                    st.runtime.waitingBalanceRecoveryCurrentBalance = Number(this.getCurrentBalance()) || 0;
+                    st.runtime.waitingBalanceRecoveryReached = false;
+                    st.runtime.waitingBalanceRecoveryReachedAtTs = 0;
+                }
                 const applied = !!this.startCycle();
                 this.evaluateDecisionState();
                 this.updateUiCounters();
                 return { applied, reason: applied ? "" : "cycle_already_active" };
+            },
+
+            enterWaitingBalanceRecovery(reason = "waiting_balance_recovery", targetBalance = 0) {
+                const st = this.getState();
+                if (!st) return null;
+                if (st.runtime?.waitingBalanceRecoveryActive) return { applied: false, reason: "already_waiting_balance_recovery" };
+                const cycleStartBalance = Number(st.cycle?.startBalance) || 0;
+                const currentBalance = Number(this.getCurrentBalance()) || 0;
+                const explicitTarget = Number(targetBalance);
+                const resolvedTarget = Number.isFinite(explicitTarget) && explicitTarget > 0
+                    ? explicitTarget
+                    : Math.max(cycleStartBalance, currentBalance);
+                st.runtime.waitingBalanceRecoveryActive = true;
+                st.runtime.waitingBalanceRecoveryReason = (reason || "waiting_balance_recovery").toString();
+                st.runtime.waitingBalanceRecoveryStartedAtTs = Date.now();
+                st.runtime.waitingBalanceRecoveryTargetBalance = Number.isFinite(resolvedTarget) && resolvedTarget > 0 ? resolvedTarget : 0;
+                st.runtime.waitingBalanceRecoveryCurrentBalance = currentBalance;
+                st.runtime.waitingBalanceRecoveryReached = false;
+                st.runtime.waitingBalanceRecoveryReachedAtTs = 0;
+                st.runtime.lastCycleAction = "enterWaitingBalanceRecovery";
+                const refreshed = this.refreshWaitingBalanceRecovery();
+                this.pushSystemMessage({
+                    level: "ok",
+                    action: "enterWaitingBalanceRecovery",
+                    text: this.formatSystemMessageText("enterWaitingBalanceRecovery", { applied: true }),
+                    code: "waiting_balance_recovery_entered",
+                    stage: "waiting_balance_recovery",
+                    reason: st.runtime.waitingBalanceRecoveryReason,
+                    payload: {
+                        targetBalance: Number(st.runtime.waitingBalanceRecoveryTargetBalance) || 0,
+                        currentBalance: Number(st.runtime.waitingBalanceRecoveryCurrentBalance) || 0,
+                        reached: !!(refreshed && refreshed.reached),
+                    },
+                });
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied: true };
+            },
+
+            exitWaitingBalanceRecovery(reason = "recovery_cleared") {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.runtime?.waitingBalanceRecoveryActive) return { applied: false, reason: "not_waiting_balance_recovery" };
+                st.runtime.waitingBalanceRecoveryActive = false;
+                st.runtime.waitingBalanceRecoveryReason = "";
+                st.runtime.waitingBalanceRecoveryStartedAtTs = 0;
+                st.runtime.waitingBalanceRecoveryTargetBalance = 0;
+                st.runtime.waitingBalanceRecoveryCurrentBalance = Number(this.getCurrentBalance()) || 0;
+                st.runtime.waitingBalanceRecoveryReached = false;
+                st.runtime.waitingBalanceRecoveryReachedAtTs = 0;
+                st.runtime.lastCycleAction = "exitWaitingBalanceRecovery";
+                this.pushSystemMessage({
+                    level: "ok",
+                    action: "exitWaitingBalanceRecovery",
+                    text: this.formatSystemMessageText("exitWaitingBalanceRecovery", { applied: true }),
+                    code: "waiting_balance_recovery_exited",
+                    stage: "waiting_balance_recovery",
+                    reason: (reason || "recovery_cleared").toString(),
+                });
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied: true, reason: (reason || "recovery_cleared").toString() };
+            },
+
+            refreshWaitingBalanceRecovery() {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.runtime?.waitingBalanceRecoveryActive) return { applied: false, reason: "not_waiting_balance_recovery" };
+                const currentBalance = Number(this.getCurrentBalance()) || 0;
+                const targetBalance = Number(st.runtime.waitingBalanceRecoveryTargetBalance) || 0;
+                const wasReached = !!st.runtime.waitingBalanceRecoveryReached;
+                st.runtime.waitingBalanceRecoveryCurrentBalance = currentBalance;
+                if (targetBalance > 0 && currentBalance >= targetBalance) {
+                    st.runtime.waitingBalanceRecoveryReached = true;
+                    if (!Number(st.runtime.waitingBalanceRecoveryReachedAtTs)) {
+                        st.runtime.waitingBalanceRecoveryReachedAtTs = Date.now();
+                    }
+                    if (!wasReached) {
+                        this.pushSystemMessage({
+                            level: "ok",
+                            action: "refreshWaitingBalanceRecovery",
+                            text: "Баланс восстановлен до целевого уровня",
+                            code: "waiting_balance_recovery_reached",
+                            stage: "waiting_balance_recovery",
+                            reason: "balance_recovered",
+                            payload: { targetBalance, currentBalance },
+                        });
+                    }
+                } else {
+                    st.runtime.waitingBalanceRecoveryReached = false;
+                    st.runtime.waitingBalanceRecoveryReachedAtTs = 0;
+                }
+                this.updateUiCounters();
+                return { applied: true, reached: !!st.runtime.waitingBalanceRecoveryReached };
             },
 
             checkCharter() {
@@ -5562,6 +5680,9 @@
                 };
                 st.runtime.lastCycleSnapshot = { ...cycleSnapshot };
 
+                if (st.runtime?.waitingBalanceRecoveryActive) {
+                    this.refreshWaitingBalanceRecovery();
+                }
                 const permission = this.evaluateDecisionState();
                 this.pushSystemMessage({
                     level: "ok",
@@ -5650,6 +5771,27 @@
                         stage: "disabled",
                         statusCode: this.DECISION_STATUS.IDLE,
                         statusText: "Стратегия выключена",
+                    });
+                } else if (st.runtime?.waitingBalanceRecoveryActive) {
+                    const waitingRefresh = this.refreshWaitingBalanceRecovery();
+                    const reached = !!waitingRefresh?.reached;
+                    const waitingReason = (st.runtime.waitingBalanceRecoveryReason || "waiting_balance_recovery").toString();
+                    result = this.normalizeDecisionResult({
+                        ...result,
+                        allowed: false,
+                        shouldEndCycle: false,
+                        branch: "",
+                        stage: "waiting_balance_recovery",
+                        reason: reached ? "balance_recovered" : waitingReason,
+                        statusCode: this.DECISION_STATUS.WAITING_BALANCE_RECOVERY,
+                        statusText: reached
+                            ? "Баланс восстановлен — можно запускать новый цикл вручную"
+                            : "Ожидание восстановления баланса",
+                        details: {
+                            targetBalance: Number(st.runtime.waitingBalanceRecoveryTargetBalance) || 0,
+                            currentBalance: Number(st.runtime.waitingBalanceRecoveryCurrentBalance) || 0,
+                            reached,
+                        },
                     });
                 } else if (!st.cycle?.isActive) {
                     const endReason = (st.cycle?.endReason || "").toString().trim();
@@ -6070,6 +6212,29 @@
                 if (ui.strategy1HardExitAtEl)
                     ui.strategy1HardExitAtEl.textContent = st.runtime?.hardExitAtTs
                         ? String(Number(st.runtime.hardExitAtTs) || 0)
+                        : "—";
+                if (ui.strategy1WaitingRecoveryActiveEl)
+                    ui.strategy1WaitingRecoveryActiveEl.textContent = String(!!st.runtime?.waitingBalanceRecoveryActive);
+                if (ui.strategy1WaitingRecoveryReasonEl)
+                    ui.strategy1WaitingRecoveryReasonEl.textContent =
+                        (st.runtime?.waitingBalanceRecoveryReason || "—").toString();
+                if (ui.strategy1WaitingRecoveryTargetEl)
+                    ui.strategy1WaitingRecoveryTargetEl.textContent = String(
+                        Number(st.runtime?.waitingBalanceRecoveryTargetBalance) || 0
+                    );
+                if (ui.strategy1WaitingRecoveryCurrentEl)
+                    ui.strategy1WaitingRecoveryCurrentEl.textContent = String(
+                        Number(st.runtime?.waitingBalanceRecoveryCurrentBalance) || 0
+                    );
+                if (ui.strategy1WaitingRecoveryReachedEl)
+                    ui.strategy1WaitingRecoveryReachedEl.textContent = String(!!st.runtime?.waitingBalanceRecoveryReached);
+                if (ui.strategy1WaitingRecoveryStartedAtEl)
+                    ui.strategy1WaitingRecoveryStartedAtEl.textContent = st.runtime?.waitingBalanceRecoveryStartedAtTs
+                        ? String(Number(st.runtime.waitingBalanceRecoveryStartedAtTs) || 0)
+                        : "—";
+                if (ui.strategy1WaitingRecoveryReachedAtEl)
+                    ui.strategy1WaitingRecoveryReachedAtEl.textContent = st.runtime?.waitingBalanceRecoveryReachedAtTs
+                        ? String(Number(st.runtime.waitingBalanceRecoveryReachedAtTs) || 0)
                         : "—";
                 if (ui.strategy1CharterAllowedEl) ui.strategy1CharterAllowedEl.textContent = String(!!st.charterCheck?.allowed);
                 if (ui.strategy1CharterReasonEl)
@@ -6769,6 +6934,8 @@
             <button class="mep-btn mep-strategy1-finish-cycle" type="button">Завершить цикл</button>
             <button class="mep-btn mep-strategy1-hard-exit" type="button">Жесткий выход</button>
             <button class="mep-btn mep-strategy1-start-new-cycle" type="button">Новый цикл</button>
+            <button class="mep-btn mep-strategy1-enter-waiting-recovery" type="button">Ждать восстановления</button>
+            <button class="mep-btn mep-strategy1-exit-waiting-recovery" type="button">Снять ожидание</button>
             <button class="mep-btn mep-strategy1-reset-cycle" type="button">Сбросить цикл</button>
             <button class="mep-btn mep-strategy1-check-charter" type="button">Проверить Устав</button>
             <button class="mep-btn mep-strategy1-route-branch" type="button">Определить ветку</button>
@@ -6802,6 +6969,13 @@
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit requested:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-requested">false</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit reason:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-reason">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit at:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-at">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Waiting recovery:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-active">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Recovery reason:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-reason">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Target balance:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-target">0</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Current balance:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-current">0</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Reached:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-reached">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Started at:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-started-at">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Reached at:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-reached-at">—</span></div>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -6956,6 +7130,8 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1FinishCycleBtn: panel.querySelector("button.mep-strategy1-finish-cycle"),
                     strategy1HardExitBtn: panel.querySelector("button.mep-strategy1-hard-exit"),
                     strategy1StartNewCycleBtn: panel.querySelector("button.mep-strategy1-start-new-cycle"),
+                    strategy1EnterWaitingRecoveryBtn: panel.querySelector("button.mep-strategy1-enter-waiting-recovery"),
+                    strategy1ExitWaitingRecoveryBtn: panel.querySelector("button.mep-strategy1-exit-waiting-recovery"),
                     strategy1ResetCycleBtn: panel.querySelector("button.mep-strategy1-reset-cycle"),
                     strategy1CheckCharterBtn: panel.querySelector("button.mep-strategy1-check-charter"),
                     strategy1RouteBranchBtn: panel.querySelector("button.mep-strategy1-route-branch"),
@@ -7039,6 +7215,13 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1HardExitRequestedEl: panel.querySelector(".mep-strategy1-hard-exit-requested"),
                     strategy1HardExitReasonEl: panel.querySelector(".mep-strategy1-hard-exit-reason"),
                     strategy1HardExitAtEl: panel.querySelector(".mep-strategy1-hard-exit-at"),
+                    strategy1WaitingRecoveryActiveEl: panel.querySelector(".mep-strategy1-waiting-recovery-active"),
+                    strategy1WaitingRecoveryReasonEl: panel.querySelector(".mep-strategy1-waiting-recovery-reason"),
+                    strategy1WaitingRecoveryTargetEl: panel.querySelector(".mep-strategy1-waiting-recovery-target"),
+                    strategy1WaitingRecoveryCurrentEl: panel.querySelector(".mep-strategy1-waiting-recovery-current"),
+                    strategy1WaitingRecoveryReachedEl: panel.querySelector(".mep-strategy1-waiting-recovery-reached"),
+                    strategy1WaitingRecoveryStartedAtEl: panel.querySelector(".mep-strategy1-waiting-recovery-started-at"),
+                    strategy1WaitingRecoveryReachedAtEl: panel.querySelector(".mep-strategy1-waiting-recovery-reached-at"),
                     strategy1CharterAllowedEl: panel.querySelector(".mep-strategy1-charter-allowed"),
                     strategy1CharterReasonEl: panel.querySelector(".mep-strategy1-charter-reason"),
                     strategy1CharterRoundsHourEl: panel.querySelector(".mep-strategy1-charter-rounds-hour"),
@@ -7359,6 +7542,42 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                                 stage: "cycle_control",
                                 reason: (res?.reason || "").toString(),
                             });
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1EnterWaitingRecoveryBtn) {
+                        ui.strategy1EnterWaitingRecoveryBtn.addEventListener("click", () => {
+                            const stNow = MEP.State?.strategies?.strategy1 || null;
+                            const cycleStartBalance = Number(stNow?.cycle?.startBalance) || 0;
+                            const currentBalance = Number(MEP.Strategy1?.getCurrentBalance?.()) || 0;
+                            const targetBalance = cycleStartBalance > 0 ? cycleStartBalance : currentBalance;
+                            const res = MEP.Strategy1?.enterWaitingBalanceRecovery?.("waiting_balance_recovery", targetBalance);
+                            if (!res?.applied) {
+                                MEP.Strategy1?.pushSystemMessage?.({
+                                    level: "warn",
+                                    action: "enterWaitingBalanceRecovery",
+                                    text: MEP.Strategy1?.formatSystemMessageText?.("enterWaitingBalanceRecovery", { applied: false }) || "Режим ожидания не включён",
+                                    code: "waiting_balance_recovery_enter_skipped",
+                                    stage: "waiting_balance_recovery",
+                                    reason: (res?.reason || "not_applied").toString(),
+                                });
+                            }
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1ExitWaitingRecoveryBtn) {
+                        ui.strategy1ExitWaitingRecoveryBtn.addEventListener("click", () => {
+                            const res = MEP.Strategy1?.exitWaitingBalanceRecovery?.("manual_exit_waiting_balance_recovery");
+                            if (!res?.applied) {
+                                MEP.Strategy1?.pushSystemMessage?.({
+                                    level: "warn",
+                                    action: "exitWaitingBalanceRecovery",
+                                    text: MEP.Strategy1?.formatSystemMessageText?.("exitWaitingBalanceRecovery", { applied: false }) || "Режим ожидания не выключен",
+                                    code: "waiting_balance_recovery_exit_skipped",
+                                    stage: "waiting_balance_recovery",
+                                    reason: (res?.reason || "not_waiting_balance_recovery").toString(),
+                                });
+                            }
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }

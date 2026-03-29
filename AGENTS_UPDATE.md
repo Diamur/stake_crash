@@ -173,3 +173,9 @@
 - Реализованы методы `requestHardExit(reason)` и `startNewCycle()`; hard exit завершает цикл через `finishCycle("hard_exit")`, new cycle стартует как чистый `startCycle()`.
 - В UI добавлены кнопки `Жесткий выход` и `Новый цикл` + bind/system messages с различимыми action-response.
 - В diagnostics состояния добавлены поля hard-exit (requested/reason/at) и их вывод в `updateUiCounters()`.
+- 2026-03-29: Strategy1 Этап 14 — добавлен runtime-only режим `waiting_balance_recovery` (`waitingBalanceRecoveryActive/reason/startedAtTs/target/current/reached/reachedAtTs`) без persistence.
+- Реализованы методы `enterWaitingBalanceRecovery()`, `exitWaitingBalanceRecovery()` и `refreshWaitingBalanceRecovery()` с каноном targetBalance (explicit > 0, иначе `max(cycle.startBalance, currentBalance)`).
+- `evaluateBetPermission()` расширен ранним gateway `waiting_balance_recovery` (до charter/routing/branch): статус `waiting_balance_recovery`, блок ставок, без автозапуска нового цикла даже при `reached=true`.
+- `startNewCycle()` теперь вручную очищает waiting-recovery runtime флаги перед запуском нового цикла; `updateAfterRound()` обновляет waiting-recovery через `refreshWaitingBalanceRecovery()`.
+- В Strategy1 UI добавлены кнопки `Ждать восстановления` / `Снять ожидание`, refs+bind, и diagnostics-поля waiting recovery (active/reason/target/current/reached/startedAt/reachedAt).
+- В system messages добавлены значимые переходы waiting recovery: вход, выход, и единоразовое сообщение при первом достижении целевого баланса.
