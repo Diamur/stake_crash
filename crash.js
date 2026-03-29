@@ -317,6 +317,10 @@
                 lastRoundOutcome: "",
                 lastRoundResult: null,
                 lastCycleSnapshot: null,
+                manualPauseActive: false,
+                manualPauseReason: "",
+                manualPauseAtTs: 0,
+                manualResumeAtTs: 0,
                 decisionState: {
                     canMakeBet: false,
                     shouldEndCycle: false,
@@ -343,7 +347,7 @@
             executionLocked: true,
             runtime: {},
         });
-        MEP.ver = "0.1.5.22";
+        MEP.ver = "0.1.5.23";
 
         // -------------------------
         // Settings module
@@ -4978,6 +4982,42 @@
                 return st.cycle.endReason;
             },
 
+            getManualPauseStatusText(reason = "") {
+                const key = (reason || "").toString();
+                const map = {
+                    manual_pause: "Цикл на ручной паузе",
+                    waiting_balance_topup: "Цикл на паузе — ожидание пополнения баланса",
+                };
+                return map[key] || "Цикл на паузе";
+            },
+
+            pauseCycle(reason = "manual_pause") {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.cycle?.isActive) return { applied: false, reason: "cycle_inactive" };
+                if (st.runtime?.manualPauseActive) return { applied: false, reason: "already_paused" };
+                st.runtime.manualPauseActive = true;
+                st.runtime.manualPauseReason = (reason || "manual_pause").toString();
+                st.runtime.manualPauseAtTs = Date.now();
+                st.runtime.lastCycleAction = "pauseCycle";
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied: true, reason: st.runtime.manualPauseReason };
+            },
+
+            resumeCycle() {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.runtime?.manualPauseActive) return { applied: false, reason: "not_paused" };
+                st.runtime.manualPauseActive = false;
+                st.runtime.manualPauseReason = "";
+                st.runtime.manualResumeAtTs = Date.now();
+                st.runtime.lastCycleAction = "resumeCycle";
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied: true, reason: "" };
+            },
+
             checkCharter() {
                 const st = this.getState();
                 if (!st) return { allowed: false, blockReason: "strategy1_not_found" };
@@ -5467,103 +5507,121 @@
                         statusText: endReason ? "Цикл завершён" : "Ожидание запуска цикла",
                     });
                 } else {
-                    const charter = this.checkCharter();
-                    if (charter && charter.allowed === false) {
+                    if (st.runtime?.manualPauseActive) {
                         result = this.normalizeDecisionResult({
                             ...result,
-                            stage: "charter",
-                            reason: (charter.blockReason || "").toString(),
-                            statusCode: this.DECISION_STATUS.CHARTER_BLOCKED,
-                            statusText: this.getCharterBlockStatusText(charter.blockReason),
-                            details: { charter: { ...charter } },
+                            allowed: false,
+                            shouldEndCycle: false,
+                            branch: "",
+                            stage: "manual_pause",
+                            reason: (st.runtime.manualPauseReason || "manual_pause").toString(),
+                            statusCode: this.DECISION_STATUS.PAUSED_MANUAL,
+                            statusText: this.getManualPauseStatusText(st.runtime.manualPauseReason || "manual_pause"),
+                            details: {
+                                manualPauseActive: true,
+                                manualPauseReason: (st.runtime.manualPauseReason || "").toString(),
+                                manualPauseAtTs: Number(st.runtime.manualPauseAtTs) || 0,
+                            },
                         });
                     } else {
-                        const branchInfo = this.routeBranch();
-                        const branch = (branchInfo?.branch || "").toString();
-                        if (!branch) {
+                        const charter = this.checkCharter();
+                        if (charter && charter.allowed === false) {
                             result = this.normalizeDecisionResult({
                                 ...result,
-                                stage: "routing",
-                                reason: (branchInfo?.reason || "branch_not_selected").toString(),
-                                statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                                statusText: this.getBranchStatusText(branchInfo),
-                                details: { branchInfo: { ...(branchInfo || {}) } },
+                                stage: "charter",
+                                reason: (charter.blockReason || "").toString(),
+                                statusCode: this.DECISION_STATUS.CHARTER_BLOCKED,
+                                statusText: this.getCharterBlockStatusText(charter.blockReason),
+                                details: { charter: { ...charter } },
                             });
-                        } else if (branch === "first") {
-                            const first = this.checkFirstBranch();
-                            if (!first?.passed) {
+                        } else {
+                            const branchInfo = this.routeBranch();
+                            const branch = (branchInfo?.branch || "").toString();
+                            if (!branch) {
                                 result = this.normalizeDecisionResult({
                                     ...result,
-                                    branch: "first",
-                                    stage: "first_branch",
-                                    reason: (first?.failedAt || "").toString(),
+                                    stage: "routing",
+                                    reason: (branchInfo?.reason || "branch_not_selected").toString(),
                                     statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                                    statusText: (first?.statusText || "Раунд пропускаем — ждём сигнал первой ветки").toString(),
-                                    details: { firstBranch: { ...(first || {}) } },
+                                    statusText: this.getBranchStatusText(branchInfo),
+                                    details: { branchInfo: { ...(branchInfo || {}) } },
                                 });
-                            } else {
-                                const plan = this.buildStakePlan();
-                                if (!plan?.ready) {
+                            } else if (branch === "first") {
+                                const first = this.checkFirstBranch();
+                                if (!first?.passed) {
                                     result = this.normalizeDecisionResult({
                                         ...result,
                                         branch: "first",
-                                        stage: "stake_plan",
-                                        reason: (plan?.invalidReason || "stake_plan_invalid").toString(),
+                                        stage: "first_branch",
+                                        reason: (first?.failedAt || "").toString(),
                                         statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                                        statusText: this.getStakePlanStatusText(plan),
-                                        details: { stakePlan: { ...(plan || {}) } },
+                                        statusText: (first?.statusText || "Раунд пропускаем — ждём сигнал первой ветки").toString(),
+                                        details: { firstBranch: { ...(first || {}) } },
+                                    });
+                                } else {
+                                    const plan = this.buildStakePlan();
+                                    if (!plan?.ready) {
+                                        result = this.normalizeDecisionResult({
+                                            ...result,
+                                            branch: "first",
+                                            stage: "stake_plan",
+                                            reason: (plan?.invalidReason || "stake_plan_invalid").toString(),
+                                            statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                                            statusText: this.getStakePlanStatusText(plan),
+                                            details: { stakePlan: { ...(plan || {}) } },
+                                        });
+                                    } else {
+                                        result = this.normalizeDecisionResult({
+                                            ...result,
+                                            allowed: true,
+                                            branch: "first",
+                                            stage: "ready",
+                                            reason: "",
+                                            statusCode: this.DECISION_STATUS.BET_ALLOWED,
+                                            statusText: "Первая ветка пройдена — план ставки готов",
+                                            details: { firstBranch: { ...(first || {}) }, stakePlan: { ...(plan || {}) } },
+                                        });
+                                    }
+                                }
+                            } else {
+                                const second = this.checkSecondBranch();
+                                if (!second?.passed && second?.shouldEndCycle) {
+                                    result = this.normalizeDecisionResult({
+                                        ...result,
+                                        allowed: false,
+                                        shouldEndCycle: true,
+                                        branch: "second",
+                                        stage: "second_branch",
+                                        reason: (second?.endReason || second?.failedAt || "").toString(),
+                                        statusCode: this.DECISION_STATUS.CYCLE_SHOULD_END,
+                                        statusText: (second?.statusText || "Цикл завершён — достигнут максимальный уровень ставки").toString(),
+                                        details: { secondBranch: { ...(second || {}) } },
+                                    });
+                                } else if (!second?.passed) {
+                                    result = this.normalizeDecisionResult({
+                                        ...result,
+                                        allowed: false,
+                                        shouldEndCycle: false,
+                                        branch: "second",
+                                        stage: "second_branch",
+                                        reason: (second?.failedAt || second?.waitReason || "").toString(),
+                                        statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                                        statusText: (second?.statusText || "Раунд пропускаем — ждём сигнал второй ветки").toString(),
+                                        details: { secondBranch: { ...(second || {}) } },
                                     });
                                 } else {
                                     result = this.normalizeDecisionResult({
                                         ...result,
                                         allowed: true,
-                                        branch: "first",
+                                        shouldEndCycle: false,
+                                        branch: "second",
                                         stage: "ready",
                                         reason: "",
                                         statusCode: this.DECISION_STATUS.BET_ALLOWED,
-                                        statusText: "Первая ветка пройдена — план ставки готов",
-                                        details: { firstBranch: { ...(first || {}) }, stakePlan: { ...(plan || {}) } },
+                                        statusText: "Вторая ветка пройдена — ставка разрешена",
+                                        details: { secondBranch: { ...(second || {}) } },
                                     });
                                 }
-                            }
-                        } else if (branch === "second") {
-                            const second = this.checkSecondBranch();
-                            if (!second?.passed && second?.shouldEndCycle) {
-                                result = this.normalizeDecisionResult({
-                                    ...result,
-                                    allowed: false,
-                                    shouldEndCycle: true,
-                                    branch: "second",
-                                    stage: "second_branch",
-                                    reason: (second?.endReason || second?.failedAt || "").toString(),
-                                    statusCode: this.DECISION_STATUS.CYCLE_SHOULD_END,
-                                    statusText: (second?.statusText || "Цикл завершён — достигнут максимальный уровень ставки").toString(),
-                                    details: { secondBranch: { ...(second || {}) } },
-                                });
-                            } else if (!second?.passed) {
-                                result = this.normalizeDecisionResult({
-                                    ...result,
-                                    allowed: false,
-                                    shouldEndCycle: false,
-                                    branch: "second",
-                                    stage: "second_branch",
-                                    reason: (second?.failedAt || second?.waitReason || "").toString(),
-                                    statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                                    statusText: (second?.statusText || "Раунд пропускаем — ждём сигнал второй ветки").toString(),
-                                    details: { secondBranch: { ...(second || {}) } },
-                                });
-                            } else {
-                                result = this.normalizeDecisionResult({
-                                    ...result,
-                                    allowed: true,
-                                    shouldEndCycle: false,
-                                    branch: "second",
-                                    stage: "ready",
-                                    reason: "",
-                                    statusCode: this.DECISION_STATUS.BET_ALLOWED,
-                                    statusText: "Вторая ветка пройдена — ставка разрешена",
-                                    details: { secondBranch: { ...(second || {}) } },
-                                });
                             }
                         }
                     }
@@ -5785,6 +5843,18 @@
                 if (ui.strategy1PermissionShouldEndEl)
                     ui.strategy1PermissionShouldEndEl.textContent = permission
                         ? String(!!permission.shouldEndCycle)
+                        : "—";
+                if (ui.strategy1ManualPauseActiveEl)
+                    ui.strategy1ManualPauseActiveEl.textContent = String(!!st.runtime?.manualPauseActive);
+                if (ui.strategy1ManualPauseReasonEl)
+                    ui.strategy1ManualPauseReasonEl.textContent = (st.runtime?.manualPauseReason || "—").toString();
+                if (ui.strategy1ManualPauseAtEl)
+                    ui.strategy1ManualPauseAtEl.textContent = st.runtime?.manualPauseAtTs
+                        ? String(Number(st.runtime.manualPauseAtTs) || 0)
+                        : "—";
+                if (ui.strategy1ManualResumeAtEl)
+                    ui.strategy1ManualResumeAtEl.textContent = st.runtime?.manualResumeAtTs
+                        ? String(Number(st.runtime.manualResumeAtTs) || 0)
                         : "—";
                 if (ui.strategy1CharterAllowedEl) ui.strategy1CharterAllowedEl.textContent = String(!!st.charterCheck?.allowed);
                 if (ui.strategy1CharterReasonEl)
@@ -6478,6 +6548,8 @@
             <button class="mep-btn mep-strategy1-route-branch" type="button">Определить ветку</button>
             <button class="mep-btn mep-strategy1-check-first-branch" type="button">Проверить 1 ветку</button>
             <button class="mep-btn mep-strategy1-check-second-branch" type="button">Проверить 2 ветку</button>
+            <button class="mep-btn mep-strategy1-pause-cycle" type="button">Пауза цикла</button>
+            <button class="mep-btn mep-strategy1-resume-cycle" type="button">Продолжить цикл</button>
             <button class="mep-btn mep-strategy1-build-stake-plan" type="button">Проверить план ставки</button>
             <button class="mep-btn mep-strategy1-evaluate-bet-permission" type="button">Проверить допуск к ставке</button>
             <button class="mep-btn mep-strategy1-test-round-win" type="button">Тест win</button>
@@ -6497,6 +6569,10 @@
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission stage:</span><span class="mep-strategy-state-value mep-strategy1-permission-stage">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission reason:</span><span class="mep-strategy-state-value mep-strategy1-permission-reason">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission shouldEndCycle:</span><span class="mep-strategy-state-value mep-strategy1-permission-should-end">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Manual pause:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-active">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pause reason:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-reason">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pause at:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-at">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Resume at:</span><span class="mep-strategy-state-value mep-strategy1-manual-resume-at">—</span></div>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -6654,6 +6730,8 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1RouteBranchBtn: panel.querySelector("button.mep-strategy1-route-branch"),
                     strategy1CheckFirstBranchBtn: panel.querySelector("button.mep-strategy1-check-first-branch"),
                     strategy1CheckSecondBranchBtn: panel.querySelector("button.mep-strategy1-check-second-branch"),
+                    strategy1PauseCycleBtn: panel.querySelector("button.mep-strategy1-pause-cycle"),
+                    strategy1ResumeCycleBtn: panel.querySelector("button.mep-strategy1-resume-cycle"),
                     strategy1BuildStakePlanBtn: panel.querySelector("button.mep-strategy1-build-stake-plan"),
                     strategy1EvaluateBetPermissionBtn: panel.querySelector("button.mep-strategy1-evaluate-bet-permission"),
                     strategy1TestRoundWinBtn: panel.querySelector("button.mep-strategy1-test-round-win"),
@@ -6720,6 +6798,10 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1PermissionStageEl: panel.querySelector(".mep-strategy1-permission-stage"),
                     strategy1PermissionReasonEl: panel.querySelector(".mep-strategy1-permission-reason"),
                     strategy1PermissionShouldEndEl: panel.querySelector(".mep-strategy1-permission-should-end"),
+                    strategy1ManualPauseActiveEl: panel.querySelector(".mep-strategy1-manual-pause-active"),
+                    strategy1ManualPauseReasonEl: panel.querySelector(".mep-strategy1-manual-pause-reason"),
+                    strategy1ManualPauseAtEl: panel.querySelector(".mep-strategy1-manual-pause-at"),
+                    strategy1ManualResumeAtEl: panel.querySelector(".mep-strategy1-manual-resume-at"),
                     strategy1CharterAllowedEl: panel.querySelector(".mep-strategy1-charter-allowed"),
                     strategy1CharterReasonEl: panel.querySelector(".mep-strategy1-charter-reason"),
                     strategy1CharterRoundsHourEl: panel.querySelector(".mep-strategy1-charter-rounds-hour"),
@@ -7018,6 +7100,18 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                             MEP.Strategy1?.routeBranch?.();
                             MEP.Strategy1?.checkSecondBranch?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1PauseCycleBtn) {
+                        ui.strategy1PauseCycleBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.pauseCycle?.("manual_pause");
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1ResumeCycleBtn) {
+                        ui.strategy1ResumeCycleBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.resumeCycle?.();
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
