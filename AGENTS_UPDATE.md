@@ -148,3 +148,8 @@
 - В runtime Strategy1 добавлен контейнер `lastSecondBranchResult` (runtime-only, без persistence).
 - `evaluateDecisionState()` для `branch=second` интегрирован с `checkSecondBranch()` и now возвращает `waiting_signal | cycle_should_end | bet_allowed` по результату ветки.
 - В UI Strategy1 добавлены: debug-кнопка `Проверить 2 ветку`, refs/bind и компактный diagnostics-блок SECOND_BRANCH в «Конструктор условий».
+- 2026-03-29: Strategy1 Этап 9 — добавлен единый decision gateway `evaluateBetPermission()` с каноническим pipeline (disabled -> cycle_inactive -> charter -> routing -> first/second -> stake_plan/ready).
+- Добавлен helper `normalizeDecisionResult(result)` для нормализации итоговой структуры решения (`allowed/shouldEndCycle/branch/stage/reason/statusCode/statusText/details`).
+- `evaluateDecisionState()` упрощён до тонкой обёртки: вызывает `evaluateBetPermission()` и синхронизирует `runtime.decisionState` через `updateDecisionState()`.
+- Централизована синхронизация `conditions.lastResult` внутри `evaluateBetPermission()`, добавлен runtime-only `lastBetPermissionResult` (без persistence).
+- В UI добавлены diagnostics permission-result (allowed/stage/reason/shouldEndCycle) и debug-кнопка `Проверить допуск к ставке` (ref + bind).
