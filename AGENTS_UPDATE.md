@@ -198,3 +198,8 @@
 - 2026-03-29: UI фикс Strategy1 — строка «Вкл / Откл стратегии» переведена в реальный clickable toggle (`input.mep-strategy1-enabled`) с индикатором `Вкл/Выкл`.
 - Добавлен ref `strategy1EnabledStatusEl` и синхронизация в `updateUiCounters()` (`checked` + badge/text status).
 - Bind Strategy1 enabled сохранён по прежнему канону: `state.enabled -> save -> evaluateDecisionState -> updateUiCounters`.
+- 2026-03-29: Strategy1 Этап 18 — добавлен execution bridge (DOM sync bet/target + click bet) с runtime execution-state и lock-guard от дублей.
+- Реализованы методы `executeBet`, `syncBetInputsToDom`, `clickBetButton`, `onExecutionAccepted`, `onExecutionRejected`, `lockExecution`, `unlockExecution`, `handleRoundFinishedForExecution`, `checkExecutionTimeout`.
+- Добавлены execution event codes + тексты/уровни (`execution_started/rejected/round_wait/round_processed/timeout`) и интеграция в existing status/voice layer.
+- Добавлена кнопка `Выполнить ставку`, refs/bind и execution diagnostics в блоке состояния (state/locks/pending/last execution).
+- Встроен round-result bridge через Tracker.addNewest() при `waitingRoundResult=true` + safe timeout unlock без авто win/loss.
