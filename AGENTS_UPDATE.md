@@ -163,3 +163,8 @@
 - `evaluateBetPermission()` расширен ранним шлюзом `manual_pause` (до `checkCharter()`), статус `paused_manual`, stage=`manual_pause`, reason из `manualPauseReason`.
 - `updateAfterRound()` не блокируется ручной паузой: post-round результат применяется, а decision после пересчёта остаётся `paused_manual` до resume.
 - В UI добавлены кнопки `Пауза цикла` / `Продолжить цикл` и диагностика ручной паузы (active/reason/pauseAt/resumeAt) с refs + bind + updateUi.
+- 2026-03-29: Strategy1 Этап 12 — добавлен runtime message-layer: `systemMessages` (ring-buffer 30) и `lastActionResponse` + helper’ы `pushSystemMessage()`/`clearSystemMessages()`/`formatSystemMessageText()`.
+- В Strategy1 UI добавлен верхний блок `Сообщения системы` (под action-кнопками) с list/render newest-first и кнопкой `Очистить`.
+- Добавлены стили message panel в `crash.css` (`.mep-system-messages*`, `.mep-system-message*`, level-badge ok/warn/error/info).
+- Все ключевые action/debug кнопки Strategy1 теперь пишут живой action-response в message log (stage/reason/branch/code/payload).
+- Дополнительно логируются load-bearing transitions: pause/resume success, post-round duplicate/apply, finishCycle по profit/max_losses, permission shouldEndCycle=true.

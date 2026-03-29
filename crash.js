@@ -321,6 +321,8 @@
                 manualPauseReason: "",
                 manualPauseAtTs: 0,
                 manualResumeAtTs: 0,
+                systemMessages: [],
+                lastActionResponse: null,
                 decisionState: {
                     canMakeBet: false,
                     shouldEndCycle: false,
@@ -347,7 +349,7 @@
             executionLocked: true,
             runtime: {},
         });
-        MEP.ver = "0.1.5.23";
+        MEP.ver = "0.1.5.24";
 
         // -------------------------
         // Settings module
@@ -4561,6 +4563,69 @@
                 return MEP.State?.strategies?.strategy1 || null;
             },
 
+            pushSystemMessage(input = {}) {
+                const st = this.getState();
+                if (!st) return null;
+                if (!Array.isArray(st.runtime.systemMessages)) st.runtime.systemMessages = [];
+                const msg = input && typeof input === "object" ? input : {};
+                const out = {
+                    id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                    ts: Date.now(),
+                    level: ["info", "ok", "warn", "error"].includes(msg.level) ? msg.level : "info",
+                    source: "strategy1",
+                    action: (msg.action || "").toString(),
+                    text: (msg.text || "").toString(),
+                    code: (msg.code || "").toString(),
+                    stage: (msg.stage || "").toString(),
+                    reason: (msg.reason || "").toString(),
+                    branch: (msg.branch || "").toString(),
+                    payload: msg.payload && typeof msg.payload === "object" ? { ...msg.payload } : {},
+                };
+                st.runtime.systemMessages.push(out);
+                const maxLen = 30;
+                if (st.runtime.systemMessages.length > maxLen) {
+                    st.runtime.systemMessages.splice(0, st.runtime.systemMessages.length - maxLen);
+                }
+                st.runtime.lastActionResponse = {
+                    action: out.action,
+                    code: out.code,
+                    stage: out.stage,
+                    reason: out.reason,
+                    branch: out.branch,
+                    ts: out.ts,
+                    level: out.level,
+                };
+                return out;
+            },
+
+            clearSystemMessages() {
+                const st = this.getState();
+                if (!st) return;
+                st.runtime.systemMessages = [];
+                this.updateUiCounters();
+            },
+
+            formatSystemMessageText(action = "", data = {}) {
+                const a = (action || "").toString();
+                if (a === "startCycle") return data.applied ? "Старт цикла выполнен" : "Старт цикла пропущен";
+                if (a === "finishCycle") return data.applied ? "Цикл завершён вручную" : "Завершение цикла пропущено";
+                if (a === "resetCycle") return "Состояние цикла сброшено";
+                if (a === "pauseCycle")
+                    return data.applied ? "Цикл поставлен на ручную паузу" : "Пауза не применена";
+                if (a === "resumeCycle")
+                    return data.applied ? "Ручная пауза снята" : "Продолжение не применено: пауза не активна";
+                if (a === "evaluateBetPermission")
+                    return data.allowed ? "Допуск к ставке разрешён" : "Допуск к ставке отклонён";
+                if (a === "buildStakePlan") return data.ready ? "План ставки готов" : "План ставки невалиден";
+                if (a === "checkFirstBranch")
+                    return data.passed ? "Первая ветка пройдена" : "Первая ветка не пройдена";
+                if (a === "checkSecondBranch")
+                    return data.passed ? "Вторая ветка пройдена" : "Вторая ветка не пройдена";
+                if (a === "updateAfterRound")
+                    return data.applied ? "Результат раунда обработан" : "Результат раунда пропущен";
+                return "Действие выполнено";
+            },
+
             init() {
                 const st = this.getState();
                 if (!st) return;
@@ -4977,6 +5042,20 @@
                 if (MEP.State.activeStrategyId === st.id) MEP.State.activeStrategyId = null;
                 this.pushEvent("cycle_finish", now);
                 st.runtime.lastCycleAction = "finishCycle";
+                if (st.cycle.endReason === "profit_reached" || st.cycle.endReason === "max_losses_reached") {
+                    this.pushSystemMessage({
+                        level: "ok",
+                        action: "finishCycle",
+                        text:
+                            st.cycle.endReason === "profit_reached"
+                                ? "Цикл завершён: достигнут профит"
+                                : "Цикл завершён: достигнут лимит проигрышей",
+                        code: "cycle_finished",
+                        stage: "post_round_finish",
+                        reason: st.cycle.endReason,
+                        payload: { endReason: st.cycle.endReason },
+                    });
+                }
                 this.evaluateDecisionState();
                 this.updateUiCounters();
                 return st.cycle.endReason;
@@ -5000,6 +5079,14 @@
                 st.runtime.manualPauseReason = (reason || "manual_pause").toString();
                 st.runtime.manualPauseAtTs = Date.now();
                 st.runtime.lastCycleAction = "pauseCycle";
+                this.pushSystemMessage({
+                    level: "ok",
+                    action: "pauseCycle",
+                    text: this.formatSystemMessageText("pauseCycle", { applied: true }),
+                    code: "manual_pause_applied",
+                    stage: "manual_pause",
+                    reason: st.runtime.manualPauseReason,
+                });
                 this.evaluateDecisionState();
                 this.updateUiCounters();
                 return { applied: true, reason: st.runtime.manualPauseReason };
@@ -5013,6 +5100,14 @@
                 st.runtime.manualPauseReason = "";
                 st.runtime.manualResumeAtTs = Date.now();
                 st.runtime.lastCycleAction = "resumeCycle";
+                this.pushSystemMessage({
+                    level: "ok",
+                    action: "resumeCycle",
+                    text: this.formatSystemMessageText("resumeCycle", { applied: true }),
+                    code: "manual_pause_resumed",
+                    stage: "resume",
+                    reason: "",
+                });
                 this.evaluateDecisionState();
                 this.updateUiCounters();
                 return { applied: true, reason: "" };
@@ -5352,6 +5447,15 @@
                 const normalized = this.normalizeRoundResult(result);
                 const previousRoundId = (st.runtime?.lastProcessedRoundId || "").toString();
                 if (normalized.roundId && previousRoundId && normalized.roundId === previousRoundId) {
+                    this.pushSystemMessage({
+                        level: "warn",
+                        action: "updateAfterRound",
+                        text: "Результат раунда пропущен: duplicate roundId",
+                        code: "duplicate_round",
+                        stage: "post_round",
+                        reason: "duplicate_round",
+                        payload: { roundId: normalized.roundId },
+                    });
                     this.updateUiCounters();
                     return {
                         applied: false,
@@ -5419,6 +5523,16 @@
                 st.runtime.lastCycleSnapshot = { ...cycleSnapshot };
 
                 const permission = this.evaluateDecisionState();
+                this.pushSystemMessage({
+                    level: "ok",
+                    action: "updateAfterRound",
+                    text: this.formatSystemMessageText("updateAfterRound", { applied: true }),
+                    code: finished ? "round_applied_and_finished" : "round_applied",
+                    stage: "post_round",
+                    reason: finished ? finishReason : "",
+                    branch: (permission?.branch || "").toString(),
+                    payload: { outcome: outcome.outcomeCode, finished },
+                });
                 this.updateUiCounters();
 
                 return {
@@ -5627,6 +5741,23 @@
                     }
                 }
 
+                if (result.shouldEndCycle) {
+                    const lastCode = (st.runtime?.lastActionResponse?.code || "").toString();
+                    const nextCode = `permission_cycle_should_end:${result.reason || "unknown"}`;
+                    if (lastCode !== nextCode) {
+                        this.pushSystemMessage({
+                            level: "warn",
+                            action: "evaluateBetPermission",
+                            text: "Цикл должен быть завершён по результату проверки допуска",
+                            code: nextCode,
+                            stage: result.stage || "",
+                            reason: result.reason || "",
+                            branch: result.branch || "",
+                            payload: { shouldEndCycle: true },
+                        });
+                    }
+                }
+
                 if (st.conditions?.lastResult) {
                     st.conditions.lastResult.canBet = !!result.allowed;
                     st.conditions.lastResult.shouldEndCycle = !!result.shouldEndCycle;
@@ -5658,6 +5789,42 @@
                 const ui = MEP.UI?.ui;
                 if (!st || !ui) return;
                 const decision = st.runtime?.decisionState || {};
+                if (ui.strategy1SystemMessagesList) {
+                    const list = Array.isArray(st.runtime?.systemMessages) ? st.runtime.systemMessages : [];
+                    ui.strategy1SystemMessagesList.innerHTML = "";
+                    if (!list.length) {
+                        const empty = document.createElement("div");
+                        empty.className = "mep-system-message is-empty";
+                        empty.textContent = "Сообщений пока нет";
+                        ui.strategy1SystemMessagesList.appendChild(empty);
+                    } else {
+                        const toTime = (ts) => {
+                            const d = new Date(Number(ts) || Date.now());
+                            const hh = String(d.getHours()).padStart(2, "0");
+                            const mm = String(d.getMinutes()).padStart(2, "0");
+                            const ss = String(d.getSeconds()).padStart(2, "0");
+                            return `${hh}:${mm}:${ss}`;
+                        };
+                        const items = list.slice().reverse();
+                        for (const msg of items) {
+                            const row = document.createElement("div");
+                            row.className = `mep-system-message level-${(msg.level || "info").toString()}`;
+                            const metaParts = [];
+                            if (msg.stage) metaParts.push(`stage=${msg.stage}`);
+                            if (msg.reason) metaParts.push(`reason=${msg.reason}`);
+                            if (msg.branch) metaParts.push(`branch=${msg.branch}`);
+                            row.innerHTML = `
+                                <div class="mep-system-message-top">
+                                    <span class="mep-system-message-time">[${toTime(msg.ts)}]</span>
+                                    <span class="mep-system-message-level">${(msg.level || "info").toString().toUpperCase()}</span>
+                                </div>
+                                <div class="mep-system-message-text">${(msg.text || "—").toString()}</div>
+                                <div class="mep-system-message-meta">${metaParts.join(" · ") || "—"}</div>
+                            `;
+                            ui.strategy1SystemMessagesList.appendChild(row);
+                        }
+                    }
+                }
 
                 if (ui.strategy1ConditionsModeEl) ui.strategy1ConditionsModeEl.textContent = st.conditions.mode || "all";
                 if (ui.strategy1StakePlayersVectorStateEl)
@@ -6556,6 +6723,15 @@
             <button class="mep-btn mep-strategy1-test-round-loss" type="button">Тест loss</button>
         </div>
     </div>
+    <div class="mep-strategy-section mep-system-messages">
+        <div class="mep-system-messages-head">
+            <div class="mep-strategy-section-title">Сообщения системы</div>
+            <button class="mep-btn mep-strategy1-system-messages-clear" type="button">Очистить</button>
+        </div>
+        <div class="mep-system-messages-list">
+            <div class="mep-system-message is-empty">Сообщений пока нет</div>
+        </div>
+    </div>
     <div class="mep-strategy-section">
         <div class="mep-strategy-section-title">Текущее состояние стратегии</div>
         <div class="mep-strategy-state-grid">
@@ -6736,6 +6912,9 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1EvaluateBetPermissionBtn: panel.querySelector("button.mep-strategy1-evaluate-bet-permission"),
                     strategy1TestRoundWinBtn: panel.querySelector("button.mep-strategy1-test-round-win"),
                     strategy1TestRoundLossBtn: panel.querySelector("button.mep-strategy1-test-round-loss"),
+                    strategy1SystemMessagesWrap: panel.querySelector(".mep-system-messages"),
+                    strategy1SystemMessagesList: panel.querySelector(".mep-system-messages-list"),
+                    strategy1SystemMessagesClearBtn: panel.querySelector("button.mep-strategy1-system-messages-clear"),
                     strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
                     strategy1StakePlayersVectorStateEl: panel.querySelector(".mep-strategy1-stake-players-vector-state"),
                     strategy1StakeBetVectorStateEl: panel.querySelector(".mep-strategy1-stake-bet-vector-state"),
@@ -7060,71 +7239,184 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     }
                     if (ui.strategy1StartCycleBtn) {
                         ui.strategy1StartCycleBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.startCycle?.();
+                            const applied = !!MEP.Strategy1?.startCycle?.();
+                            const active = MEP.State?.activeStrategyId;
+                            const blockedByOther = !applied && !!active && active !== "strategy1";
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: applied ? "ok" : "warn",
+                                action: "startCycle",
+                                text: applied
+                                    ? "Старт цикла выполнен"
+                                    : blockedByOther
+                                      ? "Старт цикла пропущен: активна другая стратегия"
+                                      : "Старт цикла пропущен: цикл уже активен",
+                                code: applied ? "cycle_started" : "cycle_start_skipped",
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1FinishCycleBtn) {
                         ui.strategy1FinishCycleBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.finishCycle?.("manual_stop");
+                            const stNow = MEP.State?.strategies?.strategy1;
+                            const wasActive = !!stNow?.cycle?.isActive;
+                            const reason = MEP.Strategy1?.finishCycle?.("manual_stop");
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: wasActive ? "ok" : "warn",
+                                action: "finishCycle",
+                                text: wasActive ? "Цикл завершён вручную" : "Завершение цикла пропущено: цикл не активен",
+                                code: wasActive ? "cycle_finished_manual" : "cycle_finish_skipped",
+                                reason: (reason || "").toString(),
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1ResetCycleBtn) {
                         ui.strategy1ResetCycleBtn.addEventListener("click", () => {
                             MEP.Strategy1?.resetCycle?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: "ok",
+                                action: "resetCycle",
+                                text: "Состояние цикла сброшено",
+                                code: "cycle_reset",
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1CheckCharterBtn) {
                         ui.strategy1CheckCharterBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.checkCharter?.();
+                            const charter = MEP.Strategy1?.checkCharter?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: charter?.allowed ? "ok" : "warn",
+                                action: "checkCharter",
+                                text: charter?.allowed ? "Устав разрешает продолжение" : "Устав блокирует стратегию",
+                                code: charter?.allowed ? "charter_ok" : "charter_blocked",
+                                stage: "charter",
+                                reason: (charter?.blockReason || "").toString(),
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1RouteBranchBtn) {
                         ui.strategy1RouteBranchBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.routeBranch?.();
+                            const info = MEP.Strategy1?.routeBranch?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: info?.branch ? "info" : "warn",
+                                action: "routeBranch",
+                                text: info?.branch
+                                    ? `Определена ветка: ${info.branch}`
+                                    : "Ветка не выбрана: цикл не активен",
+                                code: info?.branch ? "branch_selected" : "branch_not_selected",
+                                stage: "routing",
+                                reason: (info?.reason || "").toString(),
+                                branch: (info?.branch || "").toString(),
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1CheckFirstBranchBtn) {
                         ui.strategy1CheckFirstBranchBtn.addEventListener("click", () => {
                             MEP.Strategy1?.routeBranch?.();
-                            MEP.Strategy1?.checkFirstBranch?.();
+                            const first = MEP.Strategy1?.checkFirstBranch?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: first?.passed ? "ok" : "warn",
+                                action: "checkFirstBranch",
+                                text: first?.passed ? "Первая ветка пройдена" : "Первая ветка не пройдена",
+                                code: first?.passed ? "first_branch_ok" : "first_branch_fail",
+                                stage: "first_branch",
+                                reason: (first?.failedAt || "").toString(),
+                                branch: "first",
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1CheckSecondBranchBtn) {
                         ui.strategy1CheckSecondBranchBtn.addEventListener("click", () => {
                             MEP.Strategy1?.routeBranch?.();
-                            MEP.Strategy1?.checkSecondBranch?.();
+                            const second = MEP.Strategy1?.checkSecondBranch?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
+                            const shouldEnd = !!second?.shouldEndCycle;
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: second?.passed ? "ok" : "warn",
+                                action: "checkSecondBranch",
+                                text: second?.passed
+                                    ? "Вторая ветка пройдена"
+                                    : shouldEnd
+                                      ? "Цикл должен быть завершён: достигнут максимальный уровень ставки"
+                                      : "Вторая ветка не пройдена",
+                                code: second?.passed ? "second_branch_ok" : shouldEnd ? "second_branch_cycle_end" : "second_branch_fail",
+                                stage: "second_branch",
+                                reason: (second?.endReason || second?.failedAt || "").toString(),
+                                branch: "second",
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1PauseCycleBtn) {
                         ui.strategy1PauseCycleBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.pauseCycle?.("manual_pause");
+                            const res = MEP.Strategy1?.pauseCycle?.("manual_pause");
+                            if (!res?.applied) {
+                                MEP.Strategy1?.pushSystemMessage?.({
+                                    level: "warn",
+                                    action: "pauseCycle",
+                                    text:
+                                        res?.reason === "already_paused"
+                                            ? "Пауза не применена: уже на паузе"
+                                            : "Пауза не применена: цикл не активен",
+                                    code: "pause_skipped",
+                                    stage: "manual_pause",
+                                    reason: (res?.reason || "").toString(),
+                                });
+                            }
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1ResumeCycleBtn) {
                         ui.strategy1ResumeCycleBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.resumeCycle?.();
+                            const res = MEP.Strategy1?.resumeCycle?.();
+                            if (!res?.applied) {
+                                MEP.Strategy1?.pushSystemMessage?.({
+                                    level: "warn",
+                                    action: "resumeCycle",
+                                    text: "Продолжение не применено: пауза не активна",
+                                    code: "resume_skipped",
+                                    stage: "manual_pause",
+                                    reason: (res?.reason || "").toString(),
+                                });
+                            }
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1BuildStakePlanBtn) {
                         ui.strategy1BuildStakePlanBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.buildStakePlan?.();
+                            const plan = MEP.Strategy1?.buildStakePlan?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: plan?.ready ? "ok" : "warn",
+                                action: "buildStakePlan",
+                                text: plan?.ready ? "План ставки готов" : "План ставки невалиден",
+                                code: plan?.ready ? "stake_plan_ready" : "stake_plan_invalid",
+                                stage: "stake_plan",
+                                reason: (plan?.invalidReason || "").toString(),
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1EvaluateBetPermissionBtn) {
                         ui.strategy1EvaluateBetPermissionBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.evaluateDecisionState?.();
+                            const res = MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: res?.allowed ? "ok" : "warn",
+                                action: "evaluateBetPermission",
+                                text: res?.allowed ? "Допуск к ставке разрешён" : "Допуск к ставке отклонён",
+                                code: res?.allowed ? "permission_allowed" : "permission_denied",
+                                stage: (res?.stage || "").toString(),
+                                reason: (res?.reason || "").toString(),
+                                branch: (res?.branch || "").toString(),
+                                payload: { shouldEndCycle: !!res?.shouldEndCycle },
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
@@ -7132,7 +7424,7 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                         ui.strategy1TestRoundWinBtn.addEventListener("click", () => {
                             const stNow = MEP.State?.strategies?.strategy1;
                             const currentBalance = MEP.Strategy1?.getCurrentBalance?.() || 0;
-                            MEP.Strategy1?.updateAfterRound?.({
+                            const upd = MEP.Strategy1?.updateAfterRound?.({
                                 balance: currentBalance + 0.00000001,
                                 stake: Number(stNow?.stakePlan?.betAmount) || 0,
                                 targetMultiplier: Number(stNow?.stakePlan?.targetMultiplier) || 2,
@@ -7141,6 +7433,14 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                                 ts: Date.now(),
                                 resultKind: "debug",
                             });
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: upd?.applied ? "ok" : "warn",
+                                action: "testRoundWin",
+                                text: upd?.applied ? "Тестовый win-раунд обработан" : "Тестовый win-раунд пропущен",
+                                code: upd?.applied ? "test_win_applied" : "test_win_skipped",
+                                stage: "post_round",
+                                reason: (upd?.reason || "").toString(),
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
@@ -7148,7 +7448,7 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                         ui.strategy1TestRoundLossBtn.addEventListener("click", () => {
                             const stNow = MEP.State?.strategies?.strategy1;
                             const currentBalance = MEP.Strategy1?.getCurrentBalance?.() || 0;
-                            MEP.Strategy1?.updateAfterRound?.({
+                            const upd = MEP.Strategy1?.updateAfterRound?.({
                                 balance: Math.max(0, currentBalance - 0.00000001),
                                 stake: Number(stNow?.stakePlan?.betAmount) || 0,
                                 targetMultiplier: Number(stNow?.stakePlan?.targetMultiplier) || 2,
@@ -7157,7 +7457,20 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                                 ts: Date.now(),
                                 resultKind: "debug",
                             });
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: upd?.applied ? "ok" : "warn",
+                                action: "testRoundLoss",
+                                text: upd?.applied ? "Тестовый loss-раунд обработан" : "Тестовый loss-раунд пропущен",
+                                code: upd?.applied ? "test_loss_applied" : "test_loss_skipped",
+                                stage: "post_round",
+                                reason: (upd?.reason || "").toString(),
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1SystemMessagesClearBtn) {
+                        ui.strategy1SystemMessagesClearBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.clearSystemMessages?.();
                         });
                     }
 
