@@ -383,7 +383,7 @@
             executionLocked: true,
             runtime: {},
         });
-        MEP.ver = "0.1.5.28";
+        MEP.ver = "0.1.5.29";
 
         // -------------------------
         // Settings module
@@ -2436,6 +2436,75 @@
 				#mep-control-panel > div.mep-two-stat-wrap > div.mep-two-head > div.mep-two-subrow > label > span {
         font-size: 13px;
         }
+        .mep-strategy-subgroup-title{
+        margin:8px 0 4px;
+        font-size:11px;
+        color:#9fb4cc;
+        text-transform:uppercase;
+        letter-spacing:.35px;
+        }
+        .mep-strategy-summary-strip{
+        display:grid;
+        grid-template-columns:repeat(4,minmax(0,1fr));
+        gap:6px;
+        margin-bottom:8px;
+        }
+        .mep-strategy-summary-item{
+        display:flex;
+        justify-content:space-between;
+        gap:6px;
+        font-size:11px;
+        background:rgba(255,255,255,.04);
+        border:1px solid rgba(255,255,255,.08);
+        border-radius:8px;
+        padding:4px 6px;
+        }
+        .mep-strategy-state-grid{
+        gap:4px;
+        }
+        .mep-strategy-state-row{
+        display:grid;
+        grid-template-columns:1fr auto;
+        align-items:center;
+        column-gap:8px;
+        min-height:22px;
+        padding:1px 0;
+        }
+        .mep-strategy-state-label{
+        color:#b9c8d8;
+        font-size:12px;
+        }
+        .mep-strategy-state-value{
+        font-size:12px;
+        color:#e6edf5;
+        text-align:right;
+        }
+        .mep-diag-badge{
+        display:inline-flex;
+        align-items:center;
+        border-radius:999px;
+        padding:1px 8px;
+        line-height:1.5;
+        border:1px solid transparent;
+        font-size:11px;
+        }
+        .mep-diag-badge.tone-ok{background:rgba(38,166,91,.2);border-color:rgba(38,166,91,.35);color:#9ef3b9;}
+        .mep-diag-badge.tone-warn{background:rgba(255,167,38,.2);border-color:rgba(255,167,38,.35);color:#ffd08b;}
+        .mep-diag-badge.tone-bad{background:rgba(229,80,101,.2);border-color:rgba(229,80,101,.35);color:#ffb2bf;}
+        .mep-diag-badge.tone-neutral{background:rgba(125,151,179,.2);border-color:rgba(125,151,179,.35);color:#c5d6e8;}
+        .mep-system-messages-list{max-height:150px;overflow:auto;}
+        .mep-system-message{padding:6px 8px;}
+        .mep-system-message-top{margin-bottom:2px;}
+        .mep-system-message-time,.mep-system-message-level{font-size:10px;}
+        .mep-system-message-meta{font-size:10px;opacity:.75;}
+        .mep-actions-group{margin-top:8px;}
+        .mep-actions-group .mep-actions-row{margin-top:4px;}
+        .mep-strategy-param-group{border-top:1px solid rgba(255,255,255,.08);margin-top:8px;padding-top:6px;}
+        .mep-strategy-row.mep-mode-active{opacity:1;}
+        .mep-strategy-row.mep-mode-muted{opacity:.55;}
+        .mep-cond-row{display:flex;justify-content:space-between;gap:8px;align-items:center;}
+        .mep-cond-diag-line{font-size:11px;color:#a9bdd1;}
+        .mep-stake-plan-card,.mep-cycle-card{border:1px solid rgba(255,255,255,.09);border-radius:8px;padding:8px;margin-top:6px;background:rgba(0,0,0,.15);}
         `;
                 document.head.appendChild(style);
             },
@@ -4694,6 +4763,42 @@
                 return "Действие выполнено";
             },
 
+            fmtBool(v) {
+                return v ? "true" : "false";
+            },
+
+            fmtText(v) {
+                const t = (v ?? "").toString().trim();
+                return t ? t : "—";
+            },
+
+            fmtCode(v) {
+                return this.fmtText(v);
+            },
+
+            fmtNum(v, digits = 2) {
+                const n = Number(v);
+                if (!Number.isFinite(n)) return "—";
+                if (Number.isInteger(n)) return String(n);
+                return n.toFixed(digits).replace(/\.?0+$/, "");
+            },
+
+            fmtBalance(v) {
+                const n = Number(v);
+                if (!Number.isFinite(n)) return "—";
+                return n.toFixed(8).replace(/\.?0+$/, "");
+            },
+
+            fmtTs(v) {
+                const n = Number(v);
+                if (!Number.isFinite(n) || n <= 0) return "—";
+                const d = new Date(n);
+                const hh = String(d.getHours()).padStart(2, "0");
+                const mm = String(d.getMinutes()).padStart(2, "0");
+                const ss = String(d.getSeconds()).padStart(2, "0");
+                return `${hh}:${mm}:${ss}`;
+            },
+
             getEventText(code = "", payload = {}) {
                 const c = (code || "").toString();
                 const map = {
@@ -6402,6 +6507,19 @@
                 const ui = MEP.UI?.ui;
                 if (!st || !ui) return;
                 const decision = st.runtime?.decisionState || {};
+                const fmtBool = (v) => this.fmtBool(v);
+                const fmtText = (v) => this.fmtText(v);
+                const fmtCode = (v) => this.fmtCode(v);
+                const fmtTs = (v) => this.fmtTs(v);
+                const fmtNum = (v, d = 2) => this.fmtNum(v, d);
+                const fmtBalance = (v) => this.fmtBalance(v);
+                const setBadge = (el, text, tone = "neutral") => {
+                    if (!el) return;
+                    el.textContent = fmtText(text);
+                    el.classList.add("mep-diag-badge");
+                    el.classList.remove("tone-ok", "tone-warn", "tone-bad", "tone-neutral");
+                    el.classList.add(`tone-${tone}`);
+                };
                 if (ui.strategy1SystemMessagesList) {
                     const list = Array.isArray(st.runtime?.systemMessages) ? st.runtime.systemMessages : [];
                     ui.strategy1SystemMessagesList.innerHTML = "";
@@ -6454,6 +6572,21 @@
                 }
                 st.runtime.voiceEventsEnabled = cfg.voiceEnabled !== false;
                 st.runtime.statusEventsEnabled = cfg.statusEventsEnabled !== false;
+                const startMode = cfg.startStakeMode === "array" ? "array" : "fixed";
+                const growthMode = cfg.stakeGrowthMode === "array" ? "array" : "factor";
+                const targetMode = cfg.targetMode === "array" ? "array" : "fixed";
+                const setModeRow = (selector, active) => {
+                    const row = ui.panel?.querySelector?.(selector);
+                    if (!row) return;
+                    row.classList.toggle("mep-mode-active", !!active);
+                    row.classList.toggle("mep-mode-muted", !active);
+                };
+                setModeRow(".mep-strategy-row-start-fixed", startMode === "fixed");
+                setModeRow(".mep-strategy-row-start-array", startMode === "array");
+                setModeRow(".mep-strategy-row-growth-factor", growthMode === "factor");
+                setModeRow(".mep-strategy-row-growth-array", growthMode === "array");
+                setModeRow(".mep-strategy-row-target-fixed", targetMode === "fixed");
+                setModeRow(".mep-strategy-row-target-array", targetMode === "array");
                 if (ui.strategy1FirstCondLt2EnabledInput) ui.strategy1FirstCondLt2EnabledInput.checked = cfg.firstCondLt2StreakEnabled !== false;
                 if (ui.strategy1FirstCondDiffEnabledInput) ui.strategy1FirstCondDiffEnabledInput.checked = cfg.firstCondDiffVectorEnabled !== false;
                 if (ui.strategy1FirstCondFrequencyEnabledInput)
@@ -6485,7 +6618,9 @@
                         max_stake: "MaxStake",
                     };
                     const label = nameMap[key] || key;
-                    return `${label} — on:${!!cond.enabled} raw:${!!cond.passed} eff:${!!cond.effectivePassed}`;
+                    return `<span class="mep-cond-diag-line">${label} — on:${fmtBool(!!cond.enabled)} raw:${fmtBool(
+                        !!cond.passed
+                    )} eff:${fmtBool(!!cond.effectivePassed)}</span>`;
                 };
                 if (ui.strategy1FirstBranchPassedEl)
                     ui.strategy1FirstBranchPassedEl.textContent = firstBranch ? String(!!firstBranch.passed) : "—";
@@ -6599,6 +6734,8 @@
                     ui.strategy1StakePlanBetAmountEl.textContent = fmtPlanNum(st.stakePlan.betAmount);
                 if (ui.strategy1StakePlanTargetEl)
                     ui.strategy1StakePlanTargetEl.textContent = fmtPlanNum(st.stakePlan.targetMultiplier);
+                if (ui.strategy1StakePlanRiskCapEl)
+                    ui.strategy1StakePlanRiskCapEl.textContent = fmtPlanNum(st.stakePlan.riskCap);
                 if (ui.strategy1StakePlanMaxAllowedEl)
                     ui.strategy1StakePlanMaxAllowedEl.textContent = fmtPlanNum(st.stakePlan.maxAllowedStake);
                 if (ui.strategy1StakePlanAllowedByRiskEl)
@@ -6608,19 +6745,19 @@
                 if (ui.strategy1StakePlanInvalidReasonEl)
                     ui.strategy1StakePlanInvalidReasonEl.textContent = (st.stakePlan.invalidReason || "—").toString();
                 if (ui.strategy1CycleStartBalanceEl)
-                    ui.strategy1CycleStartBalanceEl.textContent = String(
+                    ui.strategy1CycleStartBalanceEl.textContent = fmtBalance(
                         Number(st.counters.startBalanceBeforeCycle) || Number(st.cycle.startBalance) || 0
                     );
                 if (ui.strategy1CycleCurrentBalanceEl)
-                    ui.strategy1CycleCurrentBalanceEl.textContent = String(
+                    ui.strategy1CycleCurrentBalanceEl.textContent = fmtBalance(
                         Number(st.counters.currentBalanceAfterRound) || Number(st.cycle.currentBalance) || 0
                     );
                 if (ui.strategy1CycleLastStakeEl)
-                    ui.strategy1CycleLastStakeEl.textContent = String(
+                    ui.strategy1CycleLastStakeEl.textContent = fmtBalance(
                         Number(st.counters.lastStake) || Number(st.cycle.lastStake) || 0
                     );
                 if (ui.strategy1CycleTotalStakeEl)
-                    ui.strategy1CycleTotalStakeEl.textContent = String(
+                    ui.strategy1CycleTotalStakeEl.textContent = fmtBalance(
                         Number(st.counters.totalStakeSumInCycle) || Number(st.cycle.totalStakeSum) || 0
                     );
                 if (ui.strategy1CycleLossCountEl)
@@ -6634,7 +6771,7 @@
                 if (ui.strategy1CycleStatusEl)
                     ui.strategy1CycleStatusEl.textContent = st.cycle.isActive ? "active" : st.isExecuting ? "executing" : "idle";
                 if (ui.strategy1CycleEndReasonEl)
-                    ui.strategy1CycleEndReasonEl.textContent = (st.cycle.endReason || "—").toString();
+                    ui.strategy1CycleEndReasonEl.textContent = fmtText(st.cycle.endReason);
                 if (ui.strategy1LastRoundOutcomeEl)
                     ui.strategy1LastRoundOutcomeEl.textContent = (st.runtime?.lastRoundOutcome || "—").toString();
                 if (ui.strategy1LastRoundIdEl)
@@ -6646,91 +6783,94 @@
                         : "—";
                 }
                 if (ui.strategy1CyclePnlEl)
-                    ui.strategy1CyclePnlEl.textContent = String(Number(st.cycle.cyclePnL) || 0);
+                    ui.strategy1CyclePnlEl.textContent = fmtBalance(Number(st.cycle.cyclePnL) || 0);
                 if (ui.strategy1CycleRoundCountEl)
                     ui.strategy1CycleRoundCountEl.textContent = String(Number(st.cycle.roundCount) || 0);
                 if (ui.strategy1CycleFinishedEl)
                     ui.strategy1CycleFinishedEl.textContent = String(!st.cycle.isActive);
                 if (ui.strategy1CycleFinishReasonEl)
-                    ui.strategy1CycleFinishReasonEl.textContent = (st.cycle.endReason || "—").toString();
-                if (ui.strategy1DecisionStatusTextEl)
-                    ui.strategy1DecisionStatusTextEl.textContent = (decision.statusText || "—").toString();
-                if (ui.strategy1DecisionStatusCodeEl)
-                    ui.strategy1DecisionStatusCodeEl.textContent = (decision.statusCode || "—").toString();
-                if (ui.strategy1DecisionCanBetEl)
-                    ui.strategy1DecisionCanBetEl.textContent = String(!!decision.canMakeBet);
+                    ui.strategy1CycleFinishReasonEl.textContent = fmtText(st.cycle.endReason);
+                if (ui.strategy1CycleStartedAtEl) ui.strategy1CycleStartedAtEl.textContent = fmtTs(st.timers?.cycleStartedAtTs);
+                if (ui.strategy1CycleFinishedAtEl) ui.strategy1CycleFinishedAtEl.textContent = fmtTs(st.timers?.cycleFinishedAtTs);
+                if (ui.strategy1CycleLastRoundAtEl) ui.strategy1CycleLastRoundAtEl.textContent = fmtTs(st.timers?.lastRoundFinishedAtTs);
+                if (ui.strategy1CycleDurationMsEl) ui.strategy1CycleDurationMsEl.textContent = fmtNum(st.timers?.cycleDurationMs, 0);
+                if (ui.strategy1SummaryEnabledEl) setBadge(ui.strategy1SummaryEnabledEl, fmtBool(!!st.enabled), st.enabled ? "ok" : "neutral");
+                if (ui.strategy1SummaryCycleEl) setBadge(ui.strategy1SummaryCycleEl, fmtBool(!!st.cycle?.isActive), st.cycle?.isActive ? "ok" : "neutral");
+                if (ui.strategy1SummaryBranchEl) setBadge(ui.strategy1SummaryBranchEl, fmtCode(decision.branch), decision.branch ? "ok" : "neutral");
+                if (ui.strategy1SummaryCanBetEl) setBadge(ui.strategy1SummaryCanBetEl, fmtBool(!!decision.canMakeBet), decision.canMakeBet ? "ok" : "warn");
+                if (ui.strategy1SummaryPauseEl)
+                    setBadge(ui.strategy1SummaryPauseEl, fmtBool(!!st.runtime?.manualPauseActive), st.runtime?.manualPauseActive ? "warn" : "neutral");
+                if (ui.strategy1SummaryRecoveryEl)
+                    setBadge(ui.strategy1SummaryRecoveryEl, fmtBool(!!st.runtime?.waitingBalanceRecoveryActive), st.runtime?.waitingBalanceRecoveryActive ? "warn" : "neutral");
+                if (ui.strategy1SummaryExecutingEl) setBadge(ui.strategy1SummaryExecutingEl, fmtBool(!!st.isExecuting), st.isExecuting ? "ok" : "neutral");
+                if (ui.strategy1SummaryEndReasonEl) setBadge(ui.strategy1SummaryEndReasonEl, fmtText(st.cycle?.endReason), st.cycle?.endReason ? "bad" : "neutral");
+                if (ui.strategy1DecisionStatusTextEl) ui.strategy1DecisionStatusTextEl.textContent = fmtText(decision.statusText);
+                if (ui.strategy1DecisionStatusCodeEl) {
+                    const statusTone =
+                        decision.statusCode === this.DECISION_STATUS.BET_ALLOWED
+                            ? "ok"
+                            : decision.statusCode === this.DECISION_STATUS.CYCLE_SHOULD_END ||
+                                decision.statusCode === this.DECISION_STATUS.CHARTER_BLOCKED
+                              ? "bad"
+                              : decision.statusCode === this.DECISION_STATUS.WAITING_SIGNAL ||
+                                  decision.statusCode === this.DECISION_STATUS.WAITING_BALANCE_RECOVERY
+                                ? "warn"
+                                : "neutral";
+                    setBadge(ui.strategy1DecisionStatusCodeEl, fmtCode(decision.statusCode), statusTone);
+                }
+                if (ui.strategy1DecisionCanBetEl) setBadge(ui.strategy1DecisionCanBetEl, fmtBool(!!decision.canMakeBet), decision.canMakeBet ? "ok" : "warn");
                 if (ui.strategy1DecisionEndCycleEl)
-                    ui.strategy1DecisionEndCycleEl.textContent = String(!!decision.shouldEndCycle);
-                if (ui.strategy1DecisionBranchEl)
-                    ui.strategy1DecisionBranchEl.textContent = (decision.branch || "—").toString();
-                if (ui.strategy1DecisionWaitReasonEl)
-                    ui.strategy1DecisionWaitReasonEl.textContent = (decision.waitReason || "—").toString();
+                    setBadge(ui.strategy1DecisionEndCycleEl, fmtBool(!!decision.shouldEndCycle), decision.shouldEndCycle ? "bad" : "neutral");
+                if (ui.strategy1DecisionBranchEl) setBadge(ui.strategy1DecisionBranchEl, fmtCode(decision.branch), decision.branch ? "ok" : "neutral");
+                if (ui.strategy1DecisionWaitReasonEl) ui.strategy1DecisionWaitReasonEl.textContent = fmtText(decision.waitReason);
+                if (ui.strategy1DecisionAtEl) ui.strategy1DecisionAtEl.textContent = fmtTs(decision.lastDecisionAtTs);
                 const permission = st.runtime?.lastBetPermissionResult || null;
                 if (ui.strategy1PermissionAllowedEl)
-                    ui.strategy1PermissionAllowedEl.textContent = permission ? String(!!permission.allowed) : "—";
+                    setBadge(ui.strategy1PermissionAllowedEl, permission ? fmtBool(!!permission.allowed) : "—", permission?.allowed ? "ok" : "warn");
                 if (ui.strategy1PermissionStageEl)
-                    ui.strategy1PermissionStageEl.textContent = permission ? (permission.stage || "—").toString() : "—";
+                    setBadge(ui.strategy1PermissionStageEl, permission ? fmtCode(permission.stage) : "—", permission?.allowed ? "ok" : "neutral");
                 if (ui.strategy1PermissionReasonEl)
-                    ui.strategy1PermissionReasonEl.textContent = permission ? (permission.reason || "—").toString() : "—";
+                    setBadge(ui.strategy1PermissionReasonEl, permission ? fmtCode(permission.reason) : "—", permission?.shouldEndCycle ? "bad" : "warn");
                 if (ui.strategy1PermissionShouldEndEl)
-                    ui.strategy1PermissionShouldEndEl.textContent = permission
-                        ? String(!!permission.shouldEndCycle)
-                        : "—";
-                if (ui.strategy1ManualPauseActiveEl)
-                    ui.strategy1ManualPauseActiveEl.textContent = String(!!st.runtime?.manualPauseActive);
-                if (ui.strategy1ManualPauseReasonEl)
-                    ui.strategy1ManualPauseReasonEl.textContent = (st.runtime?.manualPauseReason || "—").toString();
-                if (ui.strategy1ManualPauseAtEl)
-                    ui.strategy1ManualPauseAtEl.textContent = st.runtime?.manualPauseAtTs
-                        ? String(Number(st.runtime.manualPauseAtTs) || 0)
-                        : "—";
-                if (ui.strategy1ManualResumeAtEl)
-                    ui.strategy1ManualResumeAtEl.textContent = st.runtime?.manualResumeAtTs
-                        ? String(Number(st.runtime.manualResumeAtTs) || 0)
-                        : "—";
-                if (ui.strategy1HardExitRequestedEl)
-                    ui.strategy1HardExitRequestedEl.textContent = String(!!st.runtime?.hardExitRequested);
-                if (ui.strategy1HardExitReasonEl)
-                    ui.strategy1HardExitReasonEl.textContent = (st.runtime?.hardExitReason || "—").toString();
-                if (ui.strategy1HardExitAtEl)
-                    ui.strategy1HardExitAtEl.textContent = st.runtime?.hardExitAtTs
-                        ? String(Number(st.runtime.hardExitAtTs) || 0)
-                        : "—";
+                    setBadge(ui.strategy1PermissionShouldEndEl, permission ? fmtBool(!!permission.shouldEndCycle) : "—", permission?.shouldEndCycle ? "bad" : "neutral");
+                if (ui.strategy1ManualPauseActiveEl) setBadge(ui.strategy1ManualPauseActiveEl, fmtBool(!!st.runtime?.manualPauseActive), st.runtime?.manualPauseActive ? "warn" : "neutral");
+                if (ui.strategy1ManualPauseReasonEl) ui.strategy1ManualPauseReasonEl.textContent = fmtText(st.runtime?.manualPauseReason);
+                if (ui.strategy1ManualPauseAtEl) ui.strategy1ManualPauseAtEl.textContent = fmtTs(st.runtime?.manualPauseAtTs);
+                if (ui.strategy1ManualResumeAtEl) ui.strategy1ManualResumeAtEl.textContent = fmtTs(st.runtime?.manualResumeAtTs);
+                if (ui.strategy1HardExitRequestedEl) setBadge(ui.strategy1HardExitRequestedEl, fmtBool(!!st.runtime?.hardExitRequested), st.runtime?.hardExitRequested ? "bad" : "neutral");
+                if (ui.strategy1HardExitReasonEl) ui.strategy1HardExitReasonEl.textContent = fmtText(st.runtime?.hardExitReason);
+                if (ui.strategy1HardExitAtEl) ui.strategy1HardExitAtEl.textContent = fmtTs(st.runtime?.hardExitAtTs);
                 if (ui.strategy1WaitingRecoveryActiveEl)
-                    ui.strategy1WaitingRecoveryActiveEl.textContent = String(!!st.runtime?.waitingBalanceRecoveryActive);
+                    setBadge(
+                        ui.strategy1WaitingRecoveryActiveEl,
+                        fmtBool(!!st.runtime?.waitingBalanceRecoveryActive),
+                        st.runtime?.waitingBalanceRecoveryActive ? "warn" : "neutral"
+                    );
                 if (ui.strategy1WaitingRecoveryReasonEl)
-                    ui.strategy1WaitingRecoveryReasonEl.textContent =
-                        (st.runtime?.waitingBalanceRecoveryReason || "—").toString();
+                    ui.strategy1WaitingRecoveryReasonEl.textContent = fmtText(st.runtime?.waitingBalanceRecoveryReason);
                 if (ui.strategy1WaitingRecoveryTargetEl)
-                    ui.strategy1WaitingRecoveryTargetEl.textContent = String(
-                        Number(st.runtime?.waitingBalanceRecoveryTargetBalance) || 0
-                    );
+                    ui.strategy1WaitingRecoveryTargetEl.textContent = fmtBalance(Number(st.runtime?.waitingBalanceRecoveryTargetBalance) || 0);
                 if (ui.strategy1WaitingRecoveryCurrentEl)
-                    ui.strategy1WaitingRecoveryCurrentEl.textContent = String(
-                        Number(st.runtime?.waitingBalanceRecoveryCurrentBalance) || 0
+                    ui.strategy1WaitingRecoveryCurrentEl.textContent = fmtBalance(Number(st.runtime?.waitingBalanceRecoveryCurrentBalance) || 0);
+                if (ui.strategy1WaitingRecoveryReachedEl) {
+                    setBadge(
+                        ui.strategy1WaitingRecoveryReachedEl,
+                        fmtBool(!!st.runtime?.waitingBalanceRecoveryReached),
+                        st.runtime?.waitingBalanceRecoveryReached ? "ok" : "neutral"
                     );
-                if (ui.strategy1WaitingRecoveryReachedEl)
-                    ui.strategy1WaitingRecoveryReachedEl.textContent = String(!!st.runtime?.waitingBalanceRecoveryReached);
+                }
                 if (ui.strategy1WaitingRecoveryStartedAtEl)
-                    ui.strategy1WaitingRecoveryStartedAtEl.textContent = st.runtime?.waitingBalanceRecoveryStartedAtTs
-                        ? String(Number(st.runtime.waitingBalanceRecoveryStartedAtTs) || 0)
-                        : "—";
+                    ui.strategy1WaitingRecoveryStartedAtEl.textContent = fmtTs(st.runtime?.waitingBalanceRecoveryStartedAtTs);
                 if (ui.strategy1WaitingRecoveryReachedAtEl)
-                    ui.strategy1WaitingRecoveryReachedAtEl.textContent = st.runtime?.waitingBalanceRecoveryReachedAtTs
-                        ? String(Number(st.runtime.waitingBalanceRecoveryReachedAtTs) || 0)
-                        : "—";
+                    ui.strategy1WaitingRecoveryReachedAtEl.textContent = fmtTs(st.runtime?.waitingBalanceRecoveryReachedAtTs);
                 if (ui.strategy1LastVoiceEventEl)
-                    ui.strategy1LastVoiceEventEl.textContent = (st.runtime?.lastVoiceEventCode || "—").toString();
+                    setBadge(ui.strategy1LastVoiceEventEl, fmtCode(st.runtime?.lastVoiceEventCode), st.runtime?.lastVoiceEventCode ? "ok" : "neutral");
                 if (ui.strategy1LastVoiceAtEl)
-                    ui.strategy1LastVoiceAtEl.textContent = st.runtime?.lastVoiceEventAtTs
-                        ? String(Number(st.runtime.lastVoiceEventAtTs) || 0)
-                        : "—";
+                    ui.strategy1LastVoiceAtEl.textContent = fmtTs(st.runtime?.lastVoiceEventAtTs);
                 if (ui.strategy1LastStatusEventEl)
-                    ui.strategy1LastStatusEventEl.textContent = (st.runtime?.lastStatusEventCode || "—").toString();
+                    setBadge(ui.strategy1LastStatusEventEl, fmtCode(st.runtime?.lastStatusEventCode), st.runtime?.lastStatusEventCode ? "warn" : "neutral");
                 if (ui.strategy1LastStatusAtEl)
-                    ui.strategy1LastStatusAtEl.textContent = st.runtime?.lastStatusEventAtTs
-                        ? String(Number(st.runtime.lastStatusEventAtTs) || 0)
-                        : "—";
+                    ui.strategy1LastStatusAtEl.textContent = fmtTs(st.runtime?.lastStatusEventAtTs);
                 if (ui.strategy1CharterAllowedEl) ui.strategy1CharterAllowedEl.textContent = String(!!st.charterCheck?.allowed);
                 if (ui.strategy1CharterReasonEl)
                     ui.strategy1CharterReasonEl.textContent = (st.charterCheck?.blockReason || "—").toString();
@@ -7436,39 +7576,61 @@
                 <div class="mep-system-message is-empty">Сообщений пока нет</div>
             </div>
         </div>
-        <div class="mep-actions-row">
-            <button class="mep-btn mep-strategy1-start-cycle" type="button">Старт цикла</button>
-            <button class="mep-btn mep-strategy1-finish-cycle" type="button">Завершить цикл</button>
-            <button class="mep-btn mep-strategy1-hard-exit" type="button">Жесткий выход</button>
-            <button class="mep-btn mep-strategy1-start-new-cycle" type="button">Новый цикл</button>
-            <button class="mep-btn mep-strategy1-enter-waiting-recovery" type="button">Ждать восстановления</button>
-            <button class="mep-btn mep-strategy1-exit-waiting-recovery" type="button">Снять ожидание</button>
-            <button class="mep-btn mep-strategy1-reset-cycle" type="button">Сбросить цикл</button>
-            <button class="mep-btn mep-strategy1-check-charter" type="button">Проверить Устав</button>
-            <button class="mep-btn mep-strategy1-route-branch" type="button">Определить ветку</button>
-            <button class="mep-btn mep-strategy1-check-first-branch" type="button">Проверить 1 ветку</button>
-            <button class="mep-btn mep-strategy1-check-second-branch" type="button">Проверить 2 ветку</button>
-            <button class="mep-btn mep-strategy1-pause-cycle" type="button">Пауза цикла</button>
-            <button class="mep-btn mep-strategy1-resume-cycle" type="button">Продолжить цикл</button>
-            <button class="mep-btn mep-strategy1-build-stake-plan" type="button">Проверить план ставки</button>
-            <button class="mep-btn mep-strategy1-evaluate-bet-permission" type="button">Проверить допуск к ставке</button>
-            <button class="mep-btn mep-strategy1-test-round-win" type="button">Тест win</button>
-            <button class="mep-btn mep-strategy1-test-round-loss" type="button">Тест loss</button>
+        <div class="mep-actions-group">
+            <div class="mep-strategy-subgroup-title">Управление</div>
+            <div class="mep-actions-row">
+                <button class="mep-btn mep-strategy1-start-cycle" type="button">Старт цикла</button>
+                <button class="mep-btn mep-strategy1-finish-cycle" type="button">Завершить цикл</button>
+                <button class="mep-btn mep-strategy1-hard-exit" type="button">Жесткий выход</button>
+                <button class="mep-btn mep-strategy1-start-new-cycle" type="button">Новый цикл</button>
+                <button class="mep-btn mep-strategy1-pause-cycle" type="button">Пауза цикла</button>
+                <button class="mep-btn mep-strategy1-resume-cycle" type="button">Продолжить цикл</button>
+                <button class="mep-btn mep-strategy1-enter-waiting-recovery" type="button">Ждать восстановления</button>
+                <button class="mep-btn mep-strategy1-exit-waiting-recovery" type="button">Снять ожидание</button>
+                <button class="mep-btn mep-strategy1-reset-cycle" type="button">Сбросить цикл</button>
+            </div>
+        </div>
+        <div class="mep-actions-group">
+            <div class="mep-strategy-subgroup-title">Диагностика</div>
+            <div class="mep-actions-row">
+                <button class="mep-btn mep-strategy1-check-charter" type="button">Проверить Устав</button>
+                <button class="mep-btn mep-strategy1-route-branch" type="button">Определить ветку</button>
+                <button class="mep-btn mep-strategy1-check-first-branch" type="button">Проверить 1 ветку</button>
+                <button class="mep-btn mep-strategy1-check-second-branch" type="button">Проверить 2 ветку</button>
+                <button class="mep-btn mep-strategy1-build-stake-plan" type="button">Проверить план ставки</button>
+                <button class="mep-btn mep-strategy1-evaluate-bet-permission" type="button">Проверить допуск к ставке</button>
+                <button class="mep-btn mep-strategy1-test-round-win" type="button">Тест win</button>
+                <button class="mep-btn mep-strategy1-test-round-loss" type="button">Тест loss</button>
+            </div>
         </div>
     </div>
     <div class="mep-strategy-section">
         <div class="mep-strategy-section-title">Текущее состояние стратегии</div>
+        <div class="mep-strategy-summary-strip">
+            <div class="mep-strategy-summary-item"><span>Enabled</span><span class="mep-strategy-state-value mep-strategy1-summary-enabled">—</span></div>
+            <div class="mep-strategy-summary-item"><span>Cycle</span><span class="mep-strategy-state-value mep-strategy1-summary-cycle">—</span></div>
+            <div class="mep-strategy-summary-item"><span>Branch</span><span class="mep-strategy-state-value mep-strategy1-summary-branch">—</span></div>
+            <div class="mep-strategy-summary-item"><span>Can bet</span><span class="mep-strategy-state-value mep-strategy1-summary-canbet">—</span></div>
+            <div class="mep-strategy-summary-item"><span>Pause</span><span class="mep-strategy-state-value mep-strategy1-summary-pause">—</span></div>
+            <div class="mep-strategy-summary-item"><span>Recovery</span><span class="mep-strategy-state-value mep-strategy1-summary-recovery">—</span></div>
+            <div class="mep-strategy-summary-item"><span>Executing</span><span class="mep-strategy-state-value mep-strategy1-summary-executing">—</span></div>
+            <div class="mep-strategy-summary-item"><span>End reason</span><span class="mep-strategy-state-value mep-strategy1-summary-endreason">—</span></div>
+        </div>
         <div class="mep-strategy-state-grid">
+            <div class="mep-strategy-subgroup-title">Сигналы</div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Статус:</span><span class="mep-strategy-state-value mep-strategy1-decision-status-text">Стратегия в ожидании</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Код статуса:</span><span class="mep-strategy-state-value mep-strategy1-decision-status-code">idle</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Ставка разрешена:</span><span class="mep-strategy-state-value mep-strategy1-decision-canbet">false</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Нужно завершить цикл:</span><span class="mep-strategy-state-value mep-strategy1-decision-endcycle">false</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Текущая ветка:</span><span class="mep-strategy-state-value mep-strategy1-decision-branch">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Причина ожидания:</span><span class="mep-strategy-state-value mep-strategy1-decision-waitreason">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last decision at:</span><span class="mep-strategy-state-value mep-strategy1-decision-at">—</span></div>
+            <div class="mep-strategy-subgroup-title">Допуск</div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission allowed:</span><span class="mep-strategy-state-value mep-strategy1-permission-allowed">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission stage:</span><span class="mep-strategy-state-value mep-strategy1-permission-stage">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission reason:</span><span class="mep-strategy-state-value mep-strategy1-permission-reason">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission shouldEndCycle:</span><span class="mep-strategy-state-value mep-strategy1-permission-should-end">—</span></div>
+            <div class="mep-strategy-subgroup-title">Пауза / Выход / Recovery</div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Manual pause:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-active">false</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pause reason:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-reason">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pause at:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-at">—</span></div>
@@ -7483,6 +7645,7 @@
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Reached:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-reached">false</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Started at:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-started-at">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Reached at:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-reached-at">—</span></div>
+            <div class="mep-strategy-subgroup-title">Последние events</div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last voice event:</span><span class="mep-strategy-state-value mep-strategy1-last-voice-event">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last voice at:</span><span class="mep-strategy-state-value mep-strategy1-last-voice-at">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last status event:</span><span class="mep-strategy-state-value mep-strategy1-last-status-event">—</span></div>
@@ -7492,16 +7655,21 @@
     <div class="mep-strategy-section">
         <div class="mep-strategy-section-title">Входные параметры</div>
         <div class="mep-strategy-form">
+            <div class="mep-strategy-subgroup-title">Риск</div>
             <div class="mep-strategy-row"><span class="mep-strategy-label">Процент риска от баланса</span><input class="mep-strategy-input mep-strategy1-risk-percent" type="number" min="0" step="0.1" /></div>
+            <div class="mep-strategy-subgroup-title">Начальная ставка</div>
             <div class="mep-strategy-row"><span class="mep-strategy-label">Режим начальной ставки</span><select class="mep-strategy-input mep-strategy1-start-stake-mode"><option value="fixed">fixed</option><option value="array">array</option></select></div>
-            <div class="mep-strategy-row"><span class="mep-strategy-label">Начальная ставка</span><input class="mep-strategy-input mep-strategy1-start-stake-value" type="number" min="0" step="0.00000001" /></div>
-            <div class="mep-strategy-row"><span class="mep-strategy-label">Массив начальных ставок</span><input class="mep-strategy-input mep-strategy1-start-stake-array" type="text" /></div>
+            <div class="mep-strategy-row mep-strategy-row-start-fixed"><span class="mep-strategy-label">Начальная ставка</span><input class="mep-strategy-input mep-strategy1-start-stake-value" type="number" min="0" step="0.00000001" /></div>
+            <div class="mep-strategy-row mep-strategy-row-start-array"><span class="mep-strategy-label">Массив начальных ставок</span><input class="mep-strategy-input mep-strategy1-start-stake-array" type="text" /></div>
+            <div class="mep-strategy-subgroup-title">Рост ставки</div>
             <div class="mep-strategy-row"><span class="mep-strategy-label">Режим приращения ставок</span><select class="mep-strategy-input mep-strategy1-stake-growth-mode"><option value="factor">factor</option><option value="array">array</option></select></div>
-            <div class="mep-strategy-row"><span class="mep-strategy-label">Коэффициент приращения ставок</span><input class="mep-strategy-input mep-strategy1-stake-growth-factor" type="number" min="0" step="0.01" /></div>
-            <div class="mep-strategy-row"><span class="mep-strategy-label">Массив приращения ставок</span><input class="mep-strategy-input mep-strategy1-stake-growth-array" type="text" /></div>
+            <div class="mep-strategy-row mep-strategy-row-growth-factor"><span class="mep-strategy-label">Коэффициент приращения ставок</span><input class="mep-strategy-input mep-strategy1-stake-growth-factor" type="number" min="0" step="0.01" /></div>
+            <div class="mep-strategy-row mep-strategy-row-growth-array"><span class="mep-strategy-label">Массив приращения ставок</span><input class="mep-strategy-input mep-strategy1-stake-growth-array" type="text" /></div>
+            <div class="mep-strategy-subgroup-title">Целевой множитель</div>
             <div class="mep-strategy-row"><span class="mep-strategy-label">Режим целевого множителя</span><select class="mep-strategy-input mep-strategy1-target-mode"><option value="fixed">fixed</option><option value="array">array</option></select></div>
-            <div class="mep-strategy-row"><span class="mep-strategy-label">Целевой множитель игры</span><input class="mep-strategy-input mep-strategy1-target-multiplier" type="number" min="0" step="0.01" /></div>
-            <div class="mep-strategy-row"><span class="mep-strategy-label">Массив целевых множителей</span><input class="mep-strategy-input mep-strategy1-target-multiplier-array" type="text" /></div>
+            <div class="mep-strategy-row mep-strategy-row-target-fixed"><span class="mep-strategy-label">Целевой множитель игры</span><input class="mep-strategy-input mep-strategy1-target-multiplier" type="number" min="0" step="0.01" /></div>
+            <div class="mep-strategy-row mep-strategy-row-target-array"><span class="mep-strategy-label">Массив целевых множителей</span><input class="mep-strategy-input mep-strategy1-target-multiplier-array" type="text" /></div>
+            <div class="mep-strategy-subgroup-title">Лимит поражений</div>
             <div class="mep-strategy-row"><span class="mep-strategy-label">Макс. количество проигрышей</span><input class="mep-strategy-input mep-strategy1-max-losses" type="number" min="0" step="1" /></div>
         </div>
     </div>
@@ -7529,13 +7697,13 @@
 Режим: <span class="mep-strategy1-conditions-mode">all</span>
 Клиенты EMA: <span class="mep-strategy1-stake-players-vector-state">—</span>
 Ставки EMA: <span class="mep-strategy1-stake-bet-vector-state">—</span>
-<div class="mep-strategy-subtitle">FIRST_BRANCH toggles</div>
-<label class="mep-charter-label"><input class="mep-strategy1-first-cond-lt2-enabled" type="checkbox" /> LT2 streak</label>
-<label class="mep-charter-label"><input class="mep-strategy1-first-cond-diff-enabled" type="checkbox" /> Diff EMA</label>
-<label class="mep-charter-label"><input class="mep-strategy1-first-cond-frequency-enabled" type="checkbox" /> Frequency EMA</label>
-<label class="mep-charter-label"><input class="mep-strategy1-first-cond-stake-bet-enabled" type="checkbox" /> Stake Bet EMA</label>
-<label class="mep-charter-label"><input class="mep-strategy1-first-cond-stake-players-enabled" type="checkbox" /> Stake Players EMA</label>
-<label class="mep-charter-label"><input class="mep-strategy1-first-cond-extra-enabled" type="checkbox" /> Extra</label>
+<div class="mep-strategy-subgroup-title">FIRST branch</div>
+<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-lt2-enabled" type="checkbox" /> LT2 streak</label></div>
+<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-diff-enabled" type="checkbox" /> Diff EMA</label></div>
+<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-frequency-enabled" type="checkbox" /> Frequency EMA</label></div>
+<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-stake-bet-enabled" type="checkbox" /> Stake Bet EMA</label></div>
+<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-stake-players-enabled" type="checkbox" /> Stake Players EMA</label></div>
+<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-extra-enabled" type="checkbox" /> Extra</label></div>
 <div class="mep-strategy1-first-conditions-diag-wrap">—</div>
 FIRST_BRANCH passed: <span class="mep-strategy1-first-branch-passed">—</span>
 LT2 streak: <span class="mep-strategy1-first-branch-lt2">—</span>
@@ -7545,11 +7713,11 @@ Stake bet vector: <span class="mep-strategy1-first-branch-stake-bet">—</span>
 Stake players vector: <span class="mep-strategy1-first-branch-stake-players">—</span>
 Failed at: <span class="mep-strategy1-first-branch-failed-at">—</span>
 Wait reason: <span class="mep-strategy1-first-branch-wait-reason">—</span>
-<div class="mep-strategy-subtitle">SECOND_BRANCH toggles</div>
-<label class="mep-charter-label"><input class="mep-strategy1-second-cond-max-losses-enabled" type="checkbox" /> Max losses</label>
-<label class="mep-charter-label"><input class="mep-strategy1-second-cond-max-stake-enabled" type="checkbox" /> Max stake</label>
-<label class="mep-charter-label"><input class="mep-strategy1-second-cond-diff-enabled" type="checkbox" /> Diff EMA</label>
-<label class="mep-charter-label"><input class="mep-strategy1-second-cond-frequency-enabled" type="checkbox" /> Frequency EMA</label>
+<div class="mep-strategy-subgroup-title">SECOND branch</div>
+<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-second-cond-max-losses-enabled" type="checkbox" /> Max losses</label></div>
+<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-second-cond-max-stake-enabled" type="checkbox" /> Max stake</label></div>
+<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-second-cond-diff-enabled" type="checkbox" /> Diff EMA</label></div>
+<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-second-cond-frequency-enabled" type="checkbox" /> Frequency EMA</label></div>
 <div class="mep-strategy1-second-conditions-diag-wrap">—</div>
 SECOND_BRANCH passed: <span class="mep-strategy1-second-branch-passed">—</span>
 Loss count: <span class="mep-strategy1-second-branch-loss-count">—</span>
@@ -7567,13 +7735,15 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
     </div>
     <div class="mep-strategy-section">
         <div class="mep-strategy-section-title">Конструктор ставок</div>
-        <div class="mep-strategy-placeholder">Режим ставки: <span class="mep-strategy1-stake-calc-mode">—</span>
+        <div class="mep-strategy-placeholder mep-stake-plan-card"><div class="mep-strategy-subgroup-title">План ставки</div>
+Режим ставки: <span class="mep-strategy1-stake-calc-mode">—</span>
 Режим target: <span class="mep-strategy1-target-calc-mode">—</span>
 Последний расчёт: betAmount=<span class="mep-strategy1-last-bet-amount">0</span>, targetMultiplier=<span class="mep-strategy1-last-target-multiplier">0</span>
 Режим расчёта: <span class="mep-strategy1-stake-plan-calc-mode">—</span>
 Шаг: <span class="mep-strategy1-stake-plan-step">—</span>
 Bet amount: <span class="mep-strategy1-stake-plan-bet-amount">—</span>
 Target multiplier: <span class="mep-strategy1-stake-plan-target">—</span>
+Risk cap: <span class="mep-strategy1-stake-plan-risk-cap">—</span>
 Max allowed stake: <span class="mep-strategy1-stake-plan-max-allowed">—</span>
 Allowed by risk: <span class="mep-strategy1-stake-plan-allowed-by-risk">false</span>
 Ready: <span class="mep-strategy1-stake-plan-ready">false</span>
@@ -7581,7 +7751,8 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
     </div>
     <div class="mep-strategy-section">
         <div class="mep-strategy-section-title">Цикл стратегии</div>
-        <div class="mep-strategy-status-grid">
+        <div class="mep-strategy-status-grid mep-cycle-card">
+            <div class="mep-strategy-subgroup-title">Состояние цикла</div>
             <div>Стартовый баланс: <span class="mep-strategy1-cycle-start-balance">0</span></div>
             <div>Текущий баланс: <span class="mep-strategy1-cycle-current-balance">0</span></div>
             <div>Последняя ставка: <span class="mep-strategy1-cycle-last-stake">0</span></div>
@@ -7597,6 +7768,10 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
             <div>Cycle round count: <span class="mep-strategy1-cycle-round-count">0</span></div>
             <div>Finished: <span class="mep-strategy1-cycle-finished">false</span></div>
             <div>Finish reason: <span class="mep-strategy1-cycle-finish-reason">—</span></div>
+            <div>Started at: <span class="mep-strategy1-cycle-started-at">—</span></div>
+            <div>Finished at: <span class="mep-strategy1-cycle-finished-at">—</span></div>
+            <div>Last round at: <span class="mep-strategy1-cycle-last-round-at">—</span></div>
+            <div>Duration ms: <span class="mep-strategy1-cycle-duration-ms">0</span></div>
         </div>
     </div>
 </div>
@@ -7719,6 +7894,7 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1StakePlanStepEl: panel.querySelector(".mep-strategy1-stake-plan-step"),
                     strategy1StakePlanBetAmountEl: panel.querySelector(".mep-strategy1-stake-plan-bet-amount"),
                     strategy1StakePlanTargetEl: panel.querySelector(".mep-strategy1-stake-plan-target"),
+                    strategy1StakePlanRiskCapEl: panel.querySelector(".mep-strategy1-stake-plan-risk-cap"),
                     strategy1StakePlanMaxAllowedEl: panel.querySelector(".mep-strategy1-stake-plan-max-allowed"),
                     strategy1StakePlanAllowedByRiskEl: panel.querySelector(".mep-strategy1-stake-plan-allowed-by-risk"),
                     strategy1StakePlanReadyEl: panel.querySelector(".mep-strategy1-stake-plan-ready"),
@@ -7738,12 +7914,25 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1CycleRoundCountEl: panel.querySelector(".mep-strategy1-cycle-round-count"),
                     strategy1CycleFinishedEl: panel.querySelector(".mep-strategy1-cycle-finished"),
                     strategy1CycleFinishReasonEl: panel.querySelector(".mep-strategy1-cycle-finish-reason"),
+                    strategy1CycleStartedAtEl: panel.querySelector(".mep-strategy1-cycle-started-at"),
+                    strategy1CycleFinishedAtEl: panel.querySelector(".mep-strategy1-cycle-finished-at"),
+                    strategy1CycleLastRoundAtEl: panel.querySelector(".mep-strategy1-cycle-last-round-at"),
+                    strategy1CycleDurationMsEl: panel.querySelector(".mep-strategy1-cycle-duration-ms"),
                     strategy1DecisionStatusTextEl: panel.querySelector(".mep-strategy1-decision-status-text"),
                     strategy1DecisionStatusCodeEl: panel.querySelector(".mep-strategy1-decision-status-code"),
                     strategy1DecisionCanBetEl: panel.querySelector(".mep-strategy1-decision-canbet"),
                     strategy1DecisionEndCycleEl: panel.querySelector(".mep-strategy1-decision-endcycle"),
                     strategy1DecisionBranchEl: panel.querySelector(".mep-strategy1-decision-branch"),
                     strategy1DecisionWaitReasonEl: panel.querySelector(".mep-strategy1-decision-waitreason"),
+                    strategy1DecisionAtEl: panel.querySelector(".mep-strategy1-decision-at"),
+                    strategy1SummaryEnabledEl: panel.querySelector(".mep-strategy1-summary-enabled"),
+                    strategy1SummaryCycleEl: panel.querySelector(".mep-strategy1-summary-cycle"),
+                    strategy1SummaryBranchEl: panel.querySelector(".mep-strategy1-summary-branch"),
+                    strategy1SummaryCanBetEl: panel.querySelector(".mep-strategy1-summary-canbet"),
+                    strategy1SummaryPauseEl: panel.querySelector(".mep-strategy1-summary-pause"),
+                    strategy1SummaryRecoveryEl: panel.querySelector(".mep-strategy1-summary-recovery"),
+                    strategy1SummaryExecutingEl: panel.querySelector(".mep-strategy1-summary-executing"),
+                    strategy1SummaryEndReasonEl: panel.querySelector(".mep-strategy1-summary-endreason"),
                     strategy1PermissionAllowedEl: panel.querySelector(".mep-strategy1-permission-allowed"),
                     strategy1PermissionStageEl: panel.querySelector(".mep-strategy1-permission-stage"),
                     strategy1PermissionReasonEl: panel.querySelector(".mep-strategy1-permission-reason"),

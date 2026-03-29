@@ -190,3 +190,8 @@
 - Подключены переходы: start/finish/new cycle, pause/resume, waiting recovery on/off/reached, permission/branch transitions, round outcome events.
 - Добавлен cooldown/dedupe для voice (voiceCooldownMs) и state-dedupe для branch/permission transition событий.
 - В Strategy1 UI добавлены controls Voice/Status/Cooldown и diagnostics Last voice/status event + ts; обновлены refs/bind/updateUiCounters.
+- 2026-03-29: Strategy1 Этап 17 — выполнена UI-polish переработка: сгруппированы блоки управления/диагностики, добавлены summary-strip и компактные subgroup-заголовки.
+- Добавлены format helpers `fmtBool/fmtText/fmtCode/fmtNum/fmtBalance/fmtTs` и badge-рендер ключевых state полей без изменения decision pipeline.
+- Диагностика времени переведена на человекочитаемый `HH:MM:SS` для decision/pause/hard-exit/recovery/voice/status/cycle timestamps.
+- Разделены action/debug кнопки на 2 подгруппы, улучшен блок system messages (компактнее, max-height+scroll).
+- Полирован блок параметров (режимы fixed/array/factor подсвечиваются), conditions diagnostics и stakePlan/cycle summary cards.
