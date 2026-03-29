@@ -168,3 +168,8 @@
 - Добавлены стили message panel в `crash.css` (`.mep-system-messages*`, `.mep-system-message*`, level-badge ok/warn/error/info).
 - Все ключевые action/debug кнопки Strategy1 теперь пишут живой action-response в message log (stage/reason/branch/code/payload).
 - Дополнительно логируются load-bearing transitions: pause/resume success, post-round duplicate/apply, finishCycle по profit/max_losses, permission shouldEndCycle=true.
+- 2026-03-29: Strategy1 Этап 13 — блок `Сообщения системы` перемещён в секции управления ВЫШЕ action-кнопок (после строки Вкл/Откл).
+- Добавлены runtime hard-exit поля: `hardExitRequested`, `hardExitAtTs`, `hardExitReason` (runtime-only, без persistence).
+- Реализованы методы `requestHardExit(reason)` и `startNewCycle()`; hard exit завершает цикл через `finishCycle("hard_exit")`, new cycle стартует как чистый `startCycle()`.
+- В UI добавлены кнопки `Жесткий выход` и `Новый цикл` + bind/system messages с различимыми action-response.
+- В diagnostics состояния добавлены поля hard-exit (requested/reason/at) и их вывод в `updateUiCounters()`.

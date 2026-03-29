@@ -321,6 +321,9 @@
                 manualPauseReason: "",
                 manualPauseAtTs: 0,
                 manualResumeAtTs: 0,
+                hardExitRequested: false,
+                hardExitAtTs: 0,
+                hardExitReason: "",
                 systemMessages: [],
                 lastActionResponse: null,
                 decisionState: {
@@ -349,7 +352,7 @@
             executionLocked: true,
             runtime: {},
         });
-        MEP.ver = "0.1.5.24";
+        MEP.ver = "0.1.5.25";
 
         // -------------------------
         // Settings module
@@ -5113,6 +5116,43 @@
                 return { applied: true, reason: "" };
             },
 
+            requestHardExit(reason = "hard_exit") {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.cycle?.isActive) return { applied: false, reason: "cycle_inactive" };
+                st.runtime.hardExitRequested = true;
+                st.runtime.hardExitAtTs = Date.now();
+                st.runtime.hardExitReason = (reason || "hard_exit").toString();
+                st.runtime.lastCycleAction = "requestHardExit";
+                this.finishCycle("hard_exit");
+                this.pushSystemMessage({
+                    level: "warn",
+                    action: "hardExit",
+                    text: "Цикл завершён вручную через hard exit",
+                    code: "hard_exit",
+                    stage: "cycle_finish",
+                    reason: "hard_exit",
+                    payload: { hardExitReason: st.runtime.hardExitReason },
+                });
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied: true, finishReason: "hard_exit" };
+            },
+
+            startNewCycle() {
+                const st = this.getState();
+                if (!st) return null;
+                const active = (MEP.State?.activeStrategyId || "").toString();
+                if (active && active !== st.id) return { applied: false, reason: "other_strategy_active" };
+                if (st.cycle?.isActive) return { applied: false, reason: "cycle_already_active" };
+                st.runtime.hardExitRequested = false;
+                st.runtime.hardExitReason = "";
+                const applied = !!this.startCycle();
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied, reason: applied ? "" : "cycle_already_active" };
+            },
+
             checkCharter() {
                 const st = this.getState();
                 if (!st) return { allowed: false, blockReason: "strategy1_not_found" };
@@ -6023,6 +6063,14 @@
                     ui.strategy1ManualResumeAtEl.textContent = st.runtime?.manualResumeAtTs
                         ? String(Number(st.runtime.manualResumeAtTs) || 0)
                         : "—";
+                if (ui.strategy1HardExitRequestedEl)
+                    ui.strategy1HardExitRequestedEl.textContent = String(!!st.runtime?.hardExitRequested);
+                if (ui.strategy1HardExitReasonEl)
+                    ui.strategy1HardExitReasonEl.textContent = (st.runtime?.hardExitReason || "—").toString();
+                if (ui.strategy1HardExitAtEl)
+                    ui.strategy1HardExitAtEl.textContent = st.runtime?.hardExitAtTs
+                        ? String(Number(st.runtime.hardExitAtTs) || 0)
+                        : "—";
                 if (ui.strategy1CharterAllowedEl) ui.strategy1CharterAllowedEl.textContent = String(!!st.charterCheck?.allowed);
                 if (ui.strategy1CharterReasonEl)
                     ui.strategy1CharterReasonEl.textContent = (st.charterCheck?.blockReason || "—").toString();
@@ -6707,9 +6755,20 @@
             <span class="mep-strategy-label">Вкл / Откл стратегии</span>
             <label class="mep-charter-label"><input class="mep-strategy1-enabled" type="checkbox" /> Включена</label>
         </div>
+        <div class="mep-strategy-section mep-system-messages">
+            <div class="mep-system-messages-head">
+                <div class="mep-strategy-section-title">Сообщения системы</div>
+                <button class="mep-btn mep-strategy1-system-messages-clear" type="button">Очистить</button>
+            </div>
+            <div class="mep-system-messages-list">
+                <div class="mep-system-message is-empty">Сообщений пока нет</div>
+            </div>
+        </div>
         <div class="mep-actions-row">
             <button class="mep-btn mep-strategy1-start-cycle" type="button">Старт цикла</button>
             <button class="mep-btn mep-strategy1-finish-cycle" type="button">Завершить цикл</button>
+            <button class="mep-btn mep-strategy1-hard-exit" type="button">Жесткий выход</button>
+            <button class="mep-btn mep-strategy1-start-new-cycle" type="button">Новый цикл</button>
             <button class="mep-btn mep-strategy1-reset-cycle" type="button">Сбросить цикл</button>
             <button class="mep-btn mep-strategy1-check-charter" type="button">Проверить Устав</button>
             <button class="mep-btn mep-strategy1-route-branch" type="button">Определить ветку</button>
@@ -6721,15 +6780,6 @@
             <button class="mep-btn mep-strategy1-evaluate-bet-permission" type="button">Проверить допуск к ставке</button>
             <button class="mep-btn mep-strategy1-test-round-win" type="button">Тест win</button>
             <button class="mep-btn mep-strategy1-test-round-loss" type="button">Тест loss</button>
-        </div>
-    </div>
-    <div class="mep-strategy-section mep-system-messages">
-        <div class="mep-system-messages-head">
-            <div class="mep-strategy-section-title">Сообщения системы</div>
-            <button class="mep-btn mep-strategy1-system-messages-clear" type="button">Очистить</button>
-        </div>
-        <div class="mep-system-messages-list">
-            <div class="mep-system-message is-empty">Сообщений пока нет</div>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -6749,6 +6799,9 @@
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pause reason:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-reason">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pause at:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-at">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Resume at:</span><span class="mep-strategy-state-value mep-strategy1-manual-resume-at">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit requested:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-requested">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit reason:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-reason">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit at:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-at">—</span></div>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -6901,6 +6954,8 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1MaxLossesInput: panel.querySelector("input.mep-strategy1-max-losses"),
                     strategy1StartCycleBtn: panel.querySelector("button.mep-strategy1-start-cycle"),
                     strategy1FinishCycleBtn: panel.querySelector("button.mep-strategy1-finish-cycle"),
+                    strategy1HardExitBtn: panel.querySelector("button.mep-strategy1-hard-exit"),
+                    strategy1StartNewCycleBtn: panel.querySelector("button.mep-strategy1-start-new-cycle"),
                     strategy1ResetCycleBtn: panel.querySelector("button.mep-strategy1-reset-cycle"),
                     strategy1CheckCharterBtn: panel.querySelector("button.mep-strategy1-check-charter"),
                     strategy1RouteBranchBtn: panel.querySelector("button.mep-strategy1-route-branch"),
@@ -6981,6 +7036,9 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     strategy1ManualPauseReasonEl: panel.querySelector(".mep-strategy1-manual-pause-reason"),
                     strategy1ManualPauseAtEl: panel.querySelector(".mep-strategy1-manual-pause-at"),
                     strategy1ManualResumeAtEl: panel.querySelector(".mep-strategy1-manual-resume-at"),
+                    strategy1HardExitRequestedEl: panel.querySelector(".mep-strategy1-hard-exit-requested"),
+                    strategy1HardExitReasonEl: panel.querySelector(".mep-strategy1-hard-exit-reason"),
+                    strategy1HardExitAtEl: panel.querySelector(".mep-strategy1-hard-exit-at"),
                     strategy1CharterAllowedEl: panel.querySelector(".mep-strategy1-charter-allowed"),
                     strategy1CharterReasonEl: panel.querySelector(".mep-strategy1-charter-reason"),
                     strategy1CharterRoundsHourEl: panel.querySelector(".mep-strategy1-charter-rounds-hour"),
@@ -7266,6 +7324,40 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                                 text: wasActive ? "Цикл завершён вручную" : "Завершение цикла пропущено: цикл не активен",
                                 code: wasActive ? "cycle_finished_manual" : "cycle_finish_skipped",
                                 reason: (reason || "").toString(),
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1HardExitBtn) {
+                        ui.strategy1HardExitBtn.addEventListener("click", () => {
+                            const res = MEP.Strategy1?.requestHardExit?.("hard_exit");
+                            if (!res?.applied) {
+                                MEP.Strategy1?.pushSystemMessage?.({
+                                    level: "warn",
+                                    action: "hardExit",
+                                    text: "Hard exit не применён: цикл не активен",
+                                    code: "hard_exit_skipped",
+                                    stage: "cycle_finish",
+                                    reason: (res?.reason || "cycle_inactive").toString(),
+                                });
+                            }
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1StartNewCycleBtn) {
+                        ui.strategy1StartNewCycleBtn.addEventListener("click", () => {
+                            const res = MEP.Strategy1?.startNewCycle?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: res?.applied ? "ok" : "warn",
+                                action: "startNewCycle",
+                                text: res?.applied
+                                    ? "Новый цикл запущен"
+                                    : res?.reason === "cycle_already_active"
+                                      ? "Новый цикл не запущен: цикл уже активен"
+                                      : "Новый цикл не запущен: активна другая стратегия",
+                                code: res?.applied ? "new_cycle_started" : "new_cycle_skipped",
+                                stage: "cycle_control",
+                                reason: (res?.reason || "").toString(),
                             });
                             MEP.Strategy1?.updateUiCounters?.();
                         });
