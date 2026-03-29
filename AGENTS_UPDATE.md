@@ -138,3 +138,45 @@
 - В runtime добавлен `lastFirstBranchResult` (runtime-only, без persistence), плюс синхронизация `conditions.lastResult` для FIRST_BRANCH/second-заглушки.
 - `evaluateDecisionState()` расширен: branch=first проверяет FIRST_BRANCH и ставит `bet_allowed` только при passed=true; branch=second отдаёт честный статус `second_branch_not_implemented`.
 - В Strategy1 UI добавлена диагностика FIRST_BRANCH (passed, lt2, vector states, failedAt, waitReason) и debug-кнопка `Проверить 1 ветку` (ref + bind).
+- 2026-03-29: Strategy1 Этап 7 — реализован рабочий `buildStakePlan()` (расчёт bet/target/maxAllowedStake/riskCap + ready/invalidReason + sourceStep/calcMode), запись в `strategy1.stakePlan` и runtime `lastStakePlanResult`.
+- Добавлены helper’ы `parseNumberArray(text)` и `getStakePlanStatusText(plan)`; поддержаны режимы startStake fixed/array, growth factor/array, target fixed/array, валидация `bet<=maxAllowedStake`.
+- `evaluateDecisionState()` для branch=first после успешного FIRST_BRANCH теперь вызывает `buildStakePlan()` и разрешает ставку только при `plan.ready=true`.
+- Обновлён UI блока «Конструктор ставок»: добавлена детальная диагностика расчёта (calcMode/step/bet/target/maxAllowed/allowedByRisk/ready/invalidReason) + новые refs и вывод в `updateUiCounters()`.
+- Добавлена debug-кнопка `Проверить план ставки` (ref + bind): `buildStakePlan()` -> `evaluateDecisionState()` -> `updateUiCounters()`.
+- 2026-03-29: Strategy1 Этап 8 — реализован hardcoded `checkSecondBranch()` с последовательными проверками `maxLosses -> stakePlan -> diffVector -> frequencyVector` и структурным результатом (`passed/failedAt/details/waitReason/statusText/shouldEndCycle/endReason`).
+- Добавлен helper `getSecondBranchFailText(failedAt, extra)`; special-case для `max_stake_exceeded|max_stake_not_allowed` теперь выставляет `shouldEndCycle=true` и `endReason=max_stake_reached` без авто `finishCycle()`.
+- В runtime Strategy1 добавлен контейнер `lastSecondBranchResult` (runtime-only, без persistence).
+- `evaluateDecisionState()` для `branch=second` интегрирован с `checkSecondBranch()` и now возвращает `waiting_signal | cycle_should_end | bet_allowed` по результату ветки.
+- В UI Strategy1 добавлены: debug-кнопка `Проверить 2 ветку`, refs/bind и компактный diagnostics-блок SECOND_BRANCH в «Конструктор условий».
+- 2026-03-29: Strategy1 Этап 9 — добавлен единый decision gateway `evaluateBetPermission()` с каноническим pipeline (disabled -> cycle_inactive -> charter -> routing -> first/second -> stake_plan/ready).
+- Добавлен helper `normalizeDecisionResult(result)` для нормализации итоговой структуры решения (`allowed/shouldEndCycle/branch/stage/reason/statusCode/statusText/details`).
+- `evaluateDecisionState()` упрощён до тонкой обёртки: вызывает `evaluateBetPermission()` и синхронизирует `runtime.decisionState` через `updateDecisionState()`.
+- Централизована синхронизация `conditions.lastResult` внутри `evaluateBetPermission()`, добавлен runtime-only `lastBetPermissionResult` (без persistence).
+- В UI добавлены diagnostics permission-result (allowed/stage/reason/shouldEndCycle) и debug-кнопка `Проверить допуск к ставке` (ref + bind).
+- 2026-03-29: Strategy1 Этап 10 — `updateAfterRound()` переведён в канонический post-round pipeline: normalize input -> derive outcome -> update cycle/counters/timers/runtime -> finish checks -> re-evaluate permission/UI.
+- Добавлены helper’ы `normalizeRoundResult(result)` и `deriveRoundOutcome(normalized, previousBalance)` с fallback-логикой по rawMultiplier/balance.
+- Добавлена защита от дубликатов раунда (`duplicate_round`) по `roundId` и guard на `strategy_disabled` / `cycle_inactive`.
+- Post-round finish ограничен причинами `profit_reached` и `max_losses_reached`; max stake остаётся в decision-layer (SECOND_BRANCH/evaluateBetPermission).
+- В UI добавлены post-round diagnostics (last outcome/id/balance, cyclePnL/roundCount, finished/finishReason) и debug-кнопки `Тест win` / `Тест loss`.
+- 2026-03-29: Strategy1 Этап 11 — добавлен manual pause/resume runtime-state (`manualPauseActive/manualPauseReason/manualPauseAtTs/manualResumeAtTs`) без persistence.
+- Реализованы методы `pauseCycle(reason)` и `resumeCycle()` как управляемая пауза цикла без finish/reset (cycle остаётся активным и не сбрасывается).
+- `evaluateBetPermission()` расширен ранним шлюзом `manual_pause` (до `checkCharter()`), статус `paused_manual`, stage=`manual_pause`, reason из `manualPauseReason`.
+- `updateAfterRound()` не блокируется ручной паузой: post-round результат применяется, а decision после пересчёта остаётся `paused_manual` до resume.
+- В UI добавлены кнопки `Пауза цикла` / `Продолжить цикл` и диагностика ручной паузы (active/reason/pauseAt/resumeAt) с refs + bind + updateUi.
+- 2026-03-29: Strategy1 Этап 12 — добавлен runtime message-layer: `systemMessages` (ring-buffer 30) и `lastActionResponse` + helper’ы `pushSystemMessage()`/`clearSystemMessages()`/`formatSystemMessageText()`.
+- В Strategy1 UI добавлен верхний блок `Сообщения системы` (под action-кнопками) с list/render newest-first и кнопкой `Очистить`.
+- Добавлены стили message panel в `crash.css` (`.mep-system-messages*`, `.mep-system-message*`, level-badge ok/warn/error/info).
+- Все ключевые action/debug кнопки Strategy1 теперь пишут живой action-response в message log (stage/reason/branch/code/payload).
+- Дополнительно логируются load-bearing transitions: pause/resume success, post-round duplicate/apply, finishCycle по profit/max_losses, permission shouldEndCycle=true.
+- 2026-03-29: Strategy1 Этап 13 — блок `Сообщения системы` перемещён в секции управления ВЫШЕ action-кнопок (после строки Вкл/Откл).
+- Добавлены runtime hard-exit поля: `hardExitRequested`, `hardExitAtTs`, `hardExitReason` (runtime-only, без persistence).
+- Реализованы методы `requestHardExit(reason)` и `startNewCycle()`; hard exit завершает цикл через `finishCycle("hard_exit")`, new cycle стартует как чистый `startCycle()`.
+- В UI добавлены кнопки `Жесткий выход` и `Новый цикл` + bind/system messages с различимыми action-response.
+- В diagnostics состояния добавлены поля hard-exit (requested/reason/at) и их вывод в `updateUiCounters()`.
+- 2026-03-29: Strategy1 Этап 14 — добавлен runtime-only режим `waiting_balance_recovery` (`waitingBalanceRecoveryActive/reason/startedAtTs/target/current/reached/reachedAtTs`) без persistence.
+- Реализованы методы `enterWaitingBalanceRecovery()`, `exitWaitingBalanceRecovery()` и `refreshWaitingBalanceRecovery()` с каноном targetBalance (explicit > 0, иначе `max(cycle.startBalance, currentBalance)`).
+- `evaluateBetPermission()` расширен ранним gateway `waiting_balance_recovery` (до charter/routing/branch): статус `waiting_balance_recovery`, блок ставок, без автозапуска нового цикла даже при `reached=true`.
+- `startNewCycle()` теперь вручную очищает waiting-recovery runtime флаги перед запуском нового цикла; `updateAfterRound()` обновляет waiting-recovery через `refreshWaitingBalanceRecovery()`.
+- В Strategy1 UI добавлены кнопки `Ждать восстановления` / `Снять ожидание`, refs+bind, и diagnostics-поля waiting recovery (active/reason/target/current/reached/startedAt/reachedAt).
+- В system messages добавлены значимые переходы waiting recovery: вход, выход, и единоразовое сообщение при первом достижении целевого баланса.
+

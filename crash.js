@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.19  ====
+// === crash.js 0.1.5.27  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -293,10 +293,13 @@
             stakePlan: {
                 betAmount: 0,
                 targetMultiplier: 0,
+                maxAllowedStake: 0,
+                riskCap: 0,
                 allowedByRisk: false,
                 sourceStep: "",
                 calcMode: "",
                 ready: false,
+                invalidReason: "",
             },
             runtime: {
                 lastSignal: "",
@@ -309,6 +312,27 @@
                 eventLog: [],
                 lastBranchInfo: null,
                 lastFirstBranchResult: null,
+                lastSecondBranchResult: null,
+                lastBetPermissionResult: null,
+                lastRoundOutcome: "",
+                lastRoundResult: null,
+                lastCycleSnapshot: null,
+                manualPauseActive: false,
+                manualPauseReason: "",
+                manualPauseAtTs: 0,
+                manualResumeAtTs: 0,
+                hardExitRequested: false,
+                hardExitAtTs: 0,
+                hardExitReason: "",
+                waitingBalanceRecoveryActive: false,
+                waitingBalanceRecoveryReason: "",
+                waitingBalanceRecoveryStartedAtTs: 0,
+                waitingBalanceRecoveryTargetBalance: 0,
+                waitingBalanceRecoveryCurrentBalance: 0,
+                waitingBalanceRecoveryReached: false,
+                waitingBalanceRecoveryReachedAtTs: 0,
+                systemMessages: [],
+                lastActionResponse: null,
                 decisionState: {
                     canMakeBet: false,
                     shouldEndCycle: false,
@@ -335,7 +359,7 @@
             executionLocked: true,
             runtime: {},
         });
-        MEP.ver = "0.1.5.19";
+        MEP.ver = "0.1.5.27";
 
         // -------------------------
         // Settings module
@@ -4549,6 +4573,77 @@
                 return MEP.State?.strategies?.strategy1 || null;
             },
 
+            pushSystemMessage(input = {}) {
+                const st = this.getState();
+                if (!st) return null;
+                if (!Array.isArray(st.runtime.systemMessages)) st.runtime.systemMessages = [];
+                const msg = input && typeof input === "object" ? input : {};
+                const out = {
+                    id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                    ts: Date.now(),
+                    level: ["info", "ok", "warn", "error"].includes(msg.level) ? msg.level : "info",
+                    source: "strategy1",
+                    action: (msg.action || "").toString(),
+                    text: (msg.text || "").toString(),
+                    code: (msg.code || "").toString(),
+                    stage: (msg.stage || "").toString(),
+                    reason: (msg.reason || "").toString(),
+                    branch: (msg.branch || "").toString(),
+                    payload: msg.payload && typeof msg.payload === "object" ? { ...msg.payload } : {},
+                };
+                st.runtime.systemMessages.push(out);
+                const maxLen = 30;
+                if (st.runtime.systemMessages.length > maxLen) {
+                    st.runtime.systemMessages.splice(0, st.runtime.systemMessages.length - maxLen);
+                }
+                st.runtime.lastActionResponse = {
+                    action: out.action,
+                    code: out.code,
+                    stage: out.stage,
+                    reason: out.reason,
+                    branch: out.branch,
+                    ts: out.ts,
+                    level: out.level,
+                };
+                return out;
+            },
+
+            clearSystemMessages() {
+                const st = this.getState();
+                if (!st) return;
+                st.runtime.systemMessages = [];
+                this.updateUiCounters();
+            },
+
+            formatSystemMessageText(action = "", data = {}) {
+                const a = (action || "").toString();
+                if (a === "startCycle") return data.applied ? "Старт цикла выполнен" : "Старт цикла пропущен";
+                if (a === "finishCycle") return data.applied ? "Цикл завершён вручную" : "Завершение цикла пропущено";
+                if (a === "resetCycle") return "Состояние цикла сброшено";
+                if (a === "pauseCycle")
+                    return data.applied ? "Цикл поставлен на ручную паузу" : "Пауза не применена";
+                if (a === "resumeCycle")
+                    return data.applied ? "Ручная пауза снята" : "Продолжение не применено: пауза не активна";
+                if (a === "enterWaitingBalanceRecovery")
+                    return data.applied
+                        ? "Включён режим ожидания восстановления баланса"
+                        : "Режим ожидания не включён";
+                if (a === "exitWaitingBalanceRecovery")
+                    return data.applied
+                        ? "Режим ожидания восстановления баланса отключён"
+                        : "Режим ожидания не выключен";
+                if (a === "evaluateBetPermission")
+                    return data.allowed ? "Допуск к ставке разрешён" : "Допуск к ставке отклонён";
+                if (a === "buildStakePlan") return data.ready ? "План ставки готов" : "План ставки невалиден";
+                if (a === "checkFirstBranch")
+                    return data.passed ? "Первая ветка пройдена" : "Первая ветка не пройдена";
+                if (a === "checkSecondBranch")
+                    return data.passed ? "Вторая ветка пройдена" : "Вторая ветка не пройдена";
+                if (a === "updateAfterRound")
+                    return data.applied ? "Результат раунда обработан" : "Результат раунда пропущен";
+                return "Действие выполнено";
+            },
+
             init() {
                 const st = this.getState();
                 if (!st) return;
@@ -4737,6 +4832,21 @@
                 return map[failedAt] || "Раунд пропускаем — ждём сигнал первой ветки";
             },
 
+            getSecondBranchFailText(failedAt = "", extra = {}) {
+                const map = {
+                    max_losses: "Раунд пропускаем — достигнут лимит проигрышей для цикла",
+                    max_stake: "Цикл завершён — достигнут максимальный уровень ставки",
+                    diff_vector: "Раунд пропускаем — ждём сигнал в сущности разниц",
+                    frequency_vector: "Раунд пропускаем — ждём сигнал в сущности частотности",
+                    stake_plan_invalid: "Раунд пропускаем — план ставки пока невалиден",
+                    not_second_branch: "Раунд пропускаем — вторая ветка сейчас не активна",
+                };
+                if (failedAt === "stake_plan_invalid" && extra?.stakePlanInvalidReason) {
+                    return `${map.stake_plan_invalid} (${extra.stakePlanInvalidReason})`;
+                }
+                return map[failedAt] || "Раунд пропускаем — ждём сигнал второй ветки";
+            },
+
             checkFirstBranch() {
                 const st = this.getState();
                 const details = {
@@ -4778,7 +4888,94 @@
             },
 
             checkSecondBranch() {
-                return { passed: false, failedAt: "not_implemented" };
+                const st = this.getState();
+                const fallback = {
+                    passed: false,
+                    failedAt: "strategy1_not_found",
+                    details: {},
+                    waitReason: "strategy1_not_found",
+                    statusText: "Стратегия1 не найдена",
+                    shouldEndCycle: false,
+                    endReason: "",
+                };
+                if (!st) return fallback;
+
+                const branchInfo = this.routeBranch();
+                const branch = (branchInfo?.branch || "").toString();
+                const lossCount = Math.max(0, Number(st.cycle?.lossCount) || 0);
+                const maxLosses = Math.max(0, Math.floor(Number(st.config?.maxLosses) || 0));
+                const stakePlan = this.buildStakePlan();
+                const diffVectorState = (MEP.State.diffVectorState || "").toString();
+                const frequencyVectorState = (MEP.State.frequencyVectorState || "").toString();
+
+                const details = {
+                    branch,
+                    lossCount,
+                    maxLosses,
+                    diffVectorState,
+                    frequencyVectorState,
+                    stakePlanReady: !!stakePlan?.ready,
+                    stakePlanBetAmount: Number(stakePlan?.betAmount) || 0,
+                    stakePlanMaxAllowedStake: Number(stakePlan?.maxAllowedStake) || 0,
+                    stakePlanInvalidReason: (stakePlan?.invalidReason || "").toString(),
+                };
+
+                const fail = (failedAt, opts = {}) => {
+                    const res = {
+                        passed: false,
+                        failedAt,
+                        details,
+                        waitReason: (opts.waitReason || failedAt || "").toString(),
+                        statusText: opts.statusText || this.getSecondBranchFailText(failedAt, details),
+                        shouldEndCycle: !!opts.shouldEndCycle,
+                        endReason: (opts.endReason || "").toString(),
+                    };
+                    if (st?.runtime) st.runtime.lastSecondBranchResult = res;
+                    return res;
+                };
+
+                if (branch !== "second") {
+                    return fail("not_second_branch", {
+                        waitReason: "not_second_branch",
+                    });
+                }
+                if (maxLosses > 0 && lossCount >= maxLosses) {
+                    return fail("max_losses", { waitReason: "max_losses" });
+                }
+
+                if (!stakePlan?.ready) {
+                    const invalidReason = (stakePlan?.invalidReason || "").toString();
+                    if (invalidReason === "max_stake_exceeded" || invalidReason === "max_stake_not_allowed") {
+                        return fail("max_stake", {
+                            waitReason: "max_stake_reached",
+                            shouldEndCycle: true,
+                            endReason: "max_stake_reached",
+                            statusText: this.getSecondBranchFailText("max_stake", details),
+                        });
+                    }
+                    return fail("stake_plan_invalid", {
+                        waitReason: invalidReason || "stake_plan_invalid",
+                    });
+                }
+
+                if (diffVectorState !== "up") {
+                    return fail("diff_vector", { waitReason: "diff_vector" });
+                }
+                if (frequencyVectorState !== "up") {
+                    return fail("frequency_vector", { waitReason: "frequency_vector" });
+                }
+
+                const ok = {
+                    passed: true,
+                    failedAt: "",
+                    details,
+                    waitReason: "",
+                    statusText: "Вторая ветка пройдена — ставка разрешена",
+                    shouldEndCycle: false,
+                    endReason: "",
+                };
+                if (st?.runtime) st.runtime.lastSecondBranchResult = ok;
+                return ok;
             },
 
             isProfitReached() {
@@ -4863,9 +5060,215 @@
                 if (MEP.State.activeStrategyId === st.id) MEP.State.activeStrategyId = null;
                 this.pushEvent("cycle_finish", now);
                 st.runtime.lastCycleAction = "finishCycle";
+                if (st.cycle.endReason === "profit_reached" || st.cycle.endReason === "max_losses_reached") {
+                    this.pushSystemMessage({
+                        level: "ok",
+                        action: "finishCycle",
+                        text:
+                            st.cycle.endReason === "profit_reached"
+                                ? "Цикл завершён: достигнут профит"
+                                : "Цикл завершён: достигнут лимит проигрышей",
+                        code: "cycle_finished",
+                        stage: "post_round_finish",
+                        reason: st.cycle.endReason,
+                        payload: { endReason: st.cycle.endReason },
+                    });
+                }
                 this.evaluateDecisionState();
                 this.updateUiCounters();
                 return st.cycle.endReason;
+            },
+
+            getManualPauseStatusText(reason = "") {
+                const key = (reason || "").toString();
+                const map = {
+                    manual_pause: "Цикл на ручной паузе",
+                    waiting_balance_topup: "Цикл на паузе — ожидание пополнения баланса",
+                };
+                return map[key] || "Цикл на паузе";
+            },
+
+            pauseCycle(reason = "manual_pause") {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.cycle?.isActive) return { applied: false, reason: "cycle_inactive" };
+                if (st.runtime?.manualPauseActive) return { applied: false, reason: "already_paused" };
+                st.runtime.manualPauseActive = true;
+                st.runtime.manualPauseReason = (reason || "manual_pause").toString();
+                st.runtime.manualPauseAtTs = Date.now();
+                st.runtime.lastCycleAction = "pauseCycle";
+                this.pushSystemMessage({
+                    level: "ok",
+                    action: "pauseCycle",
+                    text: this.formatSystemMessageText("pauseCycle", { applied: true }),
+                    code: "manual_pause_applied",
+                    stage: "manual_pause",
+                    reason: st.runtime.manualPauseReason,
+                });
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied: true, reason: st.runtime.manualPauseReason };
+            },
+
+            resumeCycle() {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.runtime?.manualPauseActive) return { applied: false, reason: "not_paused" };
+                st.runtime.manualPauseActive = false;
+                st.runtime.manualPauseReason = "";
+                st.runtime.manualResumeAtTs = Date.now();
+                st.runtime.lastCycleAction = "resumeCycle";
+                this.pushSystemMessage({
+                    level: "ok",
+                    action: "resumeCycle",
+                    text: this.formatSystemMessageText("resumeCycle", { applied: true }),
+                    code: "manual_pause_resumed",
+                    stage: "resume",
+                    reason: "",
+                });
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied: true, reason: "" };
+            },
+
+            requestHardExit(reason = "hard_exit") {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.cycle?.isActive) return { applied: false, reason: "cycle_inactive" };
+                st.runtime.hardExitRequested = true;
+                st.runtime.hardExitAtTs = Date.now();
+                st.runtime.hardExitReason = (reason || "hard_exit").toString();
+                st.runtime.lastCycleAction = "requestHardExit";
+                this.finishCycle("hard_exit");
+                this.pushSystemMessage({
+                    level: "warn",
+                    action: "hardExit",
+                    text: "Цикл завершён вручную через hard exit",
+                    code: "hard_exit",
+                    stage: "cycle_finish",
+                    reason: "hard_exit",
+                    payload: { hardExitReason: st.runtime.hardExitReason },
+                });
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied: true, finishReason: "hard_exit" };
+            },
+
+            startNewCycle() {
+                const st = this.getState();
+                if (!st) return null;
+                const active = (MEP.State?.activeStrategyId || "").toString();
+                if (active && active !== st.id) return { applied: false, reason: "other_strategy_active" };
+                if (st.cycle?.isActive) return { applied: false, reason: "cycle_already_active" };
+                st.runtime.hardExitRequested = false;
+                st.runtime.hardExitReason = "";
+                if (st.runtime.waitingBalanceRecoveryActive) {
+                    st.runtime.waitingBalanceRecoveryActive = false;
+                    st.runtime.waitingBalanceRecoveryReason = "";
+                    st.runtime.waitingBalanceRecoveryStartedAtTs = 0;
+                    st.runtime.waitingBalanceRecoveryTargetBalance = 0;
+                    st.runtime.waitingBalanceRecoveryCurrentBalance = Number(this.getCurrentBalance()) || 0;
+                    st.runtime.waitingBalanceRecoveryReached = false;
+                    st.runtime.waitingBalanceRecoveryReachedAtTs = 0;
+                }
+                const applied = !!this.startCycle();
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied, reason: applied ? "" : "cycle_already_active" };
+            },
+
+            enterWaitingBalanceRecovery(reason = "waiting_balance_recovery", targetBalance = 0) {
+                const st = this.getState();
+                if (!st) return null;
+                if (st.runtime?.waitingBalanceRecoveryActive) return { applied: false, reason: "already_waiting_balance_recovery" };
+                const cycleStartBalance = Number(st.cycle?.startBalance) || 0;
+                const currentBalance = Number(this.getCurrentBalance()) || 0;
+                const explicitTarget = Number(targetBalance);
+                const resolvedTarget = Number.isFinite(explicitTarget) && explicitTarget > 0
+                    ? explicitTarget
+                    : Math.max(cycleStartBalance, currentBalance);
+                st.runtime.waitingBalanceRecoveryActive = true;
+                st.runtime.waitingBalanceRecoveryReason = (reason || "waiting_balance_recovery").toString();
+                st.runtime.waitingBalanceRecoveryStartedAtTs = Date.now();
+                st.runtime.waitingBalanceRecoveryTargetBalance = Number.isFinite(resolvedTarget) && resolvedTarget > 0 ? resolvedTarget : 0;
+                st.runtime.waitingBalanceRecoveryCurrentBalance = currentBalance;
+                st.runtime.waitingBalanceRecoveryReached = false;
+                st.runtime.waitingBalanceRecoveryReachedAtTs = 0;
+                st.runtime.lastCycleAction = "enterWaitingBalanceRecovery";
+                const refreshed = this.refreshWaitingBalanceRecovery();
+                this.pushSystemMessage({
+                    level: "ok",
+                    action: "enterWaitingBalanceRecovery",
+                    text: this.formatSystemMessageText("enterWaitingBalanceRecovery", { applied: true }),
+                    code: "waiting_balance_recovery_entered",
+                    stage: "waiting_balance_recovery",
+                    reason: st.runtime.waitingBalanceRecoveryReason,
+                    payload: {
+                        targetBalance: Number(st.runtime.waitingBalanceRecoveryTargetBalance) || 0,
+                        currentBalance: Number(st.runtime.waitingBalanceRecoveryCurrentBalance) || 0,
+                        reached: !!(refreshed && refreshed.reached),
+                    },
+                });
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied: true };
+            },
+
+            exitWaitingBalanceRecovery(reason = "recovery_cleared") {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.runtime?.waitingBalanceRecoveryActive) return { applied: false, reason: "not_waiting_balance_recovery" };
+                st.runtime.waitingBalanceRecoveryActive = false;
+                st.runtime.waitingBalanceRecoveryReason = "";
+                st.runtime.waitingBalanceRecoveryStartedAtTs = 0;
+                st.runtime.waitingBalanceRecoveryTargetBalance = 0;
+                st.runtime.waitingBalanceRecoveryCurrentBalance = Number(this.getCurrentBalance()) || 0;
+                st.runtime.waitingBalanceRecoveryReached = false;
+                st.runtime.waitingBalanceRecoveryReachedAtTs = 0;
+                st.runtime.lastCycleAction = "exitWaitingBalanceRecovery";
+                this.pushSystemMessage({
+                    level: "ok",
+                    action: "exitWaitingBalanceRecovery",
+                    text: this.formatSystemMessageText("exitWaitingBalanceRecovery", { applied: true }),
+                    code: "waiting_balance_recovery_exited",
+                    stage: "waiting_balance_recovery",
+                    reason: (reason || "recovery_cleared").toString(),
+                });
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return { applied: true, reason: (reason || "recovery_cleared").toString() };
+            },
+
+            refreshWaitingBalanceRecovery() {
+                const st = this.getState();
+                if (!st) return null;
+                if (!st.runtime?.waitingBalanceRecoveryActive) return { applied: false, reason: "not_waiting_balance_recovery" };
+                const currentBalance = Number(this.getCurrentBalance()) || 0;
+                const targetBalance = Number(st.runtime.waitingBalanceRecoveryTargetBalance) || 0;
+                const wasReached = !!st.runtime.waitingBalanceRecoveryReached;
+                st.runtime.waitingBalanceRecoveryCurrentBalance = currentBalance;
+                if (targetBalance > 0 && currentBalance >= targetBalance) {
+                    st.runtime.waitingBalanceRecoveryReached = true;
+                    if (!Number(st.runtime.waitingBalanceRecoveryReachedAtTs)) {
+                        st.runtime.waitingBalanceRecoveryReachedAtTs = Date.now();
+                    }
+                    if (!wasReached) {
+                        this.pushSystemMessage({
+                            level: "ok",
+                            action: "refreshWaitingBalanceRecovery",
+                            text: "Баланс восстановлен до целевого уровня",
+                            code: "waiting_balance_recovery_reached",
+                            stage: "waiting_balance_recovery",
+                            reason: "balance_recovered",
+                            payload: { targetBalance, currentBalance },
+                        });
+                    }
+                } else {
+                    st.runtime.waitingBalanceRecoveryReached = false;
+                    st.runtime.waitingBalanceRecoveryReachedAtTs = 0;
+                }
+                this.updateUiCounters();
+                return { applied: true, reached: !!st.runtime.waitingBalanceRecoveryReached };
             },
 
             checkCharter() {
@@ -4970,73 +5373,338 @@
                 return result;
             },
 
+            parseNumberArray(text) {
+                const raw = (text || "").toString();
+                if (!raw.trim()) return [];
+                return raw
+                    .split(/[\s,;]+/g)
+                    .map((chunk) => MEP.Utils.cleanToNum(chunk))
+                    .filter((n) => Number.isFinite(n));
+            },
+
+            getStakePlanStatusText(plan = null) {
+                const p = plan || {};
+                if (p.ready) return "План ставки готов";
+                const reason = (p.invalidReason || "").toString();
+                const map = {
+                    risk_percent_not_set: "Не задан процент риска",
+                    start_stake_invalid: "Некорректная начальная ставка",
+                    growth_factor_invalid: "Некорректный коэффициент приращения",
+                    target_invalid: "Некорректный целевой множитель",
+                    max_stake_exceeded: "Следующая ставка превышает допустимый лимит",
+                    start_array_empty: "Массив начальных ставок пуст",
+                    growth_array_empty: "Массив приращения пуст",
+                    target_array_empty: "Массив целевых множителей пуст",
+                    stake_invalid: "Некорректно рассчитана сумма ставки",
+                    max_stake_not_allowed: "Лимит допустимой ставки не задан",
+                    stake_plan_invalid: "План ставки невалиден",
+                };
+                return map[reason] || "План ставки не готов";
+            },
+
             buildStakePlan() {
                 const st = this.getState();
-                if (!st) return { betAmount: 0, targetMultiplier: 0, ready: false };
-                st.stakePlan.calcMode = `${st.config.startStakeMode}:${st.config.stakeGrowthMode}`;
-                st.stakePlan.targetMultiplier = Number(st.config.targetMultiplierValue) || 0;
-                st.stakePlan.betAmount = Number(st.config.startStakeValue) || 0;
-                st.stakePlan.ready = false;
-                st.runtime.lastStakePlanResult = { ...st.stakePlan };
+                if (!st) {
+                    return {
+                        betAmount: 0,
+                        targetMultiplier: 0,
+                        maxAllowedStake: 0,
+                        riskCap: 0,
+                        allowedByRisk: false,
+                        sourceStep: "step_0",
+                        calcMode: "fixed:factor",
+                        ready: false,
+                        invalidReason: "strategy1_not_found",
+                    };
+                }
+                const currentBalance = Math.max(0, Number(this.getCurrentBalance()) || 0);
+                const lossCount = Math.max(0, Math.floor(Number(st.cycle?.lossCount) || 0));
+                const stepIndex = lossCount;
+                const sourceStep = `step_${stepIndex}`;
+                const startMode = st.config?.startStakeMode === "array" ? "array" : "fixed";
+                const growthMode = st.config?.stakeGrowthMode === "array" ? "array" : "factor";
+                const targetMode = st.config?.targetMode === "array" ? "array" : "fixed";
+
+                const plan = {
+                    betAmount: 0,
+                    targetMultiplier: 0,
+                    maxAllowedStake: 0,
+                    riskCap: 0,
+                    allowedByRisk: false,
+                    sourceStep,
+                    calcMode: `${startMode}:${growthMode}`,
+                    ready: false,
+                    invalidReason: "",
+                };
+
+                const riskPercent = Number(st.config?.riskPercent) || 0;
+                if (!(riskPercent > 0)) {
+                    plan.invalidReason = "risk_percent_not_set";
+                } else {
+                    const riskCap = currentBalance * (riskPercent / 100);
+                    plan.riskCap = Number.isFinite(riskCap) && riskCap > 0 ? riskCap : 0;
+                    const charterMaxStakePercent = Number(MEP.State?.charterMaxStakePercent) || 0;
+                    const charterCap =
+                        charterMaxStakePercent > 0 ? currentBalance * (charterMaxStakePercent / 100) : 0;
+                    const hasRiskCap = plan.riskCap > 0;
+                    const hasCharterCap = charterCap > 0;
+                    if (hasRiskCap && hasCharterCap) plan.maxAllowedStake = Math.min(plan.riskCap, charterCap);
+                    else if (hasRiskCap) plan.maxAllowedStake = plan.riskCap;
+                    else if (hasCharterCap) plan.maxAllowedStake = charterCap;
+                    else plan.maxAllowedStake = 0;
+                    plan.allowedByRisk = plan.maxAllowedStake > 0;
+                }
+
+                let baseStake = 0;
+                if (!plan.invalidReason) {
+                    if (startMode === "array") {
+                        const startArr = this.parseNumberArray(st.config?.startStakeArrayText);
+                        if (!startArr.length) plan.invalidReason = "start_array_empty";
+                        else baseStake = startArr[Math.min(stepIndex, startArr.length - 1)] || 0;
+                    } else {
+                        baseStake = Number(st.config?.startStakeValue) || 0;
+                        if (!(baseStake > 0)) plan.invalidReason = "start_stake_invalid";
+                    }
+                }
+
+                if (!plan.invalidReason) {
+                    if (growthMode === "array") {
+                        const growthArr = this.parseNumberArray(st.config?.stakeGrowthArrayText);
+                        if (!growthArr.length) {
+                            plan.invalidReason = "growth_array_empty";
+                        } else {
+                            const growthMultiplier = growthArr[Math.min(stepIndex, growthArr.length - 1)] || 0;
+                            plan.betAmount = baseStake * growthMultiplier;
+                        }
+                    } else {
+                        const factor = Number(st.config?.stakeGrowthFactor);
+                        if (!Number.isFinite(factor) || factor <= 0) {
+                            plan.invalidReason = "growth_factor_invalid";
+                        } else if (stepIndex === 0) {
+                            plan.betAmount = baseStake;
+                        } else {
+                            plan.betAmount = baseStake * Math.pow(factor, stepIndex);
+                        }
+                    }
+                }
+
+                if (!plan.invalidReason) {
+                    if (targetMode === "array") {
+                        const targetArr = this.parseNumberArray(st.config?.targetMultiplierArrayText);
+                        if (!targetArr.length) plan.invalidReason = "target_array_empty";
+                        else plan.targetMultiplier = targetArr[Math.min(stepIndex, targetArr.length - 1)] || 0;
+                    } else {
+                        plan.targetMultiplier = Number(st.config?.targetMultiplierValue) || 0;
+                    }
+                    if (!plan.invalidReason && (!Number.isFinite(plan.targetMultiplier) || plan.targetMultiplier <= 1)) {
+                        plan.invalidReason = "target_invalid";
+                    }
+                }
+
+                if (!plan.invalidReason) {
+                    if (!Number.isFinite(plan.betAmount) || plan.betAmount <= 0) {
+                        plan.invalidReason = "stake_invalid";
+                    } else if (!(plan.maxAllowedStake > 0)) {
+                        plan.invalidReason = "max_stake_not_allowed";
+                    } else if (plan.betAmount > plan.maxAllowedStake) {
+                        plan.invalidReason = "max_stake_exceeded";
+                    }
+                }
+
+                plan.ready = !plan.invalidReason;
+
+                st.stakePlan = {
+                    ...st.stakePlan,
+                    ...plan,
+                };
+                st.runtime.lastStakePlanResult = { ...plan };
                 st.runtime.lastCycleAction = "buildStakePlan";
                 this.updateUiCounters();
-                return { ...st.stakePlan };
+                return { ...plan };
+            },
+
+            normalizeRoundResult(result = {}) {
+                const raw = result && typeof result === "object" ? result : {};
+                const balanceNum = Number(raw.balance);
+                const stakeNum = Number(raw.stake);
+                const targetNum = Number(raw.targetMultiplier);
+                const tsNum = Number(raw.ts);
+                const rawMultiplierNum = Number(raw.rawMultiplier);
+                const fallbackBalance = this.getCurrentBalance();
+                const roundIdRaw = raw.roundId !== undefined && raw.roundId !== null ? String(raw.roundId).trim() : "";
+                return {
+                    balance: Number.isFinite(balanceNum) ? balanceNum : fallbackBalance,
+                    stake: Number.isFinite(stakeNum) ? stakeNum : 0,
+                    targetMultiplier: Number.isFinite(targetNum) ? targetNum : 0,
+                    won: !!raw.won,
+                    lost: !!raw.lost,
+                    roundId: roundIdRaw,
+                    ts: Number.isFinite(tsNum) && tsNum > 0 ? tsNum : Date.now(),
+                    rawMultiplier: Number.isFinite(rawMultiplierNum) ? rawMultiplierNum : null,
+                    resultKind: (raw.resultKind || "").toString(),
+                };
+            },
+
+            deriveRoundOutcome(normalizedResult = {}, previousBalance = 0) {
+                const n = normalizedResult && typeof normalizedResult === "object" ? normalizedResult : {};
+                const nextBalance = Number(n.balance);
+                const prevBalance = Number(previousBalance);
+                const targetMultiplier = Number(n.targetMultiplier);
+                const rawMultiplier = Number(n.rawMultiplier);
+                if (n.won === true) return { isWin: true, isLoss: false, isUnknown: false, outcomeCode: "win" };
+                if (n.lost === true) return { isWin: false, isLoss: true, isUnknown: false, outcomeCode: "loss" };
+                if (Number.isFinite(rawMultiplier) && Number.isFinite(targetMultiplier) && targetMultiplier > 1) {
+                    if (rawMultiplier >= targetMultiplier) return { isWin: true, isLoss: false, isUnknown: false, outcomeCode: "win" };
+                    if (rawMultiplier < targetMultiplier) return { isWin: false, isLoss: true, isUnknown: false, outcomeCode: "loss" };
+                }
+                if (Number.isFinite(nextBalance) && Number.isFinite(prevBalance)) {
+                    if (nextBalance > prevBalance) return { isWin: true, isLoss: false, isUnknown: false, outcomeCode: "win" };
+                    if (nextBalance < prevBalance) return { isWin: false, isLoss: true, isUnknown: false, outcomeCode: "loss" };
+                }
+                return { isWin: false, isLoss: false, isUnknown: true, outcomeCode: "unknown" };
             },
 
             updateAfterRound(result = {}) {
                 const st = this.getState();
-                if (!st || !st.cycle?.isActive) return false;
-                const tsNow = Date.now();
-                const nextBalanceRaw = Number(result.balance);
-                const nextBalance = Number.isFinite(nextBalanceRaw) ? nextBalanceRaw : this.getCurrentBalance();
-                const stakeRaw = Number(result.stake);
-                const stake = Number.isFinite(stakeRaw) ? stakeRaw : 0;
-                const targetRaw = Number(result.targetMultiplier);
-                const targetMultiplier = Number.isFinite(targetRaw) ? targetRaw : 0;
-                const won = !!result.won;
-                const lost = !!result.lost;
+                if (!st) {
+                    return {
+                        applied: false,
+                        reason: "strategy1_not_found",
+                        outcome: "unknown",
+                        finished: false,
+                        finishReason: "",
+                        cycleSnapshot: null,
+                        permission: null,
+                    };
+                }
+                if (!st.enabled) {
+                    this.updateUiCounters();
+                    return {
+                        applied: false,
+                        reason: "strategy_disabled",
+                        outcome: "unknown",
+                        finished: false,
+                        finishReason: "",
+                        cycleSnapshot: null,
+                        permission: null,
+                    };
+                }
+                if (!st.cycle?.isActive) {
+                    this.updateUiCounters();
+                    return {
+                        applied: false,
+                        reason: "cycle_inactive",
+                        outcome: "unknown",
+                        finished: false,
+                        finishReason: "",
+                        cycleSnapshot: null,
+                        permission: null,
+                    };
+                }
 
-                st.cycle.currentBalance = nextBalance;
-                st.cycle.cyclePnL = nextBalance - (Number(st.cycle.startBalance) || 0);
+                const normalized = this.normalizeRoundResult(result);
+                const previousRoundId = (st.runtime?.lastProcessedRoundId || "").toString();
+                if (normalized.roundId && previousRoundId && normalized.roundId === previousRoundId) {
+                    this.pushSystemMessage({
+                        level: "warn",
+                        action: "updateAfterRound",
+                        text: "Результат раунда пропущен: duplicate roundId",
+                        code: "duplicate_round",
+                        stage: "post_round",
+                        reason: "duplicate_round",
+                        payload: { roundId: normalized.roundId },
+                    });
+                    this.updateUiCounters();
+                    return {
+                        applied: false,
+                        reason: "duplicate_round",
+                        outcome: "unknown",
+                        finished: false,
+                        finishReason: "",
+                        cycleSnapshot: st.runtime?.lastCycleSnapshot ? { ...st.runtime.lastCycleSnapshot } : null,
+                        permission: st.runtime?.lastBetPermissionResult ? { ...st.runtime.lastBetPermissionResult } : null,
+                    };
+                }
+
+                const previousCycleBalance = Number(st.cycle.currentBalance) || 0;
+                const outcome = this.deriveRoundOutcome(normalized, previousCycleBalance);
+
+                st.cycle.currentBalance = normalized.balance;
+                st.cycle.cyclePnL = normalized.balance - (Number(st.cycle.startBalance) || 0);
                 st.cycle.roundCount = (Number(st.cycle.roundCount) || 0) + 1;
-                st.cycle.lastStake = stake;
-                st.cycle.lastTargetMultiplier = targetMultiplier;
-                st.cycle.totalStakeSum = (Number(st.cycle.totalStakeSum) || 0) + stake;
-                st.cycle.stepIndex = (Number(st.cycle.stepIndex) || 0) + 1;
-                if (lost) st.cycle.lossCount = (Number(st.cycle.lossCount) || 0) + 1;
-                if (won) st.cycle.winCount = (Number(st.cycle.winCount) || 0) + 1;
+                st.cycle.lastStake = normalized.stake;
+                st.cycle.lastTargetMultiplier = normalized.targetMultiplier;
+                st.cycle.totalStakeSum = (Number(st.cycle.totalStakeSum) || 0) + normalized.stake;
+                if (outcome.isLoss) st.cycle.lossCount = (Number(st.cycle.lossCount) || 0) + 1;
+                if (outcome.isWin) st.cycle.winCount = (Number(st.cycle.winCount) || 0) + 1;
+                st.cycle.stepIndex = Math.max(0, Number(st.cycle.lossCount) || 0);
 
-                st.counters.currentBalanceAfterRound = nextBalance;
-                st.counters.lastStake = stake;
+                st.counters.currentBalanceAfterRound = normalized.balance;
+                st.counters.lastStake = normalized.stake;
                 st.counters.totalStakeSumInCycle = st.cycle.totalStakeSum;
                 st.counters.lossRoundCount = st.cycle.lossCount;
                 st.counters.winRoundCount = st.cycle.winCount;
 
-                const roundTs = Number(result.ts);
-                st.timers.lastRoundResultAtTs = Number.isFinite(roundTs) && roundTs > 0 ? roundTs : tsNow;
-                if (result.roundId !== undefined && result.roundId !== null && String(result.roundId)) {
-                    st.runtime.lastProcessedRoundId = String(result.roundId);
-                }
-                this.pushEvent("round", st.timers.lastRoundResultAtTs);
-                if (won) this.pushEvent("win", st.timers.lastRoundResultAtTs);
-                if (lost) this.pushEvent("loss", st.timers.lastRoundResultAtTs);
-                st.runtime.lastCycleAction = "updateAfterRound";
+                st.timers.lastRoundResultAtTs = normalized.ts;
+                st.timers.lastRoundFinishedAtTs = normalized.ts;
 
-                if (this.isProfitReached()) {
-                    this.finishCycle("profit_reached");
-                    return true;
+                if (normalized.roundId) st.runtime.lastProcessedRoundId = normalized.roundId;
+                st.runtime.waitingRoundResult = false;
+                st.runtime.lastCycleAction = "updateAfterRound";
+                st.runtime.lastRoundOutcome = outcome.outcomeCode;
+                st.runtime.lastRoundResult = { ...normalized };
+
+                this.pushEvent("round", normalized.ts);
+                if (outcome.isWin) this.pushEvent("win", normalized.ts);
+                if (outcome.isLoss) this.pushEvent("loss", normalized.ts);
+
+                let finishReason = "";
+                if (this.isProfitReached()) finishReason = "profit_reached";
+                else if (this.isMaxLossesReached()) finishReason = "max_losses_reached";
+
+                let finished = false;
+                if (finishReason === "profit_reached" || finishReason === "max_losses_reached") {
+                    this.finishCycle(finishReason);
+                    finished = true;
                 }
-                if (this.isMaxStakeReached()) {
-                    this.finishCycle("max_stake_reached");
-                    return true;
+
+                const cycleSnapshot = {
+                    cycleId: (st.cycle.cycleId || "").toString(),
+                    currentBalance: Number(st.cycle.currentBalance) || 0,
+                    cyclePnL: Number(st.cycle.cyclePnL) || 0,
+                    totalStakeSum: Number(st.cycle.totalStakeSum) || 0,
+                    roundCount: Number(st.cycle.roundCount) || 0,
+                    lossCount: Number(st.cycle.lossCount) || 0,
+                    winCount: Number(st.cycle.winCount) || 0,
+                    endReason: (st.cycle.endReason || "").toString(),
+                };
+                st.runtime.lastCycleSnapshot = { ...cycleSnapshot };
+
+                if (st.runtime?.waitingBalanceRecoveryActive) {
+                    this.refreshWaitingBalanceRecovery();
                 }
-                if (this.isMaxLossesReached()) {
-                    this.finishCycle("max_losses_reached");
-                    return true;
-                }
-                this.evaluateDecisionState();
+                const permission = this.evaluateDecisionState();
+                this.pushSystemMessage({
+                    level: "ok",
+                    action: "updateAfterRound",
+                    text: this.formatSystemMessageText("updateAfterRound", { applied: true }),
+                    code: finished ? "round_applied_and_finished" : "round_applied",
+                    stage: "post_round",
+                    reason: finished ? finishReason : "",
+                    branch: (permission?.branch || "").toString(),
+                    payload: { outcome: outcome.outcomeCode, finished },
+                });
                 this.updateUiCounters();
-                return true;
+
+                return {
+                    applied: true,
+                    reason: "",
+                    outcome: outcome.outcomeCode,
+                    finished,
+                    finishReason: finished ? finishReason : "",
+                    cycleSnapshot,
+                    permission: permission ? { ...permission } : null,
+                };
             },
 
             updateDecisionState(partial = {}) {
@@ -5056,85 +5724,246 @@
                 return { ...st.runtime.decisionState };
             },
 
+            normalizeDecisionResult(result = {}) {
+                const safe = result && typeof result === "object" ? result : {};
+                const branchRaw = (safe.branch || "").toString();
+                const statusCodeRaw = (safe.statusCode || "").toString();
+                return {
+                    allowed: !!safe.allowed,
+                    shouldEndCycle: !!safe.shouldEndCycle,
+                    branch: branchRaw === "first" || branchRaw === "second" ? branchRaw : "",
+                    stage: (safe.stage || "init").toString(),
+                    reason: (safe.reason || "").toString(),
+                    statusCode: statusCodeRaw || this.DECISION_STATUS.IDLE,
+                    statusText: (safe.statusText || "Стратегия в ожидании").toString(),
+                    details: safe.details && typeof safe.details === "object" ? { ...safe.details } : {},
+                };
+            },
+
+            evaluateBetPermission() {
+                const st = this.getState();
+                const fallback = this.normalizeDecisionResult({
+                    allowed: false,
+                    shouldEndCycle: false,
+                    branch: "",
+                    stage: "init",
+                    reason: "strategy1_not_found",
+                    statusCode: this.DECISION_STATUS.IDLE,
+                    statusText: "Стратегия в ожидании",
+                    details: {},
+                });
+                if (!st) return fallback;
+
+                let result = this.normalizeDecisionResult({
+                    allowed: false,
+                    shouldEndCycle: false,
+                    branch: "",
+                    stage: "init",
+                    reason: "",
+                    statusCode: this.DECISION_STATUS.IDLE,
+                    statusText: "Стратегия в ожидании",
+                    details: {},
+                });
+
+                if (!st.enabled) {
+                    result = this.normalizeDecisionResult({
+                        ...result,
+                        stage: "disabled",
+                        statusCode: this.DECISION_STATUS.IDLE,
+                        statusText: "Стратегия выключена",
+                    });
+                } else if (st.runtime?.waitingBalanceRecoveryActive) {
+                    const waitingRefresh = this.refreshWaitingBalanceRecovery();
+                    const reached = !!waitingRefresh?.reached;
+                    const waitingReason = (st.runtime.waitingBalanceRecoveryReason || "waiting_balance_recovery").toString();
+                    result = this.normalizeDecisionResult({
+                        ...result,
+                        allowed: false,
+                        shouldEndCycle: false,
+                        branch: "",
+                        stage: "waiting_balance_recovery",
+                        reason: reached ? "balance_recovered" : waitingReason,
+                        statusCode: this.DECISION_STATUS.WAITING_BALANCE_RECOVERY,
+                        statusText: reached
+                            ? "Баланс восстановлен — можно запускать новый цикл вручную"
+                            : "Ожидание восстановления баланса",
+                        details: {
+                            targetBalance: Number(st.runtime.waitingBalanceRecoveryTargetBalance) || 0,
+                            currentBalance: Number(st.runtime.waitingBalanceRecoveryCurrentBalance) || 0,
+                            reached,
+                        },
+                    });
+                } else if (!st.cycle?.isActive) {
+                    const endReason = (st.cycle?.endReason || "").toString().trim();
+                    result = this.normalizeDecisionResult({
+                        ...result,
+                        stage: "cycle_inactive",
+                        reason: endReason,
+                        statusCode: this.DECISION_STATUS.IDLE,
+                        statusText: endReason ? "Цикл завершён" : "Ожидание запуска цикла",
+                    });
+                } else {
+                    if (st.runtime?.manualPauseActive) {
+                        result = this.normalizeDecisionResult({
+                            ...result,
+                            allowed: false,
+                            shouldEndCycle: false,
+                            branch: "",
+                            stage: "manual_pause",
+                            reason: (st.runtime.manualPauseReason || "manual_pause").toString(),
+                            statusCode: this.DECISION_STATUS.PAUSED_MANUAL,
+                            statusText: this.getManualPauseStatusText(st.runtime.manualPauseReason || "manual_pause"),
+                            details: {
+                                manualPauseActive: true,
+                                manualPauseReason: (st.runtime.manualPauseReason || "").toString(),
+                                manualPauseAtTs: Number(st.runtime.manualPauseAtTs) || 0,
+                            },
+                        });
+                    } else {
+                        const charter = this.checkCharter();
+                        if (charter && charter.allowed === false) {
+                            result = this.normalizeDecisionResult({
+                                ...result,
+                                stage: "charter",
+                                reason: (charter.blockReason || "").toString(),
+                                statusCode: this.DECISION_STATUS.CHARTER_BLOCKED,
+                                statusText: this.getCharterBlockStatusText(charter.blockReason),
+                                details: { charter: { ...charter } },
+                            });
+                        } else {
+                            const branchInfo = this.routeBranch();
+                            const branch = (branchInfo?.branch || "").toString();
+                            if (!branch) {
+                                result = this.normalizeDecisionResult({
+                                    ...result,
+                                    stage: "routing",
+                                    reason: (branchInfo?.reason || "branch_not_selected").toString(),
+                                    statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                                    statusText: this.getBranchStatusText(branchInfo),
+                                    details: { branchInfo: { ...(branchInfo || {}) } },
+                                });
+                            } else if (branch === "first") {
+                                const first = this.checkFirstBranch();
+                                if (!first?.passed) {
+                                    result = this.normalizeDecisionResult({
+                                        ...result,
+                                        branch: "first",
+                                        stage: "first_branch",
+                                        reason: (first?.failedAt || "").toString(),
+                                        statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                                        statusText: (first?.statusText || "Раунд пропускаем — ждём сигнал первой ветки").toString(),
+                                        details: { firstBranch: { ...(first || {}) } },
+                                    });
+                                } else {
+                                    const plan = this.buildStakePlan();
+                                    if (!plan?.ready) {
+                                        result = this.normalizeDecisionResult({
+                                            ...result,
+                                            branch: "first",
+                                            stage: "stake_plan",
+                                            reason: (plan?.invalidReason || "stake_plan_invalid").toString(),
+                                            statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                                            statusText: this.getStakePlanStatusText(plan),
+                                            details: { stakePlan: { ...(plan || {}) } },
+                                        });
+                                    } else {
+                                        result = this.normalizeDecisionResult({
+                                            ...result,
+                                            allowed: true,
+                                            branch: "first",
+                                            stage: "ready",
+                                            reason: "",
+                                            statusCode: this.DECISION_STATUS.BET_ALLOWED,
+                                            statusText: "Первая ветка пройдена — план ставки готов",
+                                            details: { firstBranch: { ...(first || {}) }, stakePlan: { ...(plan || {}) } },
+                                        });
+                                    }
+                                }
+                            } else {
+                                const second = this.checkSecondBranch();
+                                if (!second?.passed && second?.shouldEndCycle) {
+                                    result = this.normalizeDecisionResult({
+                                        ...result,
+                                        allowed: false,
+                                        shouldEndCycle: true,
+                                        branch: "second",
+                                        stage: "second_branch",
+                                        reason: (second?.endReason || second?.failedAt || "").toString(),
+                                        statusCode: this.DECISION_STATUS.CYCLE_SHOULD_END,
+                                        statusText: (second?.statusText || "Цикл завершён — достигнут максимальный уровень ставки").toString(),
+                                        details: { secondBranch: { ...(second || {}) } },
+                                    });
+                                } else if (!second?.passed) {
+                                    result = this.normalizeDecisionResult({
+                                        ...result,
+                                        allowed: false,
+                                        shouldEndCycle: false,
+                                        branch: "second",
+                                        stage: "second_branch",
+                                        reason: (second?.failedAt || second?.waitReason || "").toString(),
+                                        statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                                        statusText: (second?.statusText || "Раунд пропускаем — ждём сигнал второй ветки").toString(),
+                                        details: { secondBranch: { ...(second || {}) } },
+                                    });
+                                } else {
+                                    result = this.normalizeDecisionResult({
+                                        ...result,
+                                        allowed: true,
+                                        shouldEndCycle: false,
+                                        branch: "second",
+                                        stage: "ready",
+                                        reason: "",
+                                        statusCode: this.DECISION_STATUS.BET_ALLOWED,
+                                        statusText: "Вторая ветка пройдена — ставка разрешена",
+                                        details: { secondBranch: { ...(second || {}) } },
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (result.shouldEndCycle) {
+                    const lastCode = (st.runtime?.lastActionResponse?.code || "").toString();
+                    const nextCode = `permission_cycle_should_end:${result.reason || "unknown"}`;
+                    if (lastCode !== nextCode) {
+                        this.pushSystemMessage({
+                            level: "warn",
+                            action: "evaluateBetPermission",
+                            text: "Цикл должен быть завершён по результату проверки допуска",
+                            code: nextCode,
+                            stage: result.stage || "",
+                            reason: result.reason || "",
+                            branch: result.branch || "",
+                            payload: { shouldEndCycle: true },
+                        });
+                    }
+                }
+
+                if (st.conditions?.lastResult) {
+                    st.conditions.lastResult.canBet = !!result.allowed;
+                    st.conditions.lastResult.shouldEndCycle = !!result.shouldEndCycle;
+                    st.conditions.lastResult.reason = (result.reason || "").toString();
+                }
+                st.runtime.lastBetPermissionResult = { ...result };
+                st.runtime.lastCycleAction = "evaluateBetPermission";
+                return { ...result };
+            },
+
             evaluateDecisionState() {
                 const st = this.getState();
                 if (!st) return null;
-                if (!st.enabled) {
-                    return this.updateDecisionState({
-                        canMakeBet: false,
-                        shouldEndCycle: false,
-                        statusCode: this.DECISION_STATUS.IDLE,
-                        statusText: "Стратегия выключена",
-                        branch: "",
-                        waitReason: "",
-                    });
-                }
-                if (!st.cycle?.isActive) {
-                    const hasEndReason = !!(st.cycle?.endReason || "").toString().trim();
-                    return this.updateDecisionState({
-                        canMakeBet: false,
-                        shouldEndCycle: false,
-                        statusCode: this.DECISION_STATUS.IDLE,
-                        statusText: hasEndReason ? "Цикл завершён" : "Ожидание запуска цикла",
-                        branch: "",
-                        waitReason: hasEndReason ? st.cycle.endReason : "Цикл не активирован",
-                    });
-                }
-                const charter = this.checkCharter();
-                if (charter && charter.allowed === false) {
-                    return this.applyCharterDecision(charter);
-                }
-                const branchInfo = this.routeBranch();
-                const branch = branchInfo?.branch || "";
-                if (branch === "first") {
-                    const firstResult = this.checkFirstBranch();
-                    if (st.conditions?.lastResult) {
-                        st.conditions.lastResult.canBet = !!firstResult.passed;
-                        st.conditions.lastResult.shouldEndCycle = false;
-                        st.conditions.lastResult.reason = firstResult.failedAt || "";
-                    }
-                    if (!firstResult.passed) {
-                        return this.updateDecisionState({
-                            canMakeBet: false,
-                            shouldEndCycle: false,
-                            statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                            statusText: firstResult.statusText || "Раунд пропускаем — ждём сигнал первой ветки",
-                            branch: "first",
-                            waitReason: firstResult.waitReason || "first_branch_wait",
-                        });
-                    }
-                    return this.updateDecisionState({
-                        canMakeBet: true,
-                        shouldEndCycle: false,
-                        statusCode: this.DECISION_STATUS.BET_ALLOWED,
-                        statusText: "Первая ветка пройдена — ставка разрешена",
-                        branch: "first",
-                        waitReason: "",
-                    });
-                }
-                if (branch === "second") {
-                    if (st.conditions?.lastResult) {
-                        st.conditions.lastResult.canBet = false;
-                        st.conditions.lastResult.shouldEndCycle = false;
-                        st.conditions.lastResult.reason = "second_branch_not_implemented";
-                    }
-                    return this.updateDecisionState({
-                        canMakeBet: false,
-                        shouldEndCycle: false,
-                        statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                        statusText: "Цикл активен — вторая ветка пока не реализована",
-                        branch: "second",
-                        waitReason: "second_branch_not_implemented",
-                    });
-                }
-                return this.updateDecisionState({
-                    canMakeBet: false,
-                    shouldEndCycle: false,
-                    statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                    statusText: "Цикл активен — ожидание сигнала",
-                    branch,
-                    waitReason: branch ? `branch:${branch}` : "Нет входного сигнала",
+                const permission = this.evaluateBetPermission();
+                this.updateDecisionState({
+                    canMakeBet: !!permission.allowed,
+                    shouldEndCycle: !!permission.shouldEndCycle,
+                    statusCode: permission.statusCode || this.DECISION_STATUS.IDLE,
+                    statusText: (permission.statusText || "Стратегия в ожидании").toString(),
+                    branch: (permission.branch || "").toString(),
+                    waitReason: (permission.reason || "").toString(),
                 });
+                this.updateUiCounters();
+                return permission;
             },
 
             updateUiCounters() {
@@ -5142,6 +5971,42 @@
                 const ui = MEP.UI?.ui;
                 if (!st || !ui) return;
                 const decision = st.runtime?.decisionState || {};
+                if (ui.strategy1SystemMessagesList) {
+                    const list = Array.isArray(st.runtime?.systemMessages) ? st.runtime.systemMessages : [];
+                    ui.strategy1SystemMessagesList.innerHTML = "";
+                    if (!list.length) {
+                        const empty = document.createElement("div");
+                        empty.className = "mep-system-message is-empty";
+                        empty.textContent = "Сообщений пока нет";
+                        ui.strategy1SystemMessagesList.appendChild(empty);
+                    } else {
+                        const toTime = (ts) => {
+                            const d = new Date(Number(ts) || Date.now());
+                            const hh = String(d.getHours()).padStart(2, "0");
+                            const mm = String(d.getMinutes()).padStart(2, "0");
+                            const ss = String(d.getSeconds()).padStart(2, "0");
+                            return `${hh}:${mm}:${ss}`;
+                        };
+                        const items = list.slice().reverse();
+                        for (const msg of items) {
+                            const row = document.createElement("div");
+                            row.className = `mep-system-message level-${(msg.level || "info").toString()}`;
+                            const metaParts = [];
+                            if (msg.stage) metaParts.push(`stage=${msg.stage}`);
+                            if (msg.reason) metaParts.push(`reason=${msg.reason}`);
+                            if (msg.branch) metaParts.push(`branch=${msg.branch}`);
+                            row.innerHTML = `
+                                <div class="mep-system-message-top">
+                                    <span class="mep-system-message-time">[${toTime(msg.ts)}]</span>
+                                    <span class="mep-system-message-level">${(msg.level || "info").toString().toUpperCase()}</span>
+                                </div>
+                                <div class="mep-system-message-text">${(msg.text || "—").toString()}</div>
+                                <div class="mep-system-message-meta">${metaParts.join(" · ") || "—"}</div>
+                            `;
+                            ui.strategy1SystemMessagesList.appendChild(row);
+                        }
+                    }
+                }
 
                 if (ui.strategy1ConditionsModeEl) ui.strategy1ConditionsModeEl.textContent = st.conditions.mode || "all";
                 if (ui.strategy1StakePlayersVectorStateEl)
@@ -5179,6 +6044,49 @@
                     ui.strategy1FirstBranchWaitReasonEl.textContent = firstBranch
                         ? (firstBranch.waitReason || "—").toString()
                         : "—";
+                const secondBranch = st.runtime?.lastSecondBranchResult || null;
+                if (ui.strategy1SecondBranchPassedEl)
+                    ui.strategy1SecondBranchPassedEl.textContent = secondBranch ? String(!!secondBranch.passed) : "—";
+                if (ui.strategy1SecondBranchLossCountEl)
+                    ui.strategy1SecondBranchLossCountEl.textContent = secondBranch
+                        ? String(Number(secondBranch.details?.lossCount) || 0)
+                        : "—";
+                if (ui.strategy1SecondBranchMaxLossesEl)
+                    ui.strategy1SecondBranchMaxLossesEl.textContent = secondBranch
+                        ? String(Number(secondBranch.details?.maxLosses) || 0)
+                        : "—";
+                if (ui.strategy1SecondBranchStakeReadyEl)
+                    ui.strategy1SecondBranchStakeReadyEl.textContent = secondBranch
+                        ? String(!!secondBranch.details?.stakePlanReady)
+                        : "—";
+                if (ui.strategy1SecondBranchStakeInvalidEl)
+                    ui.strategy1SecondBranchStakeInvalidEl.textContent = secondBranch
+                        ? (secondBranch.details?.stakePlanInvalidReason || "—").toString()
+                        : "—";
+                if (ui.strategy1SecondBranchDiffEl)
+                    ui.strategy1SecondBranchDiffEl.textContent = secondBranch
+                        ? (secondBranch.details?.diffVectorState || "—").toString()
+                        : "—";
+                if (ui.strategy1SecondBranchFreqEl)
+                    ui.strategy1SecondBranchFreqEl.textContent = secondBranch
+                        ? (secondBranch.details?.frequencyVectorState || "—").toString()
+                        : "—";
+                if (ui.strategy1SecondBranchFailedAtEl)
+                    ui.strategy1SecondBranchFailedAtEl.textContent = secondBranch
+                        ? (secondBranch.failedAt || "—").toString()
+                        : "—";
+                if (ui.strategy1SecondBranchShouldEndEl)
+                    ui.strategy1SecondBranchShouldEndEl.textContent = secondBranch
+                        ? String(!!secondBranch.shouldEndCycle)
+                        : "—";
+                if (ui.strategy1SecondBranchEndReasonEl)
+                    ui.strategy1SecondBranchEndReasonEl.textContent = secondBranch
+                        ? (secondBranch.endReason || "—").toString()
+                        : "—";
+                if (ui.strategy1SecondBranchWaitReasonEl)
+                    ui.strategy1SecondBranchWaitReasonEl.textContent = secondBranch
+                        ? (secondBranch.waitReason || "—").toString()
+                        : "—";
                 if (ui.strategy1ConditionsCanBetEl)
                     ui.strategy1ConditionsCanBetEl.textContent = String(!!st.conditions.lastResult?.canBet);
                 if (ui.strategy1ConditionsEndEl)
@@ -5191,10 +6099,31 @@
                     ).toString();
                 if (ui.strategy1TargetCalcModeEl)
                     ui.strategy1TargetCalcModeEl.textContent = (st.config.targetMode || "fixed").toString();
+                const fmtPlanNum = (value) => {
+                    const n = Number(value);
+                    if (!Number.isFinite(n)) return "—";
+                    return n.toFixed(8).replace(/\.?0+$/, "");
+                };
                 if (ui.strategy1LastBetAmountEl)
-                    ui.strategy1LastBetAmountEl.textContent = String(Number(st.stakePlan.betAmount) || 0);
+                    ui.strategy1LastBetAmountEl.textContent = fmtPlanNum(st.stakePlan.betAmount);
                 if (ui.strategy1LastTargetMultiplierEl)
-                    ui.strategy1LastTargetMultiplierEl.textContent = String(Number(st.stakePlan.targetMultiplier) || 0);
+                    ui.strategy1LastTargetMultiplierEl.textContent = fmtPlanNum(st.stakePlan.targetMultiplier);
+                if (ui.strategy1StakePlanCalcModeEl)
+                    ui.strategy1StakePlanCalcModeEl.textContent = (st.stakePlan.calcMode || "—").toString();
+                if (ui.strategy1StakePlanStepEl)
+                    ui.strategy1StakePlanStepEl.textContent = (st.stakePlan.sourceStep || "—").toString();
+                if (ui.strategy1StakePlanBetAmountEl)
+                    ui.strategy1StakePlanBetAmountEl.textContent = fmtPlanNum(st.stakePlan.betAmount);
+                if (ui.strategy1StakePlanTargetEl)
+                    ui.strategy1StakePlanTargetEl.textContent = fmtPlanNum(st.stakePlan.targetMultiplier);
+                if (ui.strategy1StakePlanMaxAllowedEl)
+                    ui.strategy1StakePlanMaxAllowedEl.textContent = fmtPlanNum(st.stakePlan.maxAllowedStake);
+                if (ui.strategy1StakePlanAllowedByRiskEl)
+                    ui.strategy1StakePlanAllowedByRiskEl.textContent = String(!!st.stakePlan.allowedByRisk);
+                if (ui.strategy1StakePlanReadyEl)
+                    ui.strategy1StakePlanReadyEl.textContent = String(!!st.stakePlan.ready);
+                if (ui.strategy1StakePlanInvalidReasonEl)
+                    ui.strategy1StakePlanInvalidReasonEl.textContent = (st.stakePlan.invalidReason || "—").toString();
                 if (ui.strategy1CycleStartBalanceEl)
                     ui.strategy1CycleStartBalanceEl.textContent = String(
                         Number(st.counters.startBalanceBeforeCycle) || Number(st.cycle.startBalance) || 0
@@ -5223,6 +6152,24 @@
                     ui.strategy1CycleStatusEl.textContent = st.cycle.isActive ? "active" : st.isExecuting ? "executing" : "idle";
                 if (ui.strategy1CycleEndReasonEl)
                     ui.strategy1CycleEndReasonEl.textContent = (st.cycle.endReason || "—").toString();
+                if (ui.strategy1LastRoundOutcomeEl)
+                    ui.strategy1LastRoundOutcomeEl.textContent = (st.runtime?.lastRoundOutcome || "—").toString();
+                if (ui.strategy1LastRoundIdEl)
+                    ui.strategy1LastRoundIdEl.textContent = (st.runtime?.lastRoundResult?.roundId || "—").toString();
+                if (ui.strategy1LastRoundBalanceEl) {
+                    const lastRoundBal = Number(st.runtime?.lastRoundResult?.balance);
+                    ui.strategy1LastRoundBalanceEl.textContent = Number.isFinite(lastRoundBal)
+                        ? lastRoundBal.toFixed(8).replace(/\.?0+$/, "")
+                        : "—";
+                }
+                if (ui.strategy1CyclePnlEl)
+                    ui.strategy1CyclePnlEl.textContent = String(Number(st.cycle.cyclePnL) || 0);
+                if (ui.strategy1CycleRoundCountEl)
+                    ui.strategy1CycleRoundCountEl.textContent = String(Number(st.cycle.roundCount) || 0);
+                if (ui.strategy1CycleFinishedEl)
+                    ui.strategy1CycleFinishedEl.textContent = String(!st.cycle.isActive);
+                if (ui.strategy1CycleFinishReasonEl)
+                    ui.strategy1CycleFinishReasonEl.textContent = (st.cycle.endReason || "—").toString();
                 if (ui.strategy1DecisionStatusTextEl)
                     ui.strategy1DecisionStatusTextEl.textContent = (decision.statusText || "—").toString();
                 if (ui.strategy1DecisionStatusCodeEl)
@@ -5235,6 +6182,60 @@
                     ui.strategy1DecisionBranchEl.textContent = (decision.branch || "—").toString();
                 if (ui.strategy1DecisionWaitReasonEl)
                     ui.strategy1DecisionWaitReasonEl.textContent = (decision.waitReason || "—").toString();
+                const permission = st.runtime?.lastBetPermissionResult || null;
+                if (ui.strategy1PermissionAllowedEl)
+                    ui.strategy1PermissionAllowedEl.textContent = permission ? String(!!permission.allowed) : "—";
+                if (ui.strategy1PermissionStageEl)
+                    ui.strategy1PermissionStageEl.textContent = permission ? (permission.stage || "—").toString() : "—";
+                if (ui.strategy1PermissionReasonEl)
+                    ui.strategy1PermissionReasonEl.textContent = permission ? (permission.reason || "—").toString() : "—";
+                if (ui.strategy1PermissionShouldEndEl)
+                    ui.strategy1PermissionShouldEndEl.textContent = permission
+                        ? String(!!permission.shouldEndCycle)
+                        : "—";
+                if (ui.strategy1ManualPauseActiveEl)
+                    ui.strategy1ManualPauseActiveEl.textContent = String(!!st.runtime?.manualPauseActive);
+                if (ui.strategy1ManualPauseReasonEl)
+                    ui.strategy1ManualPauseReasonEl.textContent = (st.runtime?.manualPauseReason || "—").toString();
+                if (ui.strategy1ManualPauseAtEl)
+                    ui.strategy1ManualPauseAtEl.textContent = st.runtime?.manualPauseAtTs
+                        ? String(Number(st.runtime.manualPauseAtTs) || 0)
+                        : "—";
+                if (ui.strategy1ManualResumeAtEl)
+                    ui.strategy1ManualResumeAtEl.textContent = st.runtime?.manualResumeAtTs
+                        ? String(Number(st.runtime.manualResumeAtTs) || 0)
+                        : "—";
+                if (ui.strategy1HardExitRequestedEl)
+                    ui.strategy1HardExitRequestedEl.textContent = String(!!st.runtime?.hardExitRequested);
+                if (ui.strategy1HardExitReasonEl)
+                    ui.strategy1HardExitReasonEl.textContent = (st.runtime?.hardExitReason || "—").toString();
+                if (ui.strategy1HardExitAtEl)
+                    ui.strategy1HardExitAtEl.textContent = st.runtime?.hardExitAtTs
+                        ? String(Number(st.runtime.hardExitAtTs) || 0)
+                        : "—";
+                if (ui.strategy1WaitingRecoveryActiveEl)
+                    ui.strategy1WaitingRecoveryActiveEl.textContent = String(!!st.runtime?.waitingBalanceRecoveryActive);
+                if (ui.strategy1WaitingRecoveryReasonEl)
+                    ui.strategy1WaitingRecoveryReasonEl.textContent =
+                        (st.runtime?.waitingBalanceRecoveryReason || "—").toString();
+                if (ui.strategy1WaitingRecoveryTargetEl)
+                    ui.strategy1WaitingRecoveryTargetEl.textContent = String(
+                        Number(st.runtime?.waitingBalanceRecoveryTargetBalance) || 0
+                    );
+                if (ui.strategy1WaitingRecoveryCurrentEl)
+                    ui.strategy1WaitingRecoveryCurrentEl.textContent = String(
+                        Number(st.runtime?.waitingBalanceRecoveryCurrentBalance) || 0
+                    );
+                if (ui.strategy1WaitingRecoveryReachedEl)
+                    ui.strategy1WaitingRecoveryReachedEl.textContent = String(!!st.runtime?.waitingBalanceRecoveryReached);
+                if (ui.strategy1WaitingRecoveryStartedAtEl)
+                    ui.strategy1WaitingRecoveryStartedAtEl.textContent = st.runtime?.waitingBalanceRecoveryStartedAtTs
+                        ? String(Number(st.runtime.waitingBalanceRecoveryStartedAtTs) || 0)
+                        : "—";
+                if (ui.strategy1WaitingRecoveryReachedAtEl)
+                    ui.strategy1WaitingRecoveryReachedAtEl.textContent = st.runtime?.waitingBalanceRecoveryReachedAtTs
+                        ? String(Number(st.runtime.waitingBalanceRecoveryReachedAtTs) || 0)
+                        : "—";
                 if (ui.strategy1CharterAllowedEl) ui.strategy1CharterAllowedEl.textContent = String(!!st.charterCheck?.allowed);
                 if (ui.strategy1CharterReasonEl)
                     ui.strategy1CharterReasonEl.textContent = (st.charterCheck?.blockReason || "—").toString();
@@ -5919,13 +6920,33 @@
             <span class="mep-strategy-label">Вкл / Откл стратегии</span>
             <label class="mep-charter-label"><input class="mep-strategy1-enabled" type="checkbox" /> Включена</label>
         </div>
+        <div class="mep-strategy-section mep-system-messages">
+            <div class="mep-system-messages-head">
+                <div class="mep-strategy-section-title">Сообщения системы</div>
+                <button class="mep-btn mep-strategy1-system-messages-clear" type="button">Очистить</button>
+            </div>
+            <div class="mep-system-messages-list">
+                <div class="mep-system-message is-empty">Сообщений пока нет</div>
+            </div>
+        </div>
         <div class="mep-actions-row">
             <button class="mep-btn mep-strategy1-start-cycle" type="button">Старт цикла</button>
             <button class="mep-btn mep-strategy1-finish-cycle" type="button">Завершить цикл</button>
+            <button class="mep-btn mep-strategy1-hard-exit" type="button">Жесткий выход</button>
+            <button class="mep-btn mep-strategy1-start-new-cycle" type="button">Новый цикл</button>
+            <button class="mep-btn mep-strategy1-enter-waiting-recovery" type="button">Ждать восстановления</button>
+            <button class="mep-btn mep-strategy1-exit-waiting-recovery" type="button">Снять ожидание</button>
             <button class="mep-btn mep-strategy1-reset-cycle" type="button">Сбросить цикл</button>
             <button class="mep-btn mep-strategy1-check-charter" type="button">Проверить Устав</button>
             <button class="mep-btn mep-strategy1-route-branch" type="button">Определить ветку</button>
             <button class="mep-btn mep-strategy1-check-first-branch" type="button">Проверить 1 ветку</button>
+            <button class="mep-btn mep-strategy1-check-second-branch" type="button">Проверить 2 ветку</button>
+            <button class="mep-btn mep-strategy1-pause-cycle" type="button">Пауза цикла</button>
+            <button class="mep-btn mep-strategy1-resume-cycle" type="button">Продолжить цикл</button>
+            <button class="mep-btn mep-strategy1-build-stake-plan" type="button">Проверить план ставки</button>
+            <button class="mep-btn mep-strategy1-evaluate-bet-permission" type="button">Проверить допуск к ставке</button>
+            <button class="mep-btn mep-strategy1-test-round-win" type="button">Тест win</button>
+            <button class="mep-btn mep-strategy1-test-round-loss" type="button">Тест loss</button>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -5937,6 +6958,24 @@
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Нужно завершить цикл:</span><span class="mep-strategy-state-value mep-strategy1-decision-endcycle">false</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Текущая ветка:</span><span class="mep-strategy-state-value mep-strategy1-decision-branch">—</span></div>
             <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Причина ожидания:</span><span class="mep-strategy-state-value mep-strategy1-decision-waitreason">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission allowed:</span><span class="mep-strategy-state-value mep-strategy1-permission-allowed">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission stage:</span><span class="mep-strategy-state-value mep-strategy1-permission-stage">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission reason:</span><span class="mep-strategy-state-value mep-strategy1-permission-reason">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission shouldEndCycle:</span><span class="mep-strategy-state-value mep-strategy1-permission-should-end">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Manual pause:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-active">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pause reason:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-reason">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pause at:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-at">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Resume at:</span><span class="mep-strategy-state-value mep-strategy1-manual-resume-at">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit requested:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-requested">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit reason:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-reason">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit at:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-at">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Waiting recovery:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-active">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Recovery reason:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-reason">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Target balance:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-target">0</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Current balance:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-current">0</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Reached:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-reached">false</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Started at:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-started-at">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Reached at:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-reached-at">—</span></div>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -5987,6 +7026,17 @@ Stake bet vector: <span class="mep-strategy1-first-branch-stake-bet">—</span>
 Stake players vector: <span class="mep-strategy1-first-branch-stake-players">—</span>
 Failed at: <span class="mep-strategy1-first-branch-failed-at">—</span>
 Wait reason: <span class="mep-strategy1-first-branch-wait-reason">—</span>
+SECOND_BRANCH passed: <span class="mep-strategy1-second-branch-passed">—</span>
+Loss count: <span class="mep-strategy1-second-branch-loss-count">—</span>
+Max losses: <span class="mep-strategy1-second-branch-max-losses">—</span>
+Stake plan ready: <span class="mep-strategy1-second-branch-stake-ready">—</span>
+Stake plan invalidReason: <span class="mep-strategy1-second-branch-stake-invalid">—</span>
+Diff vector: <span class="mep-strategy1-second-branch-diff">—</span>
+Frequency vector: <span class="mep-strategy1-second-branch-freq">—</span>
+Failed at: <span class="mep-strategy1-second-branch-failed-at">—</span>
+Should end cycle: <span class="mep-strategy1-second-branch-should-end">—</span>
+End reason: <span class="mep-strategy1-second-branch-end-reason">—</span>
+Wait reason: <span class="mep-strategy1-second-branch-wait-reason">—</span>
 Rules: placeholder (будущий конструктор)
 LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, shouldEndCycle=<span class="mep-strategy1-conditions-end">false</span>, reason=<span class="mep-strategy1-conditions-reason">—</span></div>
     </div>
@@ -5994,7 +7044,15 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
         <div class="mep-strategy-section-title">Конструктор ставок</div>
         <div class="mep-strategy-placeholder">Режим ставки: <span class="mep-strategy1-stake-calc-mode">—</span>
 Режим target: <span class="mep-strategy1-target-calc-mode">—</span>
-Последний расчёт: betAmount=<span class="mep-strategy1-last-bet-amount">0</span>, targetMultiplier=<span class="mep-strategy1-last-target-multiplier">0</span></div>
+Последний расчёт: betAmount=<span class="mep-strategy1-last-bet-amount">0</span>, targetMultiplier=<span class="mep-strategy1-last-target-multiplier">0</span>
+Режим расчёта: <span class="mep-strategy1-stake-plan-calc-mode">—</span>
+Шаг: <span class="mep-strategy1-stake-plan-step">—</span>
+Bet amount: <span class="mep-strategy1-stake-plan-bet-amount">—</span>
+Target multiplier: <span class="mep-strategy1-stake-plan-target">—</span>
+Max allowed stake: <span class="mep-strategy1-stake-plan-max-allowed">—</span>
+Allowed by risk: <span class="mep-strategy1-stake-plan-allowed-by-risk">false</span>
+Ready: <span class="mep-strategy1-stake-plan-ready">false</span>
+Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span></div>
     </div>
     <div class="mep-strategy-section">
         <div class="mep-strategy-section-title">Цикл стратегии</div>
@@ -6007,6 +7065,13 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
             <div>Выигрышных раундов: <span class="mep-strategy1-cycle-win-count">0</span></div>
             <div>Статус цикла: <span class="mep-strategy1-cycle-status">idle</span></div>
             <div>Причина завершения: <span class="mep-strategy1-cycle-end-reason">—</span></div>
+            <div>Last round outcome: <span class="mep-strategy1-last-round-outcome">—</span></div>
+            <div>Last round id: <span class="mep-strategy1-last-round-id">—</span></div>
+            <div>Last round balance: <span class="mep-strategy1-last-round-balance">—</span></div>
+            <div>Cycle PnL: <span class="mep-strategy1-cycle-pnl">0</span></div>
+            <div>Cycle round count: <span class="mep-strategy1-cycle-round-count">0</span></div>
+            <div>Finished: <span class="mep-strategy1-cycle-finished">false</span></div>
+            <div>Finish reason: <span class="mep-strategy1-cycle-finish-reason">—</span></div>
         </div>
     </div>
 </div>
@@ -6063,10 +7128,24 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1MaxLossesInput: panel.querySelector("input.mep-strategy1-max-losses"),
                     strategy1StartCycleBtn: panel.querySelector("button.mep-strategy1-start-cycle"),
                     strategy1FinishCycleBtn: panel.querySelector("button.mep-strategy1-finish-cycle"),
+                    strategy1HardExitBtn: panel.querySelector("button.mep-strategy1-hard-exit"),
+                    strategy1StartNewCycleBtn: panel.querySelector("button.mep-strategy1-start-new-cycle"),
+                    strategy1EnterWaitingRecoveryBtn: panel.querySelector("button.mep-strategy1-enter-waiting-recovery"),
+                    strategy1ExitWaitingRecoveryBtn: panel.querySelector("button.mep-strategy1-exit-waiting-recovery"),
                     strategy1ResetCycleBtn: panel.querySelector("button.mep-strategy1-reset-cycle"),
                     strategy1CheckCharterBtn: panel.querySelector("button.mep-strategy1-check-charter"),
                     strategy1RouteBranchBtn: panel.querySelector("button.mep-strategy1-route-branch"),
                     strategy1CheckFirstBranchBtn: panel.querySelector("button.mep-strategy1-check-first-branch"),
+                    strategy1CheckSecondBranchBtn: panel.querySelector("button.mep-strategy1-check-second-branch"),
+                    strategy1PauseCycleBtn: panel.querySelector("button.mep-strategy1-pause-cycle"),
+                    strategy1ResumeCycleBtn: panel.querySelector("button.mep-strategy1-resume-cycle"),
+                    strategy1BuildStakePlanBtn: panel.querySelector("button.mep-strategy1-build-stake-plan"),
+                    strategy1EvaluateBetPermissionBtn: panel.querySelector("button.mep-strategy1-evaluate-bet-permission"),
+                    strategy1TestRoundWinBtn: panel.querySelector("button.mep-strategy1-test-round-win"),
+                    strategy1TestRoundLossBtn: panel.querySelector("button.mep-strategy1-test-round-loss"),
+                    strategy1SystemMessagesWrap: panel.querySelector(".mep-system-messages"),
+                    strategy1SystemMessagesList: panel.querySelector(".mep-system-messages-list"),
+                    strategy1SystemMessagesClearBtn: panel.querySelector("button.mep-strategy1-system-messages-clear"),
                     strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
                     strategy1StakePlayersVectorStateEl: panel.querySelector(".mep-strategy1-stake-players-vector-state"),
                     strategy1StakeBetVectorStateEl: panel.querySelector(".mep-strategy1-stake-bet-vector-state"),
@@ -6078,6 +7157,17 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1FirstBranchStakePlayersEl: panel.querySelector(".mep-strategy1-first-branch-stake-players"),
                     strategy1FirstBranchFailedAtEl: panel.querySelector(".mep-strategy1-first-branch-failed-at"),
                     strategy1FirstBranchWaitReasonEl: panel.querySelector(".mep-strategy1-first-branch-wait-reason"),
+                    strategy1SecondBranchPassedEl: panel.querySelector(".mep-strategy1-second-branch-passed"),
+                    strategy1SecondBranchLossCountEl: panel.querySelector(".mep-strategy1-second-branch-loss-count"),
+                    strategy1SecondBranchMaxLossesEl: panel.querySelector(".mep-strategy1-second-branch-max-losses"),
+                    strategy1SecondBranchStakeReadyEl: panel.querySelector(".mep-strategy1-second-branch-stake-ready"),
+                    strategy1SecondBranchStakeInvalidEl: panel.querySelector(".mep-strategy1-second-branch-stake-invalid"),
+                    strategy1SecondBranchDiffEl: panel.querySelector(".mep-strategy1-second-branch-diff"),
+                    strategy1SecondBranchFreqEl: panel.querySelector(".mep-strategy1-second-branch-freq"),
+                    strategy1SecondBranchFailedAtEl: panel.querySelector(".mep-strategy1-second-branch-failed-at"),
+                    strategy1SecondBranchShouldEndEl: panel.querySelector(".mep-strategy1-second-branch-should-end"),
+                    strategy1SecondBranchEndReasonEl: panel.querySelector(".mep-strategy1-second-branch-end-reason"),
+                    strategy1SecondBranchWaitReasonEl: panel.querySelector(".mep-strategy1-second-branch-wait-reason"),
                     strategy1ConditionsCanBetEl: panel.querySelector(".mep-strategy1-conditions-canbet"),
                     strategy1ConditionsEndEl: panel.querySelector(".mep-strategy1-conditions-end"),
                     strategy1ConditionsReasonEl: panel.querySelector(".mep-strategy1-conditions-reason"),
@@ -6085,6 +7175,14 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1TargetCalcModeEl: panel.querySelector(".mep-strategy1-target-calc-mode"),
                     strategy1LastBetAmountEl: panel.querySelector(".mep-strategy1-last-bet-amount"),
                     strategy1LastTargetMultiplierEl: panel.querySelector(".mep-strategy1-last-target-multiplier"),
+                    strategy1StakePlanCalcModeEl: panel.querySelector(".mep-strategy1-stake-plan-calc-mode"),
+                    strategy1StakePlanStepEl: panel.querySelector(".mep-strategy1-stake-plan-step"),
+                    strategy1StakePlanBetAmountEl: panel.querySelector(".mep-strategy1-stake-plan-bet-amount"),
+                    strategy1StakePlanTargetEl: panel.querySelector(".mep-strategy1-stake-plan-target"),
+                    strategy1StakePlanMaxAllowedEl: panel.querySelector(".mep-strategy1-stake-plan-max-allowed"),
+                    strategy1StakePlanAllowedByRiskEl: panel.querySelector(".mep-strategy1-stake-plan-allowed-by-risk"),
+                    strategy1StakePlanReadyEl: panel.querySelector(".mep-strategy1-stake-plan-ready"),
+                    strategy1StakePlanInvalidReasonEl: panel.querySelector(".mep-strategy1-stake-plan-invalid-reason"),
                     strategy1CycleStartBalanceEl: panel.querySelector(".mep-strategy1-cycle-start-balance"),
                     strategy1CycleCurrentBalanceEl: panel.querySelector(".mep-strategy1-cycle-current-balance"),
                     strategy1CycleLastStakeEl: panel.querySelector(".mep-strategy1-cycle-last-stake"),
@@ -6093,12 +7191,37 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1CycleWinCountEl: panel.querySelector(".mep-strategy1-cycle-win-count"),
                     strategy1CycleStatusEl: panel.querySelector(".mep-strategy1-cycle-status"),
                     strategy1CycleEndReasonEl: panel.querySelector(".mep-strategy1-cycle-end-reason"),
+                    strategy1LastRoundOutcomeEl: panel.querySelector(".mep-strategy1-last-round-outcome"),
+                    strategy1LastRoundIdEl: panel.querySelector(".mep-strategy1-last-round-id"),
+                    strategy1LastRoundBalanceEl: panel.querySelector(".mep-strategy1-last-round-balance"),
+                    strategy1CyclePnlEl: panel.querySelector(".mep-strategy1-cycle-pnl"),
+                    strategy1CycleRoundCountEl: panel.querySelector(".mep-strategy1-cycle-round-count"),
+                    strategy1CycleFinishedEl: panel.querySelector(".mep-strategy1-cycle-finished"),
+                    strategy1CycleFinishReasonEl: panel.querySelector(".mep-strategy1-cycle-finish-reason"),
                     strategy1DecisionStatusTextEl: panel.querySelector(".mep-strategy1-decision-status-text"),
                     strategy1DecisionStatusCodeEl: panel.querySelector(".mep-strategy1-decision-status-code"),
                     strategy1DecisionCanBetEl: panel.querySelector(".mep-strategy1-decision-canbet"),
                     strategy1DecisionEndCycleEl: panel.querySelector(".mep-strategy1-decision-endcycle"),
                     strategy1DecisionBranchEl: panel.querySelector(".mep-strategy1-decision-branch"),
                     strategy1DecisionWaitReasonEl: panel.querySelector(".mep-strategy1-decision-waitreason"),
+                    strategy1PermissionAllowedEl: panel.querySelector(".mep-strategy1-permission-allowed"),
+                    strategy1PermissionStageEl: panel.querySelector(".mep-strategy1-permission-stage"),
+                    strategy1PermissionReasonEl: panel.querySelector(".mep-strategy1-permission-reason"),
+                    strategy1PermissionShouldEndEl: panel.querySelector(".mep-strategy1-permission-should-end"),
+                    strategy1ManualPauseActiveEl: panel.querySelector(".mep-strategy1-manual-pause-active"),
+                    strategy1ManualPauseReasonEl: panel.querySelector(".mep-strategy1-manual-pause-reason"),
+                    strategy1ManualPauseAtEl: panel.querySelector(".mep-strategy1-manual-pause-at"),
+                    strategy1ManualResumeAtEl: panel.querySelector(".mep-strategy1-manual-resume-at"),
+                    strategy1HardExitRequestedEl: panel.querySelector(".mep-strategy1-hard-exit-requested"),
+                    strategy1HardExitReasonEl: panel.querySelector(".mep-strategy1-hard-exit-reason"),
+                    strategy1HardExitAtEl: panel.querySelector(".mep-strategy1-hard-exit-at"),
+                    strategy1WaitingRecoveryActiveEl: panel.querySelector(".mep-strategy1-waiting-recovery-active"),
+                    strategy1WaitingRecoveryReasonEl: panel.querySelector(".mep-strategy1-waiting-recovery-reason"),
+                    strategy1WaitingRecoveryTargetEl: panel.querySelector(".mep-strategy1-waiting-recovery-target"),
+                    strategy1WaitingRecoveryCurrentEl: panel.querySelector(".mep-strategy1-waiting-recovery-current"),
+                    strategy1WaitingRecoveryReachedEl: panel.querySelector(".mep-strategy1-waiting-recovery-reached"),
+                    strategy1WaitingRecoveryStartedAtEl: panel.querySelector(".mep-strategy1-waiting-recovery-started-at"),
+                    strategy1WaitingRecoveryReachedAtEl: panel.querySelector(".mep-strategy1-waiting-recovery-reached-at"),
                     strategy1CharterAllowedEl: panel.querySelector(".mep-strategy1-charter-allowed"),
                     strategy1CharterReasonEl: panel.querySelector(".mep-strategy1-charter-reason"),
                     strategy1CharterRoundsHourEl: panel.querySelector(".mep-strategy1-charter-rounds-hour"),
@@ -6332,6 +7455,7 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                         inp.addEventListener("input", () => {
                             s1.config[key] = (inp.value || "").toString();
                             MEP.Storage.save();
+                            MEP.Strategy1?.buildStakePlan?.();
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     };
@@ -6356,39 +7480,308 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     }
                     if (ui.strategy1StartCycleBtn) {
                         ui.strategy1StartCycleBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.startCycle?.();
+                            const applied = !!MEP.Strategy1?.startCycle?.();
+                            const active = MEP.State?.activeStrategyId;
+                            const blockedByOther = !applied && !!active && active !== "strategy1";
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: applied ? "ok" : "warn",
+                                action: "startCycle",
+                                text: applied
+                                    ? "Старт цикла выполнен"
+                                    : blockedByOther
+                                      ? "Старт цикла пропущен: активна другая стратегия"
+                                      : "Старт цикла пропущен: цикл уже активен",
+                                code: applied ? "cycle_started" : "cycle_start_skipped",
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1FinishCycleBtn) {
                         ui.strategy1FinishCycleBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.finishCycle?.("manual_stop");
+                            const stNow = MEP.State?.strategies?.strategy1;
+                            const wasActive = !!stNow?.cycle?.isActive;
+                            const reason = MEP.Strategy1?.finishCycle?.("manual_stop");
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: wasActive ? "ok" : "warn",
+                                action: "finishCycle",
+                                text: wasActive ? "Цикл завершён вручную" : "Завершение цикла пропущено: цикл не активен",
+                                code: wasActive ? "cycle_finished_manual" : "cycle_finish_skipped",
+                                reason: (reason || "").toString(),
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1HardExitBtn) {
+                        ui.strategy1HardExitBtn.addEventListener("click", () => {
+                            const res = MEP.Strategy1?.requestHardExit?.("hard_exit");
+                            if (!res?.applied) {
+                                MEP.Strategy1?.pushSystemMessage?.({
+                                    level: "warn",
+                                    action: "hardExit",
+                                    text: "Hard exit не применён: цикл не активен",
+                                    code: "hard_exit_skipped",
+                                    stage: "cycle_finish",
+                                    reason: (res?.reason || "cycle_inactive").toString(),
+                                });
+                            }
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1StartNewCycleBtn) {
+                        ui.strategy1StartNewCycleBtn.addEventListener("click", () => {
+                            const res = MEP.Strategy1?.startNewCycle?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: res?.applied ? "ok" : "warn",
+                                action: "startNewCycle",
+                                text: res?.applied
+                                    ? "Новый цикл запущен"
+                                    : res?.reason === "cycle_already_active"
+                                      ? "Новый цикл не запущен: цикл уже активен"
+                                      : "Новый цикл не запущен: активна другая стратегия",
+                                code: res?.applied ? "new_cycle_started" : "new_cycle_skipped",
+                                stage: "cycle_control",
+                                reason: (res?.reason || "").toString(),
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1EnterWaitingRecoveryBtn) {
+                        ui.strategy1EnterWaitingRecoveryBtn.addEventListener("click", () => {
+                            const stNow = MEP.State?.strategies?.strategy1 || null;
+                            const cycleStartBalance = Number(stNow?.cycle?.startBalance) || 0;
+                            const currentBalance = Number(MEP.Strategy1?.getCurrentBalance?.()) || 0;
+                            const targetBalance = cycleStartBalance > 0 ? cycleStartBalance : currentBalance;
+                            const res = MEP.Strategy1?.enterWaitingBalanceRecovery?.("waiting_balance_recovery", targetBalance);
+                            if (!res?.applied) {
+                                MEP.Strategy1?.pushSystemMessage?.({
+                                    level: "warn",
+                                    action: "enterWaitingBalanceRecovery",
+                                    text: MEP.Strategy1?.formatSystemMessageText?.("enterWaitingBalanceRecovery", { applied: false }) || "Режим ожидания не включён",
+                                    code: "waiting_balance_recovery_enter_skipped",
+                                    stage: "waiting_balance_recovery",
+                                    reason: (res?.reason || "not_applied").toString(),
+                                });
+                            }
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1ExitWaitingRecoveryBtn) {
+                        ui.strategy1ExitWaitingRecoveryBtn.addEventListener("click", () => {
+                            const res = MEP.Strategy1?.exitWaitingBalanceRecovery?.("manual_exit_waiting_balance_recovery");
+                            if (!res?.applied) {
+                                MEP.Strategy1?.pushSystemMessage?.({
+                                    level: "warn",
+                                    action: "exitWaitingBalanceRecovery",
+                                    text: MEP.Strategy1?.formatSystemMessageText?.("exitWaitingBalanceRecovery", { applied: false }) || "Режим ожидания не выключен",
+                                    code: "waiting_balance_recovery_exit_skipped",
+                                    stage: "waiting_balance_recovery",
+                                    reason: (res?.reason || "not_waiting_balance_recovery").toString(),
+                                });
+                            }
+                            MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1ResetCycleBtn) {
                         ui.strategy1ResetCycleBtn.addEventListener("click", () => {
                             MEP.Strategy1?.resetCycle?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: "ok",
+                                action: "resetCycle",
+                                text: "Состояние цикла сброшено",
+                                code: "cycle_reset",
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1CheckCharterBtn) {
                         ui.strategy1CheckCharterBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.checkCharter?.();
+                            const charter = MEP.Strategy1?.checkCharter?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: charter?.allowed ? "ok" : "warn",
+                                action: "checkCharter",
+                                text: charter?.allowed ? "Устав разрешает продолжение" : "Устав блокирует стратегию",
+                                code: charter?.allowed ? "charter_ok" : "charter_blocked",
+                                stage: "charter",
+                                reason: (charter?.blockReason || "").toString(),
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1RouteBranchBtn) {
                         ui.strategy1RouteBranchBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.routeBranch?.();
+                            const info = MEP.Strategy1?.routeBranch?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: info?.branch ? "info" : "warn",
+                                action: "routeBranch",
+                                text: info?.branch
+                                    ? `Определена ветка: ${info.branch}`
+                                    : "Ветка не выбрана: цикл не активен",
+                                code: info?.branch ? "branch_selected" : "branch_not_selected",
+                                stage: "routing",
+                                reason: (info?.reason || "").toString(),
+                                branch: (info?.branch || "").toString(),
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
                     if (ui.strategy1CheckFirstBranchBtn) {
                         ui.strategy1CheckFirstBranchBtn.addEventListener("click", () => {
                             MEP.Strategy1?.routeBranch?.();
-                            MEP.Strategy1?.checkFirstBranch?.();
+                            const first = MEP.Strategy1?.checkFirstBranch?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: first?.passed ? "ok" : "warn",
+                                action: "checkFirstBranch",
+                                text: first?.passed ? "Первая ветка пройдена" : "Первая ветка не пройдена",
+                                code: first?.passed ? "first_branch_ok" : "first_branch_fail",
+                                stage: "first_branch",
+                                reason: (first?.failedAt || "").toString(),
+                                branch: "first",
+                            });
                             MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1CheckSecondBranchBtn) {
+                        ui.strategy1CheckSecondBranchBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.routeBranch?.();
+                            const second = MEP.Strategy1?.checkSecondBranch?.();
+                            MEP.Strategy1?.evaluateDecisionState?.();
+                            const shouldEnd = !!second?.shouldEndCycle;
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: second?.passed ? "ok" : "warn",
+                                action: "checkSecondBranch",
+                                text: second?.passed
+                                    ? "Вторая ветка пройдена"
+                                    : shouldEnd
+                                      ? "Цикл должен быть завершён: достигнут максимальный уровень ставки"
+                                      : "Вторая ветка не пройдена",
+                                code: second?.passed ? "second_branch_ok" : shouldEnd ? "second_branch_cycle_end" : "second_branch_fail",
+                                stage: "second_branch",
+                                reason: (second?.endReason || second?.failedAt || "").toString(),
+                                branch: "second",
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1PauseCycleBtn) {
+                        ui.strategy1PauseCycleBtn.addEventListener("click", () => {
+                            const res = MEP.Strategy1?.pauseCycle?.("manual_pause");
+                            if (!res?.applied) {
+                                MEP.Strategy1?.pushSystemMessage?.({
+                                    level: "warn",
+                                    action: "pauseCycle",
+                                    text:
+                                        res?.reason === "already_paused"
+                                            ? "Пауза не применена: уже на паузе"
+                                            : "Пауза не применена: цикл не активен",
+                                    code: "pause_skipped",
+                                    stage: "manual_pause",
+                                    reason: (res?.reason || "").toString(),
+                                });
+                            }
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1ResumeCycleBtn) {
+                        ui.strategy1ResumeCycleBtn.addEventListener("click", () => {
+                            const res = MEP.Strategy1?.resumeCycle?.();
+                            if (!res?.applied) {
+                                MEP.Strategy1?.pushSystemMessage?.({
+                                    level: "warn",
+                                    action: "resumeCycle",
+                                    text: "Продолжение не применено: пауза не активна",
+                                    code: "resume_skipped",
+                                    stage: "manual_pause",
+                                    reason: (res?.reason || "").toString(),
+                                });
+                            }
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1BuildStakePlanBtn) {
+                        ui.strategy1BuildStakePlanBtn.addEventListener("click", () => {
+                            const plan = MEP.Strategy1?.buildStakePlan?.();
+                            MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: plan?.ready ? "ok" : "warn",
+                                action: "buildStakePlan",
+                                text: plan?.ready ? "План ставки готов" : "План ставки невалиден",
+                                code: plan?.ready ? "stake_plan_ready" : "stake_plan_invalid",
+                                stage: "stake_plan",
+                                reason: (plan?.invalidReason || "").toString(),
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1EvaluateBetPermissionBtn) {
+                        ui.strategy1EvaluateBetPermissionBtn.addEventListener("click", () => {
+                            const res = MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: res?.allowed ? "ok" : "warn",
+                                action: "evaluateBetPermission",
+                                text: res?.allowed ? "Допуск к ставке разрешён" : "Допуск к ставке отклонён",
+                                code: res?.allowed ? "permission_allowed" : "permission_denied",
+                                stage: (res?.stage || "").toString(),
+                                reason: (res?.reason || "").toString(),
+                                branch: (res?.branch || "").toString(),
+                                payload: { shouldEndCycle: !!res?.shouldEndCycle },
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1TestRoundWinBtn) {
+                        ui.strategy1TestRoundWinBtn.addEventListener("click", () => {
+                            const stNow = MEP.State?.strategies?.strategy1;
+                            const currentBalance = MEP.Strategy1?.getCurrentBalance?.() || 0;
+                            const upd = MEP.Strategy1?.updateAfterRound?.({
+                                balance: currentBalance + 0.00000001,
+                                stake: Number(stNow?.stakePlan?.betAmount) || 0,
+                                targetMultiplier: Number(stNow?.stakePlan?.targetMultiplier) || 2,
+                                won: true,
+                                roundId: `test_win_${Date.now()}`,
+                                ts: Date.now(),
+                                resultKind: "debug",
+                            });
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: upd?.applied ? "ok" : "warn",
+                                action: "testRoundWin",
+                                text: upd?.applied ? "Тестовый win-раунд обработан" : "Тестовый win-раунд пропущен",
+                                code: upd?.applied ? "test_win_applied" : "test_win_skipped",
+                                stage: "post_round",
+                                reason: (upd?.reason || "").toString(),
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1TestRoundLossBtn) {
+                        ui.strategy1TestRoundLossBtn.addEventListener("click", () => {
+                            const stNow = MEP.State?.strategies?.strategy1;
+                            const currentBalance = MEP.Strategy1?.getCurrentBalance?.() || 0;
+                            const upd = MEP.Strategy1?.updateAfterRound?.({
+                                balance: Math.max(0, currentBalance - 0.00000001),
+                                stake: Number(stNow?.stakePlan?.betAmount) || 0,
+                                targetMultiplier: Number(stNow?.stakePlan?.targetMultiplier) || 2,
+                                lost: true,
+                                roundId: `test_loss_${Date.now()}`,
+                                ts: Date.now(),
+                                resultKind: "debug",
+                            });
+                            MEP.Strategy1?.pushSystemMessage?.({
+                                level: upd?.applied ? "ok" : "warn",
+                                action: "testRoundLoss",
+                                text: upd?.applied ? "Тестовый loss-раунд обработан" : "Тестовый loss-раунд пропущен",
+                                code: upd?.applied ? "test_loss_applied" : "test_loss_skipped",
+                                stage: "post_round",
+                                reason: (upd?.reason || "").toString(),
+                            });
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1SystemMessagesClearBtn) {
+                        ui.strategy1SystemMessagesClearBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.clearSystemMessages?.();
                         });
                     }
 
