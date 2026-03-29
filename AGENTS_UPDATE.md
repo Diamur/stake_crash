@@ -116,3 +116,9 @@
 - `evaluateDecisionState()` расширен: при неактивном цикле с `endReason` теперь показывает «Цикл завершён» и причину.
 - В UI Strategy1 добавлены debug-кнопки `Старт цикла / Завершить цикл / Сбросить цикл`, refs и bind-обработчики на методы Strategy1.
 - Persistence не расширялся: runtime cycle/counters/timers/decision не сохраняются, только прежние `strategy1.enabled` и `strategy1.config`.
+- 2026-03-29: Strategy1 Этап 3 — `checkCharter()` переведён из заглушки в рабочий шлюз по глобальным лимитам Устава (раунды/победы/поражения за час/6ч/сутки + break).
+- Добавлены runtime helper’ы времени и журнала: `getNowTs`, `buildTimeKeys`, `pushEvent`, `countEventsByKey`, `getConsecutiveLosses`, `getCharterBlockStatusText`, `applyCharterDecision`.
+- В `runtime` добавлен `eventLog` (ring-buffer до 5000), события пишутся в `startCycle/finishCycle/updateAfterRound`.
+- Реализован break после 3 подряд `loss` при `charterBreakAfter3LossesMin > 0` с `break_start` и таймерами `isBreakActive/breakStartedAtTs/breakEndsAtTs`.
+- `evaluateDecisionState()` теперь учитывает Устав в активном цикле и выдаёт `statusCode=charter_blocked`, не завершая цикл автоматически.
+- В UI Strategy1 добавлены кнопка `Проверить Устав` и секция диагностики `charterCheck` (refs + updateUiCounters + bind).

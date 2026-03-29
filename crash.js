@@ -306,6 +306,7 @@
                 lastProcessedBalanceTs: 0,
                 waitingRoundResult: false,
                 lastCycleAction: "",
+                eventLog: [],
                 decisionState: {
                     canMakeBet: false,
                     shouldEndCycle: false,
@@ -4278,6 +4279,7 @@
                 CYCLE_SHOULD_END: "cycle_should_end",
                 PAUSED_MANUAL: "paused_manual",
                 WAITING_BALANCE_RECOVERY: "waiting_balance_recovery",
+                CHARTER_BLOCKED: "charter_blocked",
             },
 
             getState() {
@@ -4314,6 +4316,109 @@
                 if (!Array.isArray(list) || !list.length) return 0;
                 const last = Number(list[list.length - 1]);
                 return Number.isFinite(last) ? last : 0;
+            },
+
+            getNowTs() {
+                return Date.now();
+            },
+
+            buildTimeKeys(ts = this.getNowTs()) {
+                const n = Number(ts);
+                const safeTs = Number.isFinite(n) && n > 0 ? n : this.getNowTs();
+                const d = new Date(safeTs);
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, "0");
+                const day = String(d.getDate()).padStart(2, "0");
+                const h = String(d.getHours()).padStart(2, "0");
+                const sixBlock = Math.floor(d.getHours() / 6);
+                return {
+                    ts: safeTs,
+                    hourKey: `${y}-${m}-${day} ${h}`,
+                    sixHourKey: `${y}-${m}-${day} ${sixBlock}`,
+                    dayKey: `${y}-${m}-${day}`,
+                };
+            },
+
+            pushEvent(type, ts = this.getNowTs()) {
+                const st = this.getState();
+                if (!st || !type) return null;
+                if (!Array.isArray(st.runtime.eventLog)) st.runtime.eventLog = [];
+                const keys = this.buildTimeKeys(ts);
+                st.timers.nowTs = keys.ts;
+                st.timers.hourKey = keys.hourKey;
+                st.timers.sixHourKey = keys.sixHourKey;
+                st.timers.dayKey = keys.dayKey;
+                const ev = {
+                    type: String(type),
+                    ts: keys.ts,
+                    hourKey: keys.hourKey,
+                    sixHourKey: keys.sixHourKey,
+                    dayKey: keys.dayKey,
+                };
+                st.runtime.eventLog.push(ev);
+                const maxLen = 5000;
+                if (st.runtime.eventLog.length > maxLen) {
+                    st.runtime.eventLog.splice(0, st.runtime.eventLog.length - maxLen);
+                }
+                return ev;
+            },
+
+            countEventsByKey(type, keyName, keyValue) {
+                const st = this.getState();
+                if (!st || !Array.isArray(st.runtime.eventLog) || !keyName) return 0;
+                let cnt = 0;
+                for (const ev of st.runtime.eventLog) {
+                    if (!ev || (type && ev.type !== type)) continue;
+                    if (ev[keyName] === keyValue) cnt += 1;
+                }
+                return cnt;
+            },
+
+            getConsecutiveLosses() {
+                const st = this.getState();
+                if (!st || !Array.isArray(st.runtime.eventLog)) return 0;
+                let seq = 0;
+                for (let i = st.runtime.eventLog.length - 1; i >= 0; i -= 1) {
+                    const t = st.runtime.eventLog[i]?.type;
+                    if (t === "loss") {
+                        seq += 1;
+                        continue;
+                    }
+                    if (t === "win") break;
+                }
+                return seq;
+            },
+
+            getCharterBlockStatusText(blockReason = "") {
+                const map = {
+                    rounds_hour_limit: "Устав блокирует — достигнут лимит раундов за час",
+                    rounds_6h_limit: "Устав блокирует — достигнут лимит раундов за 6 часов",
+                    rounds_day_limit: "Устав блокирует — достигнут лимит раундов за сутки",
+                    wins_hour_limit: "Устав блокирует — достигнут лимит выигрышей за час",
+                    wins_6h_limit: "Устав блокирует — достигнут лимит выигрышей за 6 часов",
+                    wins_day_limit: "Устав блокирует — достигнут лимит выигрышей за сутки",
+                    losses_hour_limit: "Устав блокирует — достигнут лимит поражений за час",
+                    losses_6h_limit: "Устав блокирует — достигнут лимит поражений за 6 часов",
+                    losses_day_limit: "Устав блокирует — достигнут лимит поражений за сутки",
+                    break_active: "Активен перерыв после серии проигрышей",
+                };
+                return map[blockReason] || "Ожидание сигнала";
+            },
+
+            applyCharterDecision(charterResult = null) {
+                const st = this.getState();
+                if (!st) return null;
+                const charter = charterResult || this.checkCharter();
+                if (!charter?.allowed) {
+                    return this.updateDecisionState({
+                        canMakeBet: false,
+                        shouldEndCycle: false,
+                        statusCode: this.DECISION_STATUS.CHARTER_BLOCKED,
+                        statusText: this.getCharterBlockStatusText(charter.blockReason),
+                        waitReason: charter.blockReason || "",
+                    });
+                }
+                return charter;
             },
 
             isProfitReached() {
@@ -4376,6 +4481,7 @@
                 st.timers.cycleStartedAtTs = now;
                 st.timers.cycleFinishedAtTs = 0;
                 st.timers.cycleDurationMs = 0;
+                this.pushEvent("cycle_start", now);
                 st.runtime.lastCycleAction = "startCycle";
                 this.evaluateDecisionState();
                 this.updateUiCounters();
@@ -4395,6 +4501,7 @@
                     st.timers.cycleFinishedAtTs - (st.timers.cycleStartedAtTs || st.timers.cycleFinishedAtTs)
                 );
                 if (MEP.State.activeStrategyId === st.id) MEP.State.activeStrategyId = null;
+                this.pushEvent("cycle_finish", now);
                 st.runtime.lastCycleAction = "finishCycle";
                 this.evaluateDecisionState();
                 this.updateUiCounters();
@@ -4404,8 +4511,89 @@
             checkCharter() {
                 const st = this.getState();
                 if (!st) return { allowed: false, blockReason: "strategy1_not_found" };
-                st.charterCheck.allowed = true;
-                st.charterCheck.blockReason = "";
+                const keys = this.buildTimeKeys(this.getNowTs());
+                st.timers.nowTs = keys.ts;
+                st.timers.hourKey = keys.hourKey;
+                st.timers.sixHourKey = keys.sixHourKey;
+                st.timers.dayKey = keys.dayKey;
+
+                if (!Array.isArray(st.runtime.eventLog)) st.runtime.eventLog = [];
+
+                if (st.timers.isBreakActive && st.timers.breakEndsAtTs > 0 && keys.ts >= st.timers.breakEndsAtTs) {
+                    st.timers.isBreakActive = false;
+                    st.timers.breakStartedAtTs = 0;
+                    st.timers.breakEndsAtTs = 0;
+                }
+
+                const consecutiveLosses = this.getConsecutiveLosses();
+                const breakMin = Math.floor(Number(MEP.State?.charterBreakAfter3LossesMin) || 0);
+                if (!st.timers.isBreakActive && breakMin > 0 && consecutiveLosses >= 3) {
+                    st.timers.isBreakActive = true;
+                    st.timers.breakStartedAtTs = keys.ts;
+                    st.timers.breakEndsAtTs = keys.ts + breakMin * 60 * 1000;
+                    this.pushEvent("break_start", keys.ts);
+                }
+
+                const allowedByLimit = (actual, limit) => {
+                    const lim = Math.floor(Number(limit) || 0);
+                    if (!Number.isFinite(lim) || lim <= 0) return true;
+                    return actual < lim;
+                };
+                const roundsHour = this.countEventsByKey("round", "hourKey", keys.hourKey);
+                const rounds6h = this.countEventsByKey("round", "sixHourKey", keys.sixHourKey);
+                const roundsDay = this.countEventsByKey("round", "dayKey", keys.dayKey);
+                const winsHour = this.countEventsByKey("win", "hourKey", keys.hourKey);
+                const wins6h = this.countEventsByKey("win", "sixHourKey", keys.sixHourKey);
+                const winsDay = this.countEventsByKey("win", "dayKey", keys.dayKey);
+                const lossesHour = this.countEventsByKey("loss", "hourKey", keys.hourKey);
+                const losses6h = this.countEventsByKey("loss", "sixHourKey", keys.sixHourKey);
+                const lossesDay = this.countEventsByKey("loss", "dayKey", keys.dayKey);
+
+                const roundsHourAllowed = allowedByLimit(roundsHour, MEP.State?.charterRoundsPerHour);
+                const rounds6hAllowed = allowedByLimit(rounds6h, MEP.State?.charterRoundsPer6Hours);
+                const roundsDayAllowed = allowedByLimit(roundsDay, MEP.State?.charterRoundsPerDay);
+                const winsHourAllowed = allowedByLimit(winsHour, MEP.State?.charterWinsPerHour);
+                const wins6hAllowed = allowedByLimit(wins6h, MEP.State?.charterWinsPer6Hours);
+                const winsDayAllowed = allowedByLimit(winsDay, MEP.State?.charterWinsPerDay);
+                const lossesHourAllowed = allowedByLimit(lossesHour, MEP.State?.charterLossesPerHour);
+                const losses6hAllowed = allowedByLimit(losses6h, MEP.State?.charterLossesPer6Hours);
+                const lossesDayAllowed = allowedByLimit(lossesDay, MEP.State?.charterLossesPerDay);
+                const breakAllowed = !st.timers.isBreakActive;
+
+                let blockReason = "";
+                if (!roundsHourAllowed) blockReason = "rounds_hour_limit";
+                else if (!rounds6hAllowed) blockReason = "rounds_6h_limit";
+                else if (!roundsDayAllowed) blockReason = "rounds_day_limit";
+                else if (!winsHourAllowed) blockReason = "wins_hour_limit";
+                else if (!wins6hAllowed) blockReason = "wins_6h_limit";
+                else if (!winsDayAllowed) blockReason = "wins_day_limit";
+                else if (!lossesHourAllowed) blockReason = "losses_hour_limit";
+                else if (!losses6hAllowed) blockReason = "losses_6h_limit";
+                else if (!lossesDayAllowed) blockReason = "losses_day_limit";
+                else if (!breakAllowed) blockReason = "break_active";
+
+                st.charterCheck.allowed =
+                    roundsHourAllowed &&
+                    rounds6hAllowed &&
+                    roundsDayAllowed &&
+                    winsHourAllowed &&
+                    wins6hAllowed &&
+                    winsDayAllowed &&
+                    lossesHourAllowed &&
+                    losses6hAllowed &&
+                    lossesDayAllowed &&
+                    breakAllowed;
+                st.charterCheck.blockReason = blockReason;
+                st.charterCheck.roundsHourAllowed = roundsHourAllowed;
+                st.charterCheck.rounds6hAllowed = rounds6hAllowed;
+                st.charterCheck.roundsDayAllowed = roundsDayAllowed;
+                st.charterCheck.winsHourAllowed = winsHourAllowed;
+                st.charterCheck.wins6hAllowed = wins6hAllowed;
+                st.charterCheck.winsDayAllowed = winsDayAllowed;
+                st.charterCheck.lossesHourAllowed = lossesHourAllowed;
+                st.charterCheck.losses6hAllowed = losses6hAllowed;
+                st.charterCheck.lossesDayAllowed = lossesDayAllowed;
+                st.charterCheck.breakAllowed = breakAllowed;
                 st.runtime.lastCycleAction = "checkCharter";
                 return { ...st.charterCheck };
             },
@@ -4467,6 +4655,9 @@
                 if (result.roundId !== undefined && result.roundId !== null && String(result.roundId)) {
                     st.runtime.lastProcessedRoundId = String(result.roundId);
                 }
+                this.pushEvent("round", st.timers.lastRoundResultAtTs);
+                if (won) this.pushEvent("win", st.timers.lastRoundResultAtTs);
+                if (lost) this.pushEvent("loss", st.timers.lastRoundResultAtTs);
                 st.runtime.lastCycleAction = "updateAfterRound";
 
                 if (this.isProfitReached()) {
@@ -4526,6 +4717,10 @@
                         branch: "",
                         waitReason: hasEndReason ? st.cycle.endReason : "Цикл не активирован",
                     });
+                }
+                const charter = this.checkCharter();
+                if (charter && charter.allowed === false) {
+                    return this.applyCharterDecision(charter);
                 }
                 return this.updateDecisionState({
                     canMakeBet: false,
@@ -4600,6 +4795,29 @@
                     ui.strategy1DecisionBranchEl.textContent = (decision.branch || "—").toString();
                 if (ui.strategy1DecisionWaitReasonEl)
                     ui.strategy1DecisionWaitReasonEl.textContent = (decision.waitReason || "—").toString();
+                if (ui.strategy1CharterAllowedEl) ui.strategy1CharterAllowedEl.textContent = String(!!st.charterCheck?.allowed);
+                if (ui.strategy1CharterReasonEl)
+                    ui.strategy1CharterReasonEl.textContent = (st.charterCheck?.blockReason || "—").toString();
+                if (ui.strategy1CharterRoundsHourEl)
+                    ui.strategy1CharterRoundsHourEl.textContent = String(!!st.charterCheck?.roundsHourAllowed);
+                if (ui.strategy1CharterRounds6hEl)
+                    ui.strategy1CharterRounds6hEl.textContent = String(!!st.charterCheck?.rounds6hAllowed);
+                if (ui.strategy1CharterRoundsDayEl)
+                    ui.strategy1CharterRoundsDayEl.textContent = String(!!st.charterCheck?.roundsDayAllowed);
+                if (ui.strategy1CharterWinsHourEl)
+                    ui.strategy1CharterWinsHourEl.textContent = String(!!st.charterCheck?.winsHourAllowed);
+                if (ui.strategy1CharterWins6hEl)
+                    ui.strategy1CharterWins6hEl.textContent = String(!!st.charterCheck?.wins6hAllowed);
+                if (ui.strategy1CharterWinsDayEl)
+                    ui.strategy1CharterWinsDayEl.textContent = String(!!st.charterCheck?.winsDayAllowed);
+                if (ui.strategy1CharterLossesHourEl)
+                    ui.strategy1CharterLossesHourEl.textContent = String(!!st.charterCheck?.lossesHourAllowed);
+                if (ui.strategy1CharterLosses6hEl)
+                    ui.strategy1CharterLosses6hEl.textContent = String(!!st.charterCheck?.losses6hAllowed);
+                if (ui.strategy1CharterLossesDayEl)
+                    ui.strategy1CharterLossesDayEl.textContent = String(!!st.charterCheck?.lossesDayAllowed);
+                if (ui.strategy1CharterBreakEl)
+                    ui.strategy1CharterBreakEl.textContent = String(!!st.charterCheck?.breakAllowed);
             },
         };
 
@@ -5253,6 +5471,7 @@
             <button class="mep-btn mep-strategy1-start-cycle" type="button">Старт цикла</button>
             <button class="mep-btn mep-strategy1-finish-cycle" type="button">Завершить цикл</button>
             <button class="mep-btn mep-strategy1-reset-cycle" type="button">Сбросить цикл</button>
+            <button class="mep-btn mep-strategy1-check-charter" type="button">Проверить Устав</button>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -5280,6 +5499,23 @@
             <div class="mep-strategy-row"><span class="mep-strategy-label">Целевой множитель игры</span><input class="mep-strategy-input mep-strategy1-target-multiplier" type="number" min="0" step="0.01" /></div>
             <div class="mep-strategy-row"><span class="mep-strategy-label">Массив целевых множителей</span><input class="mep-strategy-input mep-strategy1-target-multiplier-array" type="text" /></div>
             <div class="mep-strategy-row"><span class="mep-strategy-label">Макс. количество проигрышей</span><input class="mep-strategy-input mep-strategy1-max-losses" type="number" min="0" step="1" /></div>
+        </div>
+    </div>
+    <div class="mep-strategy-section">
+        <div class="mep-strategy-section-title">Диагностика Устава</div>
+        <div class="mep-strategy-state-grid">
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Устав разрешает:</span><span class="mep-strategy-state-value mep-strategy1-charter-allowed">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Причина блока:</span><span class="mep-strategy-state-value mep-strategy1-charter-reason">—</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Раунды / час:</span><span class="mep-strategy-state-value mep-strategy1-charter-rounds-hour">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Раунды / 6ч:</span><span class="mep-strategy-state-value mep-strategy1-charter-rounds-6h">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Раунды / сутки:</span><span class="mep-strategy-state-value mep-strategy1-charter-rounds-day">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Победы / час:</span><span class="mep-strategy-state-value mep-strategy1-charter-wins-hour">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Победы / 6ч:</span><span class="mep-strategy-state-value mep-strategy1-charter-wins-6h">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Победы / сутки:</span><span class="mep-strategy-state-value mep-strategy1-charter-wins-day">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Поражения / час:</span><span class="mep-strategy-state-value mep-strategy1-charter-losses-hour">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Поражения / 6ч:</span><span class="mep-strategy-state-value mep-strategy1-charter-losses-6h">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Поражения / сутки:</span><span class="mep-strategy-state-value mep-strategy1-charter-losses-day">true</span></div>
+            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Перерыв разрешает:</span><span class="mep-strategy-state-value mep-strategy1-charter-break">true</span></div>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -5363,6 +5599,7 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1StartCycleBtn: panel.querySelector("button.mep-strategy1-start-cycle"),
                     strategy1FinishCycleBtn: panel.querySelector("button.mep-strategy1-finish-cycle"),
                     strategy1ResetCycleBtn: panel.querySelector("button.mep-strategy1-reset-cycle"),
+                    strategy1CheckCharterBtn: panel.querySelector("button.mep-strategy1-check-charter"),
                     strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
                     strategy1ConditionsCanBetEl: panel.querySelector(".mep-strategy1-conditions-canbet"),
                     strategy1ConditionsEndEl: panel.querySelector(".mep-strategy1-conditions-end"),
@@ -5385,6 +5622,18 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1DecisionEndCycleEl: panel.querySelector(".mep-strategy1-decision-endcycle"),
                     strategy1DecisionBranchEl: panel.querySelector(".mep-strategy1-decision-branch"),
                     strategy1DecisionWaitReasonEl: panel.querySelector(".mep-strategy1-decision-waitreason"),
+                    strategy1CharterAllowedEl: panel.querySelector(".mep-strategy1-charter-allowed"),
+                    strategy1CharterReasonEl: panel.querySelector(".mep-strategy1-charter-reason"),
+                    strategy1CharterRoundsHourEl: panel.querySelector(".mep-strategy1-charter-rounds-hour"),
+                    strategy1CharterRounds6hEl: panel.querySelector(".mep-strategy1-charter-rounds-6h"),
+                    strategy1CharterRoundsDayEl: panel.querySelector(".mep-strategy1-charter-rounds-day"),
+                    strategy1CharterWinsHourEl: panel.querySelector(".mep-strategy1-charter-wins-hour"),
+                    strategy1CharterWins6hEl: panel.querySelector(".mep-strategy1-charter-wins-6h"),
+                    strategy1CharterWinsDayEl: panel.querySelector(".mep-strategy1-charter-wins-day"),
+                    strategy1CharterLossesHourEl: panel.querySelector(".mep-strategy1-charter-losses-hour"),
+                    strategy1CharterLosses6hEl: panel.querySelector(".mep-strategy1-charter-losses-6h"),
+                    strategy1CharterLossesDayEl: panel.querySelector(".mep-strategy1-charter-losses-day"),
+                    strategy1CharterBreakEl: panel.querySelector(".mep-strategy1-charter-break"),
                     textarea: panel.querySelector("textarea.mep-stats"),
                     copyBtn: panel.querySelector("button.mep-copy"),
                     sendDbBtn: panel.querySelector("button.mep-send-db"),
@@ -5635,6 +5884,13 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                             MEP.Strategy1?.resetCycle?.();
                         });
                     }
+                    if (ui.strategy1CheckCharterBtn) {
+                        ui.strategy1CheckCharterBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.checkCharter?.();
+                            MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
 
                     setNonNegNumber(ui.strategy1RiskPercentInput, "riskPercent", 0.1);
                     setModeSelect(ui.strategy1StartStakeModeInput, "startStakeMode", ["fixed", "array"]);
@@ -5648,6 +5904,7 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     setTextInput(ui.strategy1TargetMultiplierArrayInput, "targetMultiplierArrayText");
                     setNonNegNumber(ui.strategy1MaxLossesInput, "maxLosses", 1);
 
+                    MEP.Strategy1?.checkCharter?.();
                     MEP.Strategy1?.buildStakePlan?.();
                     MEP.Strategy1?.updateUiCounters?.();
                 }
