@@ -308,6 +308,7 @@
                 lastCycleAction: "",
                 eventLog: [],
                 lastBranchInfo: null,
+                lastFirstBranchResult: null,
                 decisionState: {
                     canMakeBet: false,
                     shouldEndCycle: false,
@@ -4712,8 +4713,68 @@
                 return "Ветка стратегии не выбрана";
             },
 
+            getLt2Streak() {
+                const list = Array.isArray(MEP.State?.list) ? MEP.State.list : [];
+                let streak = 0;
+                for (let i = 0; i < list.length; i++) {
+                    const n = MEP.Utils.cleanToNum(list[i]);
+                    if (n === null) break;
+                    if (n < 2) streak += 1;
+                    else break;
+                }
+                return streak;
+            },
+
+            getFirstBranchFailText(failedAt = "") {
+                const map = {
+                    streak_lt2: "Раунд пропускаем — ждём 3 подряд результатов меньше 2",
+                    diff_vector: "Раунд пропускаем — ждём сигнал в сущности разниц",
+                    frequency_vector: "Раунд пропускаем — ждём сигнал в сущности частотности",
+                    stake_bet_vector: "Раунд пропускаем — ждём сигнал в сущности ставок",
+                    stake_players_vector: "Раунд пропускаем — ждём сигнал в сущности клиентов",
+                    extra_condition: "Раунд пропускаем — не выполнено дополнительное условие",
+                };
+                return map[failedAt] || "Раунд пропускаем — ждём сигнал первой ветки";
+            },
+
             checkFirstBranch() {
-                return { passed: false, failedAt: "not_implemented" };
+                const st = this.getState();
+                const details = {
+                    lt2Streak: this.getLt2Streak(),
+                    diffVectorState: (MEP.State.diffVectorState || "").toString(),
+                    frequencyVectorState: (MEP.State.frequencyVectorState || "").toString(),
+                    stakeBetVectorState: (MEP.State.stakeBetVectorState || "").toString(),
+                    stakePlayersVectorState: (MEP.State.stakePlayersVectorState || "").toString(),
+                    extraConditionPassed: true,
+                };
+                const fail = (failedAt) => {
+                    const res = {
+                        passed: false,
+                        failedAt,
+                        details,
+                        waitReason: failedAt,
+                        statusText: this.getFirstBranchFailText(failedAt),
+                    };
+                    if (st?.runtime) st.runtime.lastFirstBranchResult = res;
+                    return res;
+                };
+
+                if (details.lt2Streak < 3) return fail("streak_lt2");
+                if (details.diffVectorState !== "up") return fail("diff_vector");
+                if (details.frequencyVectorState !== "up") return fail("frequency_vector");
+                if (details.stakeBetVectorState !== "up") return fail("stake_bet_vector");
+                if (details.stakePlayersVectorState !== "up") return fail("stake_players_vector");
+                if (!details.extraConditionPassed) return fail("extra_condition");
+
+                const ok = {
+                    passed: true,
+                    failedAt: "",
+                    details,
+                    waitReason: "",
+                    statusText: "Первая ветка пройдена — ставка разрешена",
+                };
+                if (st?.runtime) st.runtime.lastFirstBranchResult = ok;
+                return ok;
             },
 
             checkSecondBranch() {
@@ -5025,19 +5086,54 @@
                 }
                 const branchInfo = this.routeBranch();
                 const branch = branchInfo?.branch || "";
-                const branchText = this.getBranchStatusText(branchInfo);
+                if (branch === "first") {
+                    const firstResult = this.checkFirstBranch();
+                    if (st.conditions?.lastResult) {
+                        st.conditions.lastResult.canBet = !!firstResult.passed;
+                        st.conditions.lastResult.shouldEndCycle = false;
+                        st.conditions.lastResult.reason = firstResult.failedAt || "";
+                    }
+                    if (!firstResult.passed) {
+                        return this.updateDecisionState({
+                            canMakeBet: false,
+                            shouldEndCycle: false,
+                            statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                            statusText: firstResult.statusText || "Раунд пропускаем — ждём сигнал первой ветки",
+                            branch: "first",
+                            waitReason: firstResult.waitReason || "first_branch_wait",
+                        });
+                    }
+                    return this.updateDecisionState({
+                        canMakeBet: true,
+                        shouldEndCycle: false,
+                        statusCode: this.DECISION_STATUS.BET_ALLOWED,
+                        statusText: "Первая ветка пройдена — ставка разрешена",
+                        branch: "first",
+                        waitReason: "",
+                    });
+                }
+                if (branch === "second") {
+                    if (st.conditions?.lastResult) {
+                        st.conditions.lastResult.canBet = false;
+                        st.conditions.lastResult.shouldEndCycle = false;
+                        st.conditions.lastResult.reason = "second_branch_not_implemented";
+                    }
+                    return this.updateDecisionState({
+                        canMakeBet: false,
+                        shouldEndCycle: false,
+                        statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                        statusText: "Цикл активен — вторая ветка пока не реализована",
+                        branch: "second",
+                        waitReason: "second_branch_not_implemented",
+                    });
+                }
                 return this.updateDecisionState({
                     canMakeBet: false,
                     shouldEndCycle: false,
                     statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                    statusText:
-                        branch === "first"
-                            ? "Цикл активен — ожидание сигнала по первой ветке"
-                            : branch === "second"
-                              ? "Цикл активен — ожидание сигнала по второй ветке"
-                              : "Цикл активен — ожидание сигнала",
+                    statusText: "Цикл активен — ожидание сигнала",
                     branch,
-                    waitReason: branch ? `branch:${branch}` : branchText,
+                    waitReason: branch ? `branch:${branch}` : "Нет входного сигнала",
                 });
             },
 
@@ -5052,6 +5148,37 @@
                     ui.strategy1StakePlayersVectorStateEl.textContent = (MEP.State.stakePlayersVectorState || "—").toString();
                 if (ui.strategy1StakeBetVectorStateEl)
                     ui.strategy1StakeBetVectorStateEl.textContent = (MEP.State.stakeBetVectorState || "—").toString();
+                const firstBranch = st.runtime?.lastFirstBranchResult || null;
+                if (ui.strategy1FirstBranchPassedEl)
+                    ui.strategy1FirstBranchPassedEl.textContent = firstBranch ? String(!!firstBranch.passed) : "—";
+                if (ui.strategy1FirstBranchLt2El)
+                    ui.strategy1FirstBranchLt2El.textContent = firstBranch
+                        ? String(Number(firstBranch.details?.lt2Streak) || 0)
+                        : "—";
+                if (ui.strategy1FirstBranchDiffEl)
+                    ui.strategy1FirstBranchDiffEl.textContent = firstBranch
+                        ? (firstBranch.details?.diffVectorState || "—").toString()
+                        : "—";
+                if (ui.strategy1FirstBranchFreqEl)
+                    ui.strategy1FirstBranchFreqEl.textContent = firstBranch
+                        ? (firstBranch.details?.frequencyVectorState || "—").toString()
+                        : "—";
+                if (ui.strategy1FirstBranchStakeBetEl)
+                    ui.strategy1FirstBranchStakeBetEl.textContent = firstBranch
+                        ? (firstBranch.details?.stakeBetVectorState || "—").toString()
+                        : "—";
+                if (ui.strategy1FirstBranchStakePlayersEl)
+                    ui.strategy1FirstBranchStakePlayersEl.textContent = firstBranch
+                        ? (firstBranch.details?.stakePlayersVectorState || "—").toString()
+                        : "—";
+                if (ui.strategy1FirstBranchFailedAtEl)
+                    ui.strategy1FirstBranchFailedAtEl.textContent = firstBranch
+                        ? (firstBranch.failedAt || "—").toString()
+                        : "—";
+                if (ui.strategy1FirstBranchWaitReasonEl)
+                    ui.strategy1FirstBranchWaitReasonEl.textContent = firstBranch
+                        ? (firstBranch.waitReason || "—").toString()
+                        : "—";
                 if (ui.strategy1ConditionsCanBetEl)
                     ui.strategy1ConditionsCanBetEl.textContent = String(!!st.conditions.lastResult?.canBet);
                 if (ui.strategy1ConditionsEndEl)
@@ -5798,6 +5925,7 @@
             <button class="mep-btn mep-strategy1-reset-cycle" type="button">Сбросить цикл</button>
             <button class="mep-btn mep-strategy1-check-charter" type="button">Проверить Устав</button>
             <button class="mep-btn mep-strategy1-route-branch" type="button">Определить ветку</button>
+            <button class="mep-btn mep-strategy1-check-first-branch" type="button">Проверить 1 ветку</button>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -5851,6 +5979,14 @@
 Режим: <span class="mep-strategy1-conditions-mode">all</span>
 Клиенты EMA: <span class="mep-strategy1-stake-players-vector-state">—</span>
 Ставки EMA: <span class="mep-strategy1-stake-bet-vector-state">—</span>
+FIRST_BRANCH passed: <span class="mep-strategy1-first-branch-passed">—</span>
+LT2 streak: <span class="mep-strategy1-first-branch-lt2">—</span>
+Diff vector: <span class="mep-strategy1-first-branch-diff">—</span>
+Frequency vector: <span class="mep-strategy1-first-branch-freq">—</span>
+Stake bet vector: <span class="mep-strategy1-first-branch-stake-bet">—</span>
+Stake players vector: <span class="mep-strategy1-first-branch-stake-players">—</span>
+Failed at: <span class="mep-strategy1-first-branch-failed-at">—</span>
+Wait reason: <span class="mep-strategy1-first-branch-wait-reason">—</span>
 Rules: placeholder (будущий конструктор)
 LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, shouldEndCycle=<span class="mep-strategy1-conditions-end">false</span>, reason=<span class="mep-strategy1-conditions-reason">—</span></div>
     </div>
@@ -5930,9 +6066,18 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1ResetCycleBtn: panel.querySelector("button.mep-strategy1-reset-cycle"),
                     strategy1CheckCharterBtn: panel.querySelector("button.mep-strategy1-check-charter"),
                     strategy1RouteBranchBtn: panel.querySelector("button.mep-strategy1-route-branch"),
+                    strategy1CheckFirstBranchBtn: panel.querySelector("button.mep-strategy1-check-first-branch"),
                     strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
                     strategy1StakePlayersVectorStateEl: panel.querySelector(".mep-strategy1-stake-players-vector-state"),
                     strategy1StakeBetVectorStateEl: panel.querySelector(".mep-strategy1-stake-bet-vector-state"),
+                    strategy1FirstBranchPassedEl: panel.querySelector(".mep-strategy1-first-branch-passed"),
+                    strategy1FirstBranchLt2El: panel.querySelector(".mep-strategy1-first-branch-lt2"),
+                    strategy1FirstBranchDiffEl: panel.querySelector(".mep-strategy1-first-branch-diff"),
+                    strategy1FirstBranchFreqEl: panel.querySelector(".mep-strategy1-first-branch-freq"),
+                    strategy1FirstBranchStakeBetEl: panel.querySelector(".mep-strategy1-first-branch-stake-bet"),
+                    strategy1FirstBranchStakePlayersEl: panel.querySelector(".mep-strategy1-first-branch-stake-players"),
+                    strategy1FirstBranchFailedAtEl: panel.querySelector(".mep-strategy1-first-branch-failed-at"),
+                    strategy1FirstBranchWaitReasonEl: panel.querySelector(".mep-strategy1-first-branch-wait-reason"),
                     strategy1ConditionsCanBetEl: panel.querySelector(".mep-strategy1-conditions-canbet"),
                     strategy1ConditionsEndEl: panel.querySelector(".mep-strategy1-conditions-end"),
                     strategy1ConditionsReasonEl: panel.querySelector(".mep-strategy1-conditions-reason"),
@@ -6234,6 +6379,14 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     if (ui.strategy1RouteBranchBtn) {
                         ui.strategy1RouteBranchBtn.addEventListener("click", () => {
                             MEP.Strategy1?.routeBranch?.();
+                            MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1CheckFirstBranchBtn) {
+                        ui.strategy1CheckFirstBranchBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.routeBranch?.();
+                            MEP.Strategy1?.checkFirstBranch?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
                             MEP.Strategy1?.updateUiCounters?.();
                         });

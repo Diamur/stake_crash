@@ -133,3 +133,8 @@
 - В stake params UI добавлены 2 vector-row контролов (Clients/Bet: enabled, P, S, Flat), refs и bind-обработчики с `save()+render()`.
 - Во вкладке Strategy1 (конструктор условий) добавлена мини-диагностика: `Клиенты EMA` / `Ставки EMA`, вывод через `updateUiCounters()`.
 - Исправлен flex-стиль `.mep-actions-row` по заданному шаблону (display flex + gap 8 + margin-top 8 + wrap).
+- 2026-03-29: Strategy1 Этап 6 — реализован hardcoded `checkFirstBranch()` с последовательной проверкой: LT2 streak(>=3) -> diff up -> frequency up -> stake bet up -> stake players up -> extraCondition.
+- Добавлены helper’ы `getLt2Streak()` и `getFirstBranchFailText()`; результат FIRST_BRANCH теперь структурный (`passed/failedAt/details/waitReason/statusText`).
+- В runtime добавлен `lastFirstBranchResult` (runtime-only, без persistence), плюс синхронизация `conditions.lastResult` для FIRST_BRANCH/second-заглушки.
+- `evaluateDecisionState()` расширен: branch=first проверяет FIRST_BRANCH и ставит `bet_allowed` только при passed=true; branch=second отдаёт честный статус `second_branch_not_implemented`.
+- В Strategy1 UI добавлена диагностика FIRST_BRANCH (passed, lt2, vector states, failedAt, waitReason) и debug-кнопка `Проверить 1 ветку` (ref + bind).
