@@ -666,6 +666,22 @@
                     stakeGraphBetScale: MEP.State.stakeGraphBetScale,
                     stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
                     stakeGraphShowBet: MEP.State.stakeGraphShowBet,
+                    stakePlayersVectorEnabled: MEP.State.stakePlayersVectorEnabled,
+                    stakePlayersVectorPeriod: MEP.State.stakePlayersVectorPeriod,
+                    stakePlayersVectorPhaseShift: MEP.State.stakePlayersVectorPhaseShift,
+                    stakePlayersVectorFlatEpsilon: MEP.State.stakePlayersVectorFlatEpsilon,
+                    stakePlayersVectorMainColor: MEP.State.stakePlayersVectorMainColor,
+                    stakePlayersVectorShiftColor: MEP.State.stakePlayersVectorShiftColor,
+                    stakePlayersVectorMainWidth: MEP.State.stakePlayersVectorMainWidth,
+                    stakePlayersVectorShiftWidth: MEP.State.stakePlayersVectorShiftWidth,
+                    stakeBetVectorEnabled: MEP.State.stakeBetVectorEnabled,
+                    stakeBetVectorPeriod: MEP.State.stakeBetVectorPeriod,
+                    stakeBetVectorPhaseShift: MEP.State.stakeBetVectorPhaseShift,
+                    stakeBetVectorFlatEpsilon: MEP.State.stakeBetVectorFlatEpsilon,
+                    stakeBetVectorMainColor: MEP.State.stakeBetVectorMainColor,
+                    stakeBetVectorShiftColor: MEP.State.stakeBetVectorShiftColor,
+                    stakeBetVectorMainWidth: MEP.State.stakeBetVectorMainWidth,
+                    stakeBetVectorShiftWidth: MEP.State.stakeBetVectorShiftWidth,
                     balanceGraphDensity: MEP.State.balanceGraphDensity,
                     balanceGraphDensitySync: MEP.State.balanceGraphDensitySync,
                     balanceGraphAutoHeight: MEP.State.balanceGraphAutoHeight,
@@ -748,6 +764,22 @@
                         if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                         if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                         if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
+                        if (typeof data.stakePlayersVectorEnabled === "boolean") MEP.State.stakePlayersVectorEnabled = data.stakePlayersVectorEnabled;
+                        if (typeof data.stakePlayersVectorPeriod === "number") MEP.State.stakePlayersVectorPeriod = data.stakePlayersVectorPeriod;
+                        if (typeof data.stakePlayersVectorPhaseShift === "number") MEP.State.stakePlayersVectorPhaseShift = data.stakePlayersVectorPhaseShift;
+                        if (typeof data.stakePlayersVectorFlatEpsilon === "number") MEP.State.stakePlayersVectorFlatEpsilon = data.stakePlayersVectorFlatEpsilon;
+                        if (typeof data.stakePlayersVectorMainColor === "string") MEP.State.stakePlayersVectorMainColor = data.stakePlayersVectorMainColor;
+                        if (typeof data.stakePlayersVectorShiftColor === "string") MEP.State.stakePlayersVectorShiftColor = data.stakePlayersVectorShiftColor;
+                        if (typeof data.stakePlayersVectorMainWidth === "number") MEP.State.stakePlayersVectorMainWidth = data.stakePlayersVectorMainWidth;
+                        if (typeof data.stakePlayersVectorShiftWidth === "number") MEP.State.stakePlayersVectorShiftWidth = data.stakePlayersVectorShiftWidth;
+                        if (typeof data.stakeBetVectorEnabled === "boolean") MEP.State.stakeBetVectorEnabled = data.stakeBetVectorEnabled;
+                        if (typeof data.stakeBetVectorPeriod === "number") MEP.State.stakeBetVectorPeriod = data.stakeBetVectorPeriod;
+                        if (typeof data.stakeBetVectorPhaseShift === "number") MEP.State.stakeBetVectorPhaseShift = data.stakeBetVectorPhaseShift;
+                        if (typeof data.stakeBetVectorFlatEpsilon === "number") MEP.State.stakeBetVectorFlatEpsilon = data.stakeBetVectorFlatEpsilon;
+                        if (typeof data.stakeBetVectorMainColor === "string") MEP.State.stakeBetVectorMainColor = data.stakeBetVectorMainColor;
+                        if (typeof data.stakeBetVectorShiftColor === "string") MEP.State.stakeBetVectorShiftColor = data.stakeBetVectorShiftColor;
+                        if (typeof data.stakeBetVectorMainWidth === "number") MEP.State.stakeBetVectorMainWidth = data.stakeBetVectorMainWidth;
+                        if (typeof data.stakeBetVectorShiftWidth === "number") MEP.State.stakeBetVectorShiftWidth = data.stakeBetVectorShiftWidth;
                         if (typeof data.balanceGraphDensity === "number") MEP.State.balanceGraphDensity = data.balanceGraphDensity;
                         if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
                         if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
@@ -826,6 +858,22 @@
                     if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
                     if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                     if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
+                    if (typeof data.stakePlayersVectorEnabled === "boolean") MEP.State.stakePlayersVectorEnabled = data.stakePlayersVectorEnabled;
+                    if (typeof data.stakePlayersVectorPeriod === "number") MEP.State.stakePlayersVectorPeriod = data.stakePlayersVectorPeriod;
+                    if (typeof data.stakePlayersVectorPhaseShift === "number") MEP.State.stakePlayersVectorPhaseShift = data.stakePlayersVectorPhaseShift;
+                    if (typeof data.stakePlayersVectorFlatEpsilon === "number") MEP.State.stakePlayersVectorFlatEpsilon = data.stakePlayersVectorFlatEpsilon;
+                    if (typeof data.stakePlayersVectorMainColor === "string") MEP.State.stakePlayersVectorMainColor = data.stakePlayersVectorMainColor;
+                    if (typeof data.stakePlayersVectorShiftColor === "string") MEP.State.stakePlayersVectorShiftColor = data.stakePlayersVectorShiftColor;
+                    if (typeof data.stakePlayersVectorMainWidth === "number") MEP.State.stakePlayersVectorMainWidth = data.stakePlayersVectorMainWidth;
+                    if (typeof data.stakePlayersVectorShiftWidth === "number") MEP.State.stakePlayersVectorShiftWidth = data.stakePlayersVectorShiftWidth;
+                    if (typeof data.stakeBetVectorEnabled === "boolean") MEP.State.stakeBetVectorEnabled = data.stakeBetVectorEnabled;
+                    if (typeof data.stakeBetVectorPeriod === "number") MEP.State.stakeBetVectorPeriod = data.stakeBetVectorPeriod;
+                    if (typeof data.stakeBetVectorPhaseShift === "number") MEP.State.stakeBetVectorPhaseShift = data.stakeBetVectorPhaseShift;
+                    if (typeof data.stakeBetVectorFlatEpsilon === "number") MEP.State.stakeBetVectorFlatEpsilon = data.stakeBetVectorFlatEpsilon;
+                    if (typeof data.stakeBetVectorMainColor === "string") MEP.State.stakeBetVectorMainColor = data.stakeBetVectorMainColor;
+                    if (typeof data.stakeBetVectorShiftColor === "string") MEP.State.stakeBetVectorShiftColor = data.stakeBetVectorShiftColor;
+                    if (typeof data.stakeBetVectorMainWidth === "number") MEP.State.stakeBetVectorMainWidth = data.stakeBetVectorMainWidth;
+                    if (typeof data.stakeBetVectorShiftWidth === "number") MEP.State.stakeBetVectorShiftWidth = data.stakeBetVectorShiftWidth;
                     if (typeof data.balanceGraphDensity === "number") MEP.State.balanceGraphDensity = data.balanceGraphDensity;
                     if (typeof data.balanceGraphDensitySync === "boolean") MEP.State.balanceGraphDensitySync = data.balanceGraphDensitySync;
                     if (typeof data.balanceGraphAutoHeight === "boolean") MEP.State.balanceGraphAutoHeight = data.balanceGraphAutoHeight;
@@ -1303,6 +1351,12 @@
 				padding:4px 6px;
 				border:1px solid rgba(255,255,255,0.12);
 				background: rgba(255,255,255,0.03);
+				}
+				#${PANEL_ID} .mep-actions-row {
+				display: flex;
+				gap: 8px;
+				margin-top: 8px;
+				flex-wrap: wrap;
 				}
 				#${PANEL_ID} .mep-strategy-label{
 				font-size:12px;
@@ -2016,6 +2070,29 @@
 				flex-wrap: wrap;
 				justify-content: flex-end;
 				}
+				#${PANEL_ID} .mep-stake-vector-row{
+				display:inline-flex;
+				align-items:center;
+				gap:8px;
+				flex-wrap:wrap;
+				font-size:12px;
+				opacity:0.95;
+				}
+				#${PANEL_ID} .mep-stake-vector-label{
+				display:inline-flex;
+				align-items:center;
+				gap:5px;
+				}
+				#${PANEL_ID} .mep-stake-vector-label input[type="number"]{
+				width:50px;
+				border-radius:8px;
+				border:1px solid rgba(255,255,255,0.10);
+				background: rgba(255,255,255,0.06);
+				color:#fff;
+				padding:0 8px;
+				font-size:12px;
+				outline:none;
+				}
 				#${PANEL_ID} .mep-stake-density-label{
 				display:inline-flex;
 				align-items:center;
@@ -2332,6 +2409,26 @@
             stakeGraphBetScale: typeof MEP.stakeGraphBetScale === "number" ? MEP.stakeGraphBetScale : 10,
             stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
             stakeGraphShowBet: ("stakeGraphShowBet" in MEP) ? !!MEP.stakeGraphShowBet : true,
+            stakePlayersVectorEnabled: ("stakePlayersVectorEnabled" in MEP) ? !!MEP.stakePlayersVectorEnabled : true,
+            stakePlayersVectorPeriod: typeof MEP.stakePlayersVectorPeriod === "number" ? MEP.stakePlayersVectorPeriod : 9,
+            stakePlayersVectorPhaseShift: typeof MEP.stakePlayersVectorPhaseShift === "number" ? MEP.stakePlayersVectorPhaseShift : 3,
+            stakePlayersVectorFlatEpsilon: typeof MEP.stakePlayersVectorFlatEpsilon === "number" ? MEP.stakePlayersVectorFlatEpsilon : 0.15,
+            stakePlayersVectorMainColor: typeof MEP.stakePlayersVectorMainColor === "string" ? MEP.stakePlayersVectorMainColor : "rgba(255,255,255,0.96)",
+            stakePlayersVectorShiftColor: typeof MEP.stakePlayersVectorShiftColor === "string" ? MEP.stakePlayersVectorShiftColor : "rgba(80,210,255,0.92)",
+            stakePlayersVectorMainWidth: typeof MEP.stakePlayersVectorMainWidth === "number" ? MEP.stakePlayersVectorMainWidth : 0.9,
+            stakePlayersVectorShiftWidth: typeof MEP.stakePlayersVectorShiftWidth === "number" ? MEP.stakePlayersVectorShiftWidth : 0.7,
+            stakePlayersVectorState: typeof MEP.stakePlayersVectorState === "string" ? MEP.stakePlayersVectorState : "flat",
+            stakePlayersVectorSignal: typeof MEP.stakePlayersVectorSignal === "number" ? MEP.stakePlayersVectorSignal : 0,
+            stakeBetVectorEnabled: ("stakeBetVectorEnabled" in MEP) ? !!MEP.stakeBetVectorEnabled : true,
+            stakeBetVectorPeriod: typeof MEP.stakeBetVectorPeriod === "number" ? MEP.stakeBetVectorPeriod : 9,
+            stakeBetVectorPhaseShift: typeof MEP.stakeBetVectorPhaseShift === "number" ? MEP.stakeBetVectorPhaseShift : 3,
+            stakeBetVectorFlatEpsilon: typeof MEP.stakeBetVectorFlatEpsilon === "number" ? MEP.stakeBetVectorFlatEpsilon : 0.15,
+            stakeBetVectorMainColor: typeof MEP.stakeBetVectorMainColor === "string" ? MEP.stakeBetVectorMainColor : "rgba(245,245,245,0.82)",
+            stakeBetVectorShiftColor: typeof MEP.stakeBetVectorShiftColor === "string" ? MEP.stakeBetVectorShiftColor : "rgba(68,192,255,0.78)",
+            stakeBetVectorMainWidth: typeof MEP.stakeBetVectorMainWidth === "number" ? MEP.stakeBetVectorMainWidth : 0.8,
+            stakeBetVectorShiftWidth: typeof MEP.stakeBetVectorShiftWidth === "number" ? MEP.stakeBetVectorShiftWidth : 0.65,
+            stakeBetVectorState: typeof MEP.stakeBetVectorState === "string" ? MEP.stakeBetVectorState : "flat",
+            stakeBetVectorSignal: typeof MEP.stakeBetVectorSignal === "number" ? MEP.stakeBetVectorSignal : 0,
             balanceGraphDensity: typeof MEP.balanceGraphDensity === "number" ? MEP.balanceGraphDensity : 81,
             balanceGraphDensitySync: !!MEP.balanceGraphDensitySync,
             balanceGraphAutoHeight: !!MEP.balanceGraphAutoHeight,
@@ -3568,6 +3665,90 @@
                 return v.toFixed(8).replace(/\.?0+$/, "");
             },
 
+            _calcEMA(values, period) {
+                const p = Math.max(1, Math.floor(Number(period) || 1));
+                if (!Array.isArray(values) || !values.length) return [];
+                const out = new Array(values.length).fill(null);
+                let prev = null;
+                const k = 2 / (p + 1);
+                for (let i = 0; i < values.length; i++) {
+                    const v = Number(values[i]);
+                    if (!Number.isFinite(v)) continue;
+                    if (prev === null) prev = v;
+                    else prev = v * k + prev * (1 - k);
+                    out[i] = prev;
+                }
+                return out;
+            },
+
+            _buildVectorSeries(values, opts = {}) {
+                const src = this._toFiniteArray(values);
+                if (!src.length) return { main: [], shifted: [] };
+                const period = Math.max(1, Math.floor(Number(opts.period) || 1));
+                const phaseShift = Math.max(1, Math.floor(Number(opts.phaseShift) || 1));
+                const visibleLen = Math.max(1, Math.floor(Number(opts.visibleLen) || src.length));
+                const visStart = Math.max(0, src.length - visibleLen);
+                const warmup = Math.max(period * 3, phaseShift + period + 10);
+                const extStart = Math.max(0, visStart - warmup);
+                const ext = src.slice(extStart);
+                const ema = this._calcEMA(ext, period);
+                const shifted = ema.map((v, i) => (i - phaseShift >= 0 ? ema[i - phaseShift] : null));
+                const clipOffset = visStart - extStart;
+                return {
+                    main: ema.slice(clipOffset),
+                    shifted: shifted.slice(clipOffset),
+                };
+            },
+
+            _updateStakeVectorState(mainEMA, shiftedEMA, kind) {
+                const lastMain = (() => {
+                    for (let i = mainEMA.length - 1; i >= 0; i--) if (Number.isFinite(mainEMA[i])) return Number(mainEMA[i]);
+                    return null;
+                })();
+                const lastShift = (() => {
+                    for (let i = shiftedEMA.length - 1; i >= 0; i--) if (Number.isFinite(shiftedEMA[i])) return Number(shiftedEMA[i]);
+                    return null;
+                })();
+                const signal = Number.isFinite(lastMain) && Number.isFinite(lastShift) ? lastMain - lastShift : 0;
+                const eps =
+                    kind === "players"
+                        ? Math.max(0, Number(MEP.State.stakePlayersVectorFlatEpsilon) || 0)
+                        : Math.max(0, Number(MEP.State.stakeBetVectorFlatEpsilon) || 0);
+                const state = signal > eps ? "up" : signal < -eps ? "down" : "flat";
+                if (kind === "players") {
+                    MEP.State.stakePlayersVectorSignal = signal;
+                    MEP.State.stakePlayersVectorState = state;
+                } else {
+                    MEP.State.stakeBetVectorSignal = signal;
+                    MEP.State.stakeBetVectorState = state;
+                }
+            },
+
+            _buildVectorPoints(values, totalStages, yMax, vbW, vbH, autoHeight = false) {
+                if (!Array.isArray(values) || !values.length || totalStages <= 0 || yMax <= 0) return [];
+                const out = [];
+                const stepX = totalStages <= 1 ? 0 : vbW / (totalStages - 1);
+                const startStage = Math.max(0, totalStages - values.length);
+                const finiteVals = values.filter((v) => Number.isFinite(v));
+                const sMin = finiteVals.length ? Math.min(...finiteVals) : 0;
+                const sMax = finiteVals.length ? Math.max(...finiteVals) : 0;
+                for (let i = 0; i < values.length; i++) {
+                    const v = Number(values[i]);
+                    if (!Number.isFinite(v)) continue;
+                    const stage = startStage + i;
+                    const x = stepX * stage;
+                    let y = 0;
+                    if (autoHeight) {
+                        if (sMax === sMin) y = vbH / 2;
+                        else y = 1 + ((sMax - v) / (sMax - sMin)) * (vbH - 2);
+                    } else {
+                        y = vbH - (v / yMax) * (vbH - 2) - 1;
+                    }
+                    out.push({ stage, x, y: Math.max(1, Math.min(vbH - 1, y)), value: v });
+                }
+                return out;
+            },
+
             render() {
                 const ui = this._ui;
                 if (!ui?.stakeGraphSvg) return;
@@ -3638,20 +3819,99 @@
                 const playersPts = this._buildPoints(playersScaledView, stageCount, yMax, vbW, vbH, autoHeight);
                 const betsPts = this._buildPoints(betsScaledView, stageCount, yMax, vbW, vbH, autoHeight);
 
-                const makePolyline = (pts, color) => {
+                const visibleLen = stageCount;
+                const playersMainRaw = this._buildVectorSeries(playersRaw, {
+                    period: MEP.State.stakePlayersVectorPeriod,
+                    phaseShift: MEP.State.stakePlayersVectorPhaseShift,
+                    visibleLen,
+                });
+                const betMainRaw = this._buildVectorSeries(betsRealRaw, {
+                    period: MEP.State.stakeBetVectorPeriod,
+                    phaseShift: MEP.State.stakeBetVectorPhaseShift,
+                    visibleLen,
+                });
+                this._updateStakeVectorState(playersMainRaw.main, playersMainRaw.shifted, "players");
+                this._updateStakeVectorState(betMainRaw.main, betMainRaw.shifted, "bet");
+
+                const leftPadNullable = (arr, len) => {
+                    const base = Array.isArray(arr) ? arr.slice(-len) : [];
+                    if (base.length >= len) return base;
+                    return new Array(len - base.length).fill(null).concat(base);
+                };
+                const playersMainScaled = leftPadNullable(playersMainRaw.main, stageCount).map((v) =>
+                    Number.isFinite(v) ? v * playersScale : null
+                );
+                const playersShiftScaled = leftPadNullable(playersMainRaw.shifted, stageCount).map((v) =>
+                    Number.isFinite(v) ? v * playersScale : null
+                );
+                const betMainScaled = leftPadNullable(betMainRaw.main, stageCount).map((v) =>
+                    Number.isFinite(v) ? v * betScale : null
+                );
+                const betShiftScaled = leftPadNullable(betMainRaw.shifted, stageCount).map((v) =>
+                    Number.isFinite(v) ? v * betScale : null
+                );
+                const playersMainPts = this._buildVectorPoints(playersMainScaled, stageCount, yMax, vbW, vbH, autoHeight);
+                const playersShiftPts = this._buildVectorPoints(playersShiftScaled, stageCount, yMax, vbW, vbH, autoHeight);
+                const betMainPts = this._buildVectorPoints(betMainScaled, stageCount, yMax, vbW, vbH, autoHeight);
+                const betShiftPts = this._buildVectorPoints(betShiftScaled, stageCount, yMax, vbW, vbH, autoHeight);
+
+                const makePolyline = (pts, color, width = 0.55) => {
                     if (!pts.length) return;
                     const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
                     pl.setAttribute("points", pts.map((p) => `${p.x},${p.y}`).join(" "));
                     pl.setAttribute("fill", "none");
                     pl.setAttribute("stroke", color);
-                    pl.setAttribute("stroke-width", "0.55");
+                    pl.setAttribute("stroke-width", String(width));
                     pl.setAttribute("stroke-linejoin", "round");
                     pl.setAttribute("stroke-linecap", "round");
+                    pl.setAttribute("pointer-events", "none");
                     svg.appendChild(pl);
                 };
 
                 if (showPlayers) makePolyline(playersPts, "rgba(112,206,255,0.95)");
                 if (showBet) makePolyline(betsPts, "rgba(255,170,60,0.95)");
+                if (MEP.State.stakePlayersVectorEnabled) {
+                    makePolyline(
+                        playersMainPts,
+                        (MEP.State.stakePlayersVectorMainColor || "rgba(255,255,255,0.96)").toString(),
+                        Number(MEP.State.stakePlayersVectorMainWidth) || 0.9
+                    );
+                    const shiftPl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    if (playersShiftPts.length) {
+                        shiftPl.setAttribute("points", playersShiftPts.map((p) => `${p.x},${p.y}`).join(" "));
+                        shiftPl.setAttribute("fill", "none");
+                        shiftPl.setAttribute("stroke", (MEP.State.stakePlayersVectorShiftColor || "rgba(80,210,255,0.92)").toString());
+                        shiftPl.setAttribute("stroke-width", String(Number(MEP.State.stakePlayersVectorShiftWidth) || 0.7));
+                        shiftPl.setAttribute("stroke-linejoin", "round");
+                        shiftPl.setAttribute("stroke-linecap", "round");
+                        shiftPl.setAttribute("pointer-events", "none");
+                        svg.appendChild(shiftPl);
+                    }
+                }
+                if (MEP.State.stakeBetVectorEnabled) {
+                    const mainPl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    if (betMainPts.length) {
+                        mainPl.setAttribute("points", betMainPts.map((p) => `${p.x},${p.y}`).join(" "));
+                        mainPl.setAttribute("fill", "none");
+                        mainPl.setAttribute("stroke", (MEP.State.stakeBetVectorMainColor || "rgba(245,245,245,0.82)").toString());
+                        mainPl.setAttribute("stroke-width", String(Number(MEP.State.stakeBetVectorMainWidth) || 0.8));
+                        mainPl.setAttribute("stroke-linejoin", "round");
+                        mainPl.setAttribute("stroke-linecap", "round");
+                        mainPl.setAttribute("pointer-events", "none");
+                        svg.appendChild(mainPl);
+                    }
+                    const shiftPl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+                    if (betShiftPts.length) {
+                        shiftPl.setAttribute("points", betShiftPts.map((p) => `${p.x},${p.y}`).join(" "));
+                        shiftPl.setAttribute("fill", "none");
+                        shiftPl.setAttribute("stroke", (MEP.State.stakeBetVectorShiftColor || "rgba(68,192,255,0.78)").toString());
+                        shiftPl.setAttribute("stroke-width", String(Number(MEP.State.stakeBetVectorShiftWidth) || 0.65));
+                        shiftPl.setAttribute("stroke-linejoin", "round");
+                        shiftPl.setAttribute("stroke-linecap", "round");
+                        shiftPl.setAttribute("pointer-events", "none");
+                        svg.appendChild(shiftPl);
+                    }
+                }
 
                 // tooltip hit targets per series
                 const pPad = new Array(Math.max(0, stageCount - playersView.length)).fill(null).concat(playersView);
@@ -3719,6 +3979,7 @@
                     hit.addEventListener("mouseleave", () => this._setTip(""));
                     svg.appendChild(hit);
                 }
+                MEP.Strategy1?.updateUiCounters?.();
             },
         };
 
@@ -4787,6 +5048,10 @@
                 const decision = st.runtime?.decisionState || {};
 
                 if (ui.strategy1ConditionsModeEl) ui.strategy1ConditionsModeEl.textContent = st.conditions.mode || "all";
+                if (ui.strategy1StakePlayersVectorStateEl)
+                    ui.strategy1StakePlayersVectorStateEl.textContent = (MEP.State.stakePlayersVectorState || "—").toString();
+                if (ui.strategy1StakeBetVectorStateEl)
+                    ui.strategy1StakeBetVectorStateEl.textContent = (MEP.State.stakeBetVectorState || "—").toString();
                 if (ui.strategy1ConditionsCanBetEl)
                     ui.strategy1ConditionsCanBetEl.textContent = String(!!st.conditions.lastResult?.canBet);
                 if (ui.strategy1ConditionsEndEl)
@@ -5325,6 +5590,18 @@
             <label class="mep-stake-density-label">Клиенты масштаб<input class="mep-stake-scale-players" type="number" min="0" step="0.1" value="1" /></label>
             <label class="mep-stake-density-label">Ставки масштаб<input class="mep-stake-scale-bet" type="number" min="0" step="0.1" value="10" /></label>
         </div>
+        <div class="mep-stake-vector-row">
+            <label class="mep-stake-vector-label"><input class="mep-stake-players-vector-enabled" type="checkbox" checked /><span>Клиенты вектор</span></label>
+            <label class="mep-stake-vector-label"><span>P</span><input class="mep-stake-players-vector-period" type="number" min="1" step="1" value="9" /></label>
+            <label class="mep-stake-vector-label"><span>S</span><input class="mep-stake-players-vector-shift" type="number" min="1" step="1" value="3" /></label>
+            <label class="mep-stake-vector-label"><span>Flat</span><input class="mep-stake-players-vector-flat" type="number" min="0" step="0.01" value="0.15" /></label>
+        </div>
+        <div class="mep-stake-vector-row">
+            <label class="mep-stake-vector-label"><input class="mep-stake-bet-vector-enabled" type="checkbox" checked /><span>Ставки вектор</span></label>
+            <label class="mep-stake-vector-label"><span>P</span><input class="mep-stake-bet-vector-period" type="number" min="1" step="1" value="9" /></label>
+            <label class="mep-stake-vector-label"><span>S</span><input class="mep-stake-bet-vector-shift" type="number" min="1" step="1" value="3" /></label>
+            <label class="mep-stake-vector-label"><span>Flat</span><input class="mep-stake-bet-vector-flat" type="number" min="0" step="0.01" value="0.15" /></label>
+        </div>
         <div class="mep-stake-legend">
             <label class="mep-stake-legend-item">
                 <input class="mep-stake-show-players" type="checkbox" checked />
@@ -5572,6 +5849,8 @@
         <div class="mep-strategy-placeholder">Маршрутизация: первый раунд цикла -> first, после минусов -> second.
 Проверка по Уставу + доп. проверки сущностей.
 Режим: <span class="mep-strategy1-conditions-mode">all</span>
+Клиенты EMA: <span class="mep-strategy1-stake-players-vector-state">—</span>
+Ставки EMA: <span class="mep-strategy1-stake-bet-vector-state">—</span>
 Rules: placeholder (будущий конструктор)
 LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, shouldEndCycle=<span class="mep-strategy1-conditions-end">false</span>, reason=<span class="mep-strategy1-conditions-reason">—</span></div>
     </div>
@@ -5652,6 +5931,8 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1CheckCharterBtn: panel.querySelector("button.mep-strategy1-check-charter"),
                     strategy1RouteBranchBtn: panel.querySelector("button.mep-strategy1-route-branch"),
                     strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
+                    strategy1StakePlayersVectorStateEl: panel.querySelector(".mep-strategy1-stake-players-vector-state"),
+                    strategy1StakeBetVectorStateEl: panel.querySelector(".mep-strategy1-stake-bet-vector-state"),
                     strategy1ConditionsCanBetEl: panel.querySelector(".mep-strategy1-conditions-canbet"),
                     strategy1ConditionsEndEl: panel.querySelector(".mep-strategy1-conditions-end"),
                     strategy1ConditionsReasonEl: panel.querySelector(".mep-strategy1-conditions-reason"),
@@ -5761,6 +6042,14 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     stakeBetScaleInput: panel.querySelector("input.mep-stake-scale-bet"),
                     stakeShowPlayersInput: panel.querySelector("input.mep-stake-show-players"),
                     stakeShowBetInput: panel.querySelector("input.mep-stake-show-bet"),
+                    stakePlayersVectorEnabledInput: panel.querySelector("input.mep-stake-players-vector-enabled"),
+                    stakePlayersVectorPeriodInput: panel.querySelector("input.mep-stake-players-vector-period"),
+                    stakePlayersVectorShiftInput: panel.querySelector("input.mep-stake-players-vector-shift"),
+                    stakePlayersVectorFlatInput: panel.querySelector("input.mep-stake-players-vector-flat"),
+                    stakeBetVectorEnabledInput: panel.querySelector("input.mep-stake-bet-vector-enabled"),
+                    stakeBetVectorPeriodInput: panel.querySelector("input.mep-stake-bet-vector-period"),
+                    stakeBetVectorShiftInput: panel.querySelector("input.mep-stake-bet-vector-shift"),
+                    stakeBetVectorFlatInput: panel.querySelector("input.mep-stake-bet-vector-flat"),
                     balanceWrap: panel.querySelector(".mep-balance-graph-wrap"),
                     balanceParamsWrap: panel.querySelector(".mep-balance-params"),
                     balanceCollapseBtn: panel.querySelector("button.mep-balance-collapse"),
@@ -6226,6 +6515,96 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     ui.stakeShowBetInput.checked = MEP.State.stakeGraphShowBet !== false;
                     ui.stakeShowBetInput.addEventListener("change", () => {
                         MEP.State.stakeGraphShowBet = !!ui.stakeShowBetInput.checked;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakePlayersVectorEnabledInput) {
+                    ui.stakePlayersVectorEnabledInput.checked = MEP.State.stakePlayersVectorEnabled !== false;
+                    ui.stakePlayersVectorEnabledInput.addEventListener("change", () => {
+                        MEP.State.stakePlayersVectorEnabled = !!ui.stakePlayersVectorEnabledInput.checked;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakePlayersVectorPeriodInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.stakePlayersVectorPeriod) || 9));
+                    MEP.State.stakePlayersVectorPeriod = current;
+                    ui.stakePlayersVectorPeriodInput.value = String(current);
+                    ui.stakePlayersVectorPeriodInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.stakePlayersVectorPeriodInput.value) || 1));
+                        MEP.State.stakePlayersVectorPeriod = v;
+                        ui.stakePlayersVectorPeriodInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakePlayersVectorShiftInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.stakePlayersVectorPhaseShift) || 3));
+                    MEP.State.stakePlayersVectorPhaseShift = current;
+                    ui.stakePlayersVectorShiftInput.value = String(current);
+                    ui.stakePlayersVectorShiftInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.stakePlayersVectorShiftInput.value) || 1));
+                        MEP.State.stakePlayersVectorPhaseShift = v;
+                        ui.stakePlayersVectorShiftInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakePlayersVectorFlatInput) {
+                    const current = Math.max(0, Number(MEP.State.stakePlayersVectorFlatEpsilon) || 0);
+                    MEP.State.stakePlayersVectorFlatEpsilon = current;
+                    ui.stakePlayersVectorFlatInput.value = String(current);
+                    ui.stakePlayersVectorFlatInput.addEventListener("input", () => {
+                        const v = Math.max(0, Number(ui.stakePlayersVectorFlatInput.value) || 0);
+                        MEP.State.stakePlayersVectorFlatEpsilon = v;
+                        ui.stakePlayersVectorFlatInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                if (ui.stakeBetVectorEnabledInput) {
+                    ui.stakeBetVectorEnabledInput.checked = MEP.State.stakeBetVectorEnabled !== false;
+                    ui.stakeBetVectorEnabledInput.addEventListener("change", () => {
+                        MEP.State.stakeBetVectorEnabled = !!ui.stakeBetVectorEnabledInput.checked;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakeBetVectorPeriodInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.stakeBetVectorPeriod) || 9));
+                    MEP.State.stakeBetVectorPeriod = current;
+                    ui.stakeBetVectorPeriodInput.value = String(current);
+                    ui.stakeBetVectorPeriodInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.stakeBetVectorPeriodInput.value) || 1));
+                        MEP.State.stakeBetVectorPeriod = v;
+                        ui.stakeBetVectorPeriodInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakeBetVectorShiftInput) {
+                    const current = Math.max(1, Math.floor(Number(MEP.State.stakeBetVectorPhaseShift) || 3));
+                    MEP.State.stakeBetVectorPhaseShift = current;
+                    ui.stakeBetVectorShiftInput.value = String(current);
+                    ui.stakeBetVectorShiftInput.addEventListener("input", () => {
+                        const v = Math.max(1, Math.floor(Number(ui.stakeBetVectorShiftInput.value) || 1));
+                        MEP.State.stakeBetVectorPhaseShift = v;
+                        ui.stakeBetVectorShiftInput.value = String(v);
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakeBetVectorFlatInput) {
+                    const current = Math.max(0, Number(MEP.State.stakeBetVectorFlatEpsilon) || 0);
+                    MEP.State.stakeBetVectorFlatEpsilon = current;
+                    ui.stakeBetVectorFlatInput.value = String(current);
+                    ui.stakeBetVectorFlatInput.addEventListener("input", () => {
+                        const v = Math.max(0, Number(ui.stakeBetVectorFlatInput.value) || 0);
+                        MEP.State.stakeBetVectorFlatEpsilon = v;
+                        ui.stakeBetVectorFlatInput.value = String(v);
                         MEP.Storage.save();
                         MEP.StakeGraph?.render?.();
                     });

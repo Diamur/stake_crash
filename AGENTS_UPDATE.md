@@ -127,3 +127,9 @@
 - `evaluateDecisionState()` для активного цикла теперь учитывает routeBranch после успешного charter-check и выставляет `branch`, `statusText` и `waitReason` по ветке.
 - При charter block branch очищается (`""`), статус `charter_blocked` сохраняется, цикл не завершается автоматически.
 - В UI Strategy1 добавлены подсказка маршрутизации и debug-кнопка `Определить ветку` (ref + bind + вызов routeBranch/evaluate/updateUi).
+- 2026-03-29: Strategy1 Этап 5 — в `MEP.State` добавлены stake EMA vector-настройки для клиентов и ставок (`stakePlayersVector*`, `stakeBetVector*`) + runtime `state/signal`.
+- В `MEP.Storage.save/load()` добавлен persistence только для config-полей vector-настроек; runtime signal/state не сохраняются.
+- В `MEP.StakeGraph` добавлены helper’ы `_calcEMA`, `_buildVectorSeries` (warmup+clip), `_updateStakeVectorState`, `_buildVectorPoints` и overlay-отрисовка 4 EMA polyline.
+- В stake params UI добавлены 2 vector-row контролов (Clients/Bet: enabled, P, S, Flat), refs и bind-обработчики с `save()+render()`.
+- Во вкладке Strategy1 (конструктор условий) добавлена мини-диагностика: `Клиенты EMA` / `Ставки EMA`, вывод через `updateUiCounters()`.
+- Исправлен flex-стиль `.mep-actions-row` по заданному шаблону (display flex + gap 8 + margin-top 8 + wrap).
