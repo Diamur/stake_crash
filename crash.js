@@ -293,10 +293,13 @@
             stakePlan: {
                 betAmount: 0,
                 targetMultiplier: 0,
+                maxAllowedStake: 0,
+                riskCap: 0,
                 allowedByRisk: false,
                 sourceStep: "",
                 calcMode: "",
                 ready: false,
+                invalidReason: "",
             },
             runtime: {
                 lastSignal: "",
@@ -4970,17 +4973,154 @@
                 return result;
             },
 
+            parseNumberArray(text) {
+                const raw = (text || "").toString();
+                if (!raw.trim()) return [];
+                return raw
+                    .split(/[\s,;]+/g)
+                    .map((chunk) => MEP.Utils.cleanToNum(chunk))
+                    .filter((n) => Number.isFinite(n));
+            },
+
+            getStakePlanStatusText(plan = null) {
+                const p = plan || {};
+                if (p.ready) return "План ставки готов";
+                const reason = (p.invalidReason || "").toString();
+                const map = {
+                    risk_percent_not_set: "Не задан процент риска",
+                    start_stake_invalid: "Некорректная начальная ставка",
+                    growth_factor_invalid: "Некорректный коэффициент приращения",
+                    target_invalid: "Некорректный целевой множитель",
+                    max_stake_exceeded: "Следующая ставка превышает допустимый лимит",
+                    start_array_empty: "Массив начальных ставок пуст",
+                    growth_array_empty: "Массив приращения пуст",
+                    target_array_empty: "Массив целевых множителей пуст",
+                    stake_invalid: "Некорректно рассчитана сумма ставки",
+                    max_stake_not_allowed: "Лимит допустимой ставки не задан",
+                    stake_plan_invalid: "План ставки невалиден",
+                };
+                return map[reason] || "План ставки не готов";
+            },
+
             buildStakePlan() {
                 const st = this.getState();
-                if (!st) return { betAmount: 0, targetMultiplier: 0, ready: false };
-                st.stakePlan.calcMode = `${st.config.startStakeMode}:${st.config.stakeGrowthMode}`;
-                st.stakePlan.targetMultiplier = Number(st.config.targetMultiplierValue) || 0;
-                st.stakePlan.betAmount = Number(st.config.startStakeValue) || 0;
-                st.stakePlan.ready = false;
-                st.runtime.lastStakePlanResult = { ...st.stakePlan };
+                if (!st) {
+                    return {
+                        betAmount: 0,
+                        targetMultiplier: 0,
+                        maxAllowedStake: 0,
+                        riskCap: 0,
+                        allowedByRisk: false,
+                        sourceStep: "step_0",
+                        calcMode: "fixed:factor",
+                        ready: false,
+                        invalidReason: "strategy1_not_found",
+                    };
+                }
+                const currentBalance = Math.max(0, Number(this.getCurrentBalance()) || 0);
+                const lossCount = Math.max(0, Math.floor(Number(st.cycle?.lossCount) || 0));
+                const stepIndex = lossCount;
+                const sourceStep = `step_${stepIndex}`;
+                const startMode = st.config?.startStakeMode === "array" ? "array" : "fixed";
+                const growthMode = st.config?.stakeGrowthMode === "array" ? "array" : "factor";
+                const targetMode = st.config?.targetMode === "array" ? "array" : "fixed";
+
+                const plan = {
+                    betAmount: 0,
+                    targetMultiplier: 0,
+                    maxAllowedStake: 0,
+                    riskCap: 0,
+                    allowedByRisk: false,
+                    sourceStep,
+                    calcMode: `${startMode}:${growthMode}`,
+                    ready: false,
+                    invalidReason: "",
+                };
+
+                const riskPercent = Number(st.config?.riskPercent) || 0;
+                if (!(riskPercent > 0)) {
+                    plan.invalidReason = "risk_percent_not_set";
+                } else {
+                    const riskCap = currentBalance * (riskPercent / 100);
+                    plan.riskCap = Number.isFinite(riskCap) && riskCap > 0 ? riskCap : 0;
+                    const charterMaxStakePercent = Number(MEP.State?.charterMaxStakePercent) || 0;
+                    const charterCap =
+                        charterMaxStakePercent > 0 ? currentBalance * (charterMaxStakePercent / 100) : 0;
+                    const hasRiskCap = plan.riskCap > 0;
+                    const hasCharterCap = charterCap > 0;
+                    if (hasRiskCap && hasCharterCap) plan.maxAllowedStake = Math.min(plan.riskCap, charterCap);
+                    else if (hasRiskCap) plan.maxAllowedStake = plan.riskCap;
+                    else if (hasCharterCap) plan.maxAllowedStake = charterCap;
+                    else plan.maxAllowedStake = 0;
+                    plan.allowedByRisk = plan.maxAllowedStake > 0;
+                }
+
+                let baseStake = 0;
+                if (!plan.invalidReason) {
+                    if (startMode === "array") {
+                        const startArr = this.parseNumberArray(st.config?.startStakeArrayText);
+                        if (!startArr.length) plan.invalidReason = "start_array_empty";
+                        else baseStake = startArr[Math.min(stepIndex, startArr.length - 1)] || 0;
+                    } else {
+                        baseStake = Number(st.config?.startStakeValue) || 0;
+                        if (!(baseStake > 0)) plan.invalidReason = "start_stake_invalid";
+                    }
+                }
+
+                if (!plan.invalidReason) {
+                    if (growthMode === "array") {
+                        const growthArr = this.parseNumberArray(st.config?.stakeGrowthArrayText);
+                        if (!growthArr.length) {
+                            plan.invalidReason = "growth_array_empty";
+                        } else {
+                            const growthMultiplier = growthArr[Math.min(stepIndex, growthArr.length - 1)] || 0;
+                            plan.betAmount = baseStake * growthMultiplier;
+                        }
+                    } else {
+                        const factor = Number(st.config?.stakeGrowthFactor);
+                        if (!Number.isFinite(factor) || factor <= 0) {
+                            plan.invalidReason = "growth_factor_invalid";
+                        } else if (stepIndex === 0) {
+                            plan.betAmount = baseStake;
+                        } else {
+                            plan.betAmount = baseStake * Math.pow(factor, stepIndex);
+                        }
+                    }
+                }
+
+                if (!plan.invalidReason) {
+                    if (targetMode === "array") {
+                        const targetArr = this.parseNumberArray(st.config?.targetMultiplierArrayText);
+                        if (!targetArr.length) plan.invalidReason = "target_array_empty";
+                        else plan.targetMultiplier = targetArr[Math.min(stepIndex, targetArr.length - 1)] || 0;
+                    } else {
+                        plan.targetMultiplier = Number(st.config?.targetMultiplierValue) || 0;
+                    }
+                    if (!plan.invalidReason && (!Number.isFinite(plan.targetMultiplier) || plan.targetMultiplier <= 1)) {
+                        plan.invalidReason = "target_invalid";
+                    }
+                }
+
+                if (!plan.invalidReason) {
+                    if (!Number.isFinite(plan.betAmount) || plan.betAmount <= 0) {
+                        plan.invalidReason = "stake_invalid";
+                    } else if (!(plan.maxAllowedStake > 0)) {
+                        plan.invalidReason = "max_stake_not_allowed";
+                    } else if (plan.betAmount > plan.maxAllowedStake) {
+                        plan.invalidReason = "max_stake_exceeded";
+                    }
+                }
+
+                plan.ready = !plan.invalidReason;
+
+                st.stakePlan = {
+                    ...st.stakePlan,
+                    ...plan,
+                };
+                st.runtime.lastStakePlanResult = { ...plan };
                 st.runtime.lastCycleAction = "buildStakePlan";
                 this.updateUiCounters();
-                return { ...st.stakePlan };
+                return { ...plan };
             },
 
             updateAfterRound(result = {}) {
@@ -5088,12 +5228,12 @@
                 const branch = branchInfo?.branch || "";
                 if (branch === "first") {
                     const firstResult = this.checkFirstBranch();
-                    if (st.conditions?.lastResult) {
-                        st.conditions.lastResult.canBet = !!firstResult.passed;
-                        st.conditions.lastResult.shouldEndCycle = false;
-                        st.conditions.lastResult.reason = firstResult.failedAt || "";
-                    }
                     if (!firstResult.passed) {
+                        if (st.conditions?.lastResult) {
+                            st.conditions.lastResult.canBet = false;
+                            st.conditions.lastResult.shouldEndCycle = false;
+                            st.conditions.lastResult.reason = firstResult.failedAt || "";
+                        }
                         return this.updateDecisionState({
                             canMakeBet: false,
                             shouldEndCycle: false,
@@ -5103,11 +5243,29 @@
                             waitReason: firstResult.waitReason || "first_branch_wait",
                         });
                     }
+                    const plan = this.buildStakePlan();
+                    const planReady = !!plan?.ready;
+                    if (st.conditions?.lastResult) {
+                        st.conditions.lastResult.canBet = planReady;
+                        st.conditions.lastResult.shouldEndCycle = false;
+                        st.conditions.lastResult.reason =
+                            (plan?.invalidReason || firstResult.failedAt || "").toString();
+                    }
+                    if (!planReady) {
+                        return this.updateDecisionState({
+                            canMakeBet: false,
+                            shouldEndCycle: false,
+                            statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                            statusText: this.getStakePlanStatusText(plan),
+                            branch: "first",
+                            waitReason: (plan?.invalidReason || "stake_plan_invalid").toString(),
+                        });
+                    }
                     return this.updateDecisionState({
                         canMakeBet: true,
                         shouldEndCycle: false,
                         statusCode: this.DECISION_STATUS.BET_ALLOWED,
-                        statusText: "Первая ветка пройдена — ставка разрешена",
+                        statusText: "Первая ветка пройдена — план ставки готов",
                         branch: "first",
                         waitReason: "",
                     });
@@ -5191,10 +5349,31 @@
                     ).toString();
                 if (ui.strategy1TargetCalcModeEl)
                     ui.strategy1TargetCalcModeEl.textContent = (st.config.targetMode || "fixed").toString();
+                const fmtPlanNum = (value) => {
+                    const n = Number(value);
+                    if (!Number.isFinite(n)) return "—";
+                    return n.toFixed(8).replace(/\.?0+$/, "");
+                };
                 if (ui.strategy1LastBetAmountEl)
-                    ui.strategy1LastBetAmountEl.textContent = String(Number(st.stakePlan.betAmount) || 0);
+                    ui.strategy1LastBetAmountEl.textContent = fmtPlanNum(st.stakePlan.betAmount);
                 if (ui.strategy1LastTargetMultiplierEl)
-                    ui.strategy1LastTargetMultiplierEl.textContent = String(Number(st.stakePlan.targetMultiplier) || 0);
+                    ui.strategy1LastTargetMultiplierEl.textContent = fmtPlanNum(st.stakePlan.targetMultiplier);
+                if (ui.strategy1StakePlanCalcModeEl)
+                    ui.strategy1StakePlanCalcModeEl.textContent = (st.stakePlan.calcMode || "—").toString();
+                if (ui.strategy1StakePlanStepEl)
+                    ui.strategy1StakePlanStepEl.textContent = (st.stakePlan.sourceStep || "—").toString();
+                if (ui.strategy1StakePlanBetAmountEl)
+                    ui.strategy1StakePlanBetAmountEl.textContent = fmtPlanNum(st.stakePlan.betAmount);
+                if (ui.strategy1StakePlanTargetEl)
+                    ui.strategy1StakePlanTargetEl.textContent = fmtPlanNum(st.stakePlan.targetMultiplier);
+                if (ui.strategy1StakePlanMaxAllowedEl)
+                    ui.strategy1StakePlanMaxAllowedEl.textContent = fmtPlanNum(st.stakePlan.maxAllowedStake);
+                if (ui.strategy1StakePlanAllowedByRiskEl)
+                    ui.strategy1StakePlanAllowedByRiskEl.textContent = String(!!st.stakePlan.allowedByRisk);
+                if (ui.strategy1StakePlanReadyEl)
+                    ui.strategy1StakePlanReadyEl.textContent = String(!!st.stakePlan.ready);
+                if (ui.strategy1StakePlanInvalidReasonEl)
+                    ui.strategy1StakePlanInvalidReasonEl.textContent = (st.stakePlan.invalidReason || "—").toString();
                 if (ui.strategy1CycleStartBalanceEl)
                     ui.strategy1CycleStartBalanceEl.textContent = String(
                         Number(st.counters.startBalanceBeforeCycle) || Number(st.cycle.startBalance) || 0
@@ -5926,6 +6105,7 @@
             <button class="mep-btn mep-strategy1-check-charter" type="button">Проверить Устав</button>
             <button class="mep-btn mep-strategy1-route-branch" type="button">Определить ветку</button>
             <button class="mep-btn mep-strategy1-check-first-branch" type="button">Проверить 1 ветку</button>
+            <button class="mep-btn mep-strategy1-build-stake-plan" type="button">Проверить план ставки</button>
         </div>
     </div>
     <div class="mep-strategy-section">
@@ -5994,7 +6174,15 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
         <div class="mep-strategy-section-title">Конструктор ставок</div>
         <div class="mep-strategy-placeholder">Режим ставки: <span class="mep-strategy1-stake-calc-mode">—</span>
 Режим target: <span class="mep-strategy1-target-calc-mode">—</span>
-Последний расчёт: betAmount=<span class="mep-strategy1-last-bet-amount">0</span>, targetMultiplier=<span class="mep-strategy1-last-target-multiplier">0</span></div>
+Последний расчёт: betAmount=<span class="mep-strategy1-last-bet-amount">0</span>, targetMultiplier=<span class="mep-strategy1-last-target-multiplier">0</span>
+Режим расчёта: <span class="mep-strategy1-stake-plan-calc-mode">—</span>
+Шаг: <span class="mep-strategy1-stake-plan-step">—</span>
+Bet amount: <span class="mep-strategy1-stake-plan-bet-amount">—</span>
+Target multiplier: <span class="mep-strategy1-stake-plan-target">—</span>
+Max allowed stake: <span class="mep-strategy1-stake-plan-max-allowed">—</span>
+Allowed by risk: <span class="mep-strategy1-stake-plan-allowed-by-risk">false</span>
+Ready: <span class="mep-strategy1-stake-plan-ready">false</span>
+Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span></div>
     </div>
     <div class="mep-strategy-section">
         <div class="mep-strategy-section-title">Цикл стратегии</div>
@@ -6067,6 +6255,7 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1CheckCharterBtn: panel.querySelector("button.mep-strategy1-check-charter"),
                     strategy1RouteBranchBtn: panel.querySelector("button.mep-strategy1-route-branch"),
                     strategy1CheckFirstBranchBtn: panel.querySelector("button.mep-strategy1-check-first-branch"),
+                    strategy1BuildStakePlanBtn: panel.querySelector("button.mep-strategy1-build-stake-plan"),
                     strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
                     strategy1StakePlayersVectorStateEl: panel.querySelector(".mep-strategy1-stake-players-vector-state"),
                     strategy1StakeBetVectorStateEl: panel.querySelector(".mep-strategy1-stake-bet-vector-state"),
@@ -6085,6 +6274,14 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1TargetCalcModeEl: panel.querySelector(".mep-strategy1-target-calc-mode"),
                     strategy1LastBetAmountEl: panel.querySelector(".mep-strategy1-last-bet-amount"),
                     strategy1LastTargetMultiplierEl: panel.querySelector(".mep-strategy1-last-target-multiplier"),
+                    strategy1StakePlanCalcModeEl: panel.querySelector(".mep-strategy1-stake-plan-calc-mode"),
+                    strategy1StakePlanStepEl: panel.querySelector(".mep-strategy1-stake-plan-step"),
+                    strategy1StakePlanBetAmountEl: panel.querySelector(".mep-strategy1-stake-plan-bet-amount"),
+                    strategy1StakePlanTargetEl: panel.querySelector(".mep-strategy1-stake-plan-target"),
+                    strategy1StakePlanMaxAllowedEl: panel.querySelector(".mep-strategy1-stake-plan-max-allowed"),
+                    strategy1StakePlanAllowedByRiskEl: panel.querySelector(".mep-strategy1-stake-plan-allowed-by-risk"),
+                    strategy1StakePlanReadyEl: panel.querySelector(".mep-strategy1-stake-plan-ready"),
+                    strategy1StakePlanInvalidReasonEl: panel.querySelector(".mep-strategy1-stake-plan-invalid-reason"),
                     strategy1CycleStartBalanceEl: panel.querySelector(".mep-strategy1-cycle-start-balance"),
                     strategy1CycleCurrentBalanceEl: panel.querySelector(".mep-strategy1-cycle-current-balance"),
                     strategy1CycleLastStakeEl: panel.querySelector(".mep-strategy1-cycle-last-stake"),
@@ -6332,6 +6529,7 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                         inp.addEventListener("input", () => {
                             s1.config[key] = (inp.value || "").toString();
                             MEP.Storage.save();
+                            MEP.Strategy1?.buildStakePlan?.();
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     };
@@ -6387,6 +6585,13 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                         ui.strategy1CheckFirstBranchBtn.addEventListener("click", () => {
                             MEP.Strategy1?.routeBranch?.();
                             MEP.Strategy1?.checkFirstBranch?.();
+                            MEP.Strategy1?.evaluateDecisionState?.();
+                            MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1BuildStakePlanBtn) {
+                        ui.strategy1BuildStakePlanBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.buildStakePlan?.();
                             MEP.Strategy1?.evaluateDecisionState?.();
                             MEP.Strategy1?.updateUiCounters?.();
                         });

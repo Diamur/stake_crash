@@ -138,3 +138,8 @@
 - В runtime добавлен `lastFirstBranchResult` (runtime-only, без persistence), плюс синхронизация `conditions.lastResult` для FIRST_BRANCH/second-заглушки.
 - `evaluateDecisionState()` расширен: branch=first проверяет FIRST_BRANCH и ставит `bet_allowed` только при passed=true; branch=second отдаёт честный статус `second_branch_not_implemented`.
 - В Strategy1 UI добавлена диагностика FIRST_BRANCH (passed, lt2, vector states, failedAt, waitReason) и debug-кнопка `Проверить 1 ветку` (ref + bind).
+- 2026-03-29: Strategy1 Этап 7 — реализован рабочий `buildStakePlan()` (расчёт bet/target/maxAllowedStake/riskCap + ready/invalidReason + sourceStep/calcMode), запись в `strategy1.stakePlan` и runtime `lastStakePlanResult`.
+- Добавлены helper’ы `parseNumberArray(text)` и `getStakePlanStatusText(plan)`; поддержаны режимы startStake fixed/array, growth factor/array, target fixed/array, валидация `bet<=maxAllowedStake`.
+- `evaluateDecisionState()` для branch=first после успешного FIRST_BRANCH теперь вызывает `buildStakePlan()` и разрешает ставку только при `plan.ready=true`.
+- Обновлён UI блока «Конструктор ставок»: добавлена детальная диагностика расчёта (calcMode/step/bet/target/maxAllowed/allowedByRisk/ready/invalidReason) + новые refs и вывод в `updateUiCounters()`.
+- Добавлена debug-кнопка `Проверить план ставки` (ref + bind): `buildStakePlan()` -> `evaluateDecisionState()` -> `updateUiCounters()`.
