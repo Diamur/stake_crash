@@ -195,3 +195,6 @@
 - Диагностика времени переведена на человекочитаемый `HH:MM:SS` для decision/pause/hard-exit/recovery/voice/status/cycle timestamps.
 - Разделены action/debug кнопки на 2 подгруппы, улучшен блок system messages (компактнее, max-height+scroll).
 - Полирован блок параметров (режимы fixed/array/factor подсвечиваются), conditions diagnostics и stakePlan/cycle summary cards.
+- 2026-03-29: UI фикс Strategy1 — строка «Вкл / Откл стратегии» переведена в реальный clickable toggle (`input.mep-strategy1-enabled`) с индикатором `Вкл/Выкл`.
+- Добавлен ref `strategy1EnabledStatusEl` и синхронизация в `updateUiCounters()` (`checked` + badge/text status).
+- Bind Strategy1 enabled сохранён по прежнему канону: `state.enabled -> save -> evaluateDecisionState -> updateUiCounters`.

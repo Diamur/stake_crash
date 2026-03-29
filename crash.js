@@ -2505,6 +2505,34 @@
         .mep-cond-row{display:flex;justify-content:space-between;gap:8px;align-items:center;}
         .mep-cond-diag-line{font-size:11px;color:#a9bdd1;}
         .mep-stake-plan-card,.mep-cycle-card{border:1px solid rgba(255,255,255,.09);border-radius:8px;padding:8px;margin-top:6px;background:rgba(0,0,0,.15);}
+        .mep-strategy-toggle{
+        display:inline-flex;
+        align-items:center;
+        gap:6px;
+        }
+        .mep-strategy-toggle input[type="checkbox"]{
+        width:14px;
+        height:14px;
+        accent-color:#4cafef;
+        cursor:pointer;
+        }
+        .mep-strategy-toggle-status{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        min-width:36px;
+        padding:1px 7px;
+        border-radius:999px;
+        font-size:11px;
+        border:1px solid rgba(125,151,179,.35);
+        background:rgba(125,151,179,.18);
+        color:#d6e2ef;
+        }
+        .mep-strategy-toggle-status.is-on{
+        border-color:rgba(38,166,91,.42);
+        background:rgba(38,166,91,.22);
+        color:#a7efbf;
+        }
         `;
                 document.head.appendChild(style);
             },
@@ -6563,6 +6591,12 @@
                 if (ui.strategy1StakeBetVectorStateEl)
                     ui.strategy1StakeBetVectorStateEl.textContent = (MEP.State.stakeBetVectorState || "—").toString();
                 const cfg = st.config || {};
+                if (ui.strategy1EnabledInput) ui.strategy1EnabledInput.checked = !!st.enabled;
+                if (ui.strategy1EnabledStatusEl) {
+                    const enabledNow = !!st.enabled;
+                    ui.strategy1EnabledStatusEl.textContent = enabledNow ? "Вкл" : "Выкл";
+                    ui.strategy1EnabledStatusEl.classList.toggle("is-on", enabledNow);
+                }
                 if (ui.strategy1VoiceEnabledInput) ui.strategy1VoiceEnabledInput.checked = cfg.voiceEnabled !== false;
                 if (ui.strategy1StatusEventsEnabledInput)
                     ui.strategy1StatusEventsEnabledInput.checked = cfg.statusEventsEnabled !== false;
@@ -7553,7 +7587,10 @@
         <div class="mep-strategy-section-title">Стратегия1 · Управление</div>
         <div class="mep-strategy-row">
             <span class="mep-strategy-label">Вкл / Откл стратегии</span>
-            <label class="mep-charter-label"><input class="mep-strategy1-enabled" type="checkbox" /> Включена</label>
+            <label class="mep-charter-label mep-strategy-toggle">
+                <input class="mep-strategy1-enabled" type="checkbox" />
+                <span class="mep-strategy-toggle-status mep-strategy1-enabled-status">Выкл</span>
+            </label>
         </div>
         <div class="mep-strategy-row">
             <span class="mep-strategy-label">Voice events</span>
@@ -7815,6 +7852,7 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     charterLossesPerDayInput: panel.querySelector("input.mep-charter-losses-day"),
                     charterBreakAfter3LossesMinInput: panel.querySelector("input.mep-charter-break-3loss-min"),
                     strategy1EnabledInput: panel.querySelector("input.mep-strategy1-enabled"),
+                    strategy1EnabledStatusEl: panel.querySelector(".mep-strategy1-enabled-status"),
                     strategy1VoiceEnabledInput: panel.querySelector("input.mep-strategy1-voice-enabled"),
                     strategy1StatusEventsEnabledInput: panel.querySelector("input.mep-strategy1-status-events-enabled"),
                     strategy1VoiceCooldownInput: panel.querySelector("input.mep-strategy1-voice-cooldown"),
