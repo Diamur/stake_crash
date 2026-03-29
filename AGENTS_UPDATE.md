@@ -105,3 +105,36 @@
 - 2026-03-28: Во вкладку `Устав` добавлено явное пояснение `.mep-charter-note`: `0 = без ограничений`.
 - На все charter input добавлен `title="0 = без ограничений"`.
 - Логика state/storage/bind не менялась: 0 сохраняется как 0 и интерпретируется как отключённый лимит по UI-правилу.
+- 2026-03-28: Добавлен сухой каркас `Стратегия1` во вкладке `Игра` (state-реестр стратегий, Strategy1 module-заглушка, UI-секции параметров/условий/ставок/цикла, refs+bind, persistence только `enabled+config`, execution guard через `activeStrategyId` без автоклика/боевой ставки).
+- 2026-03-29: Strategy1 Этап 1 — добавлен runtime-блок `decisionState` (canMakeBet/shouldEndCycle/branch/waitReason/statusCode/statusText/lastDecisionAtTs) в default state.
+- В `MEP.Strategy1` добавлены `DECISION_STATUS`, `updateDecisionState(partial)` и `evaluateDecisionState()`; evaluate вызывается на init, toggle enabled и в start/finish/reset cycle.
+- Во вкладке `Игра -> Стратегия1` добавлен отдельный блок «Текущее состояние стратегии» с 6 диагностическими полями (status/code/canBet/endCycle/branch/waitReason).
+- `updateUiCounters()` расширен выводом decisionState; добавлены соответствующие refs в `MEP.UI.ui`.
+- Persistence не изменён: по-прежнему сохраняются только `strategy1.enabled` и `strategy1.config`; decisionState runtime-only.
+- 2026-03-29: Strategy1 Этап 2 — оживлён cycle engine (`startCycle/finishCycle/resetCycle`) с инициализацией от текущего баланса и snapshot-поведением после finish.
+- Добавлены helper-методы: `getCurrentBalance`, `isProfitReached`, `isMaxLossesReached`, `isMaxStakeReached`, `updateAfterRound` (обновление cycle/counters/timers + авто-finish по profit/maxStake/maxLosses).
+- `evaluateDecisionState()` расширен: при неактивном цикле с `endReason` теперь показывает «Цикл завершён» и причину.
+- В UI Strategy1 добавлены debug-кнопки `Старт цикла / Завершить цикл / Сбросить цикл`, refs и bind-обработчики на методы Strategy1.
+- Persistence не расширялся: runtime cycle/counters/timers/decision не сохраняются, только прежние `strategy1.enabled` и `strategy1.config`.
+- 2026-03-29: Strategy1 Этап 3 — `checkCharter()` переведён из заглушки в рабочий шлюз по глобальным лимитам Устава (раунды/победы/поражения за час/6ч/сутки + break).
+- Добавлены runtime helper’ы времени и журнала: `getNowTs`, `buildTimeKeys`, `pushEvent`, `countEventsByKey`, `getConsecutiveLosses`, `getCharterBlockStatusText`, `applyCharterDecision`.
+- В `runtime` добавлен `eventLog` (ring-buffer до 5000), события пишутся в `startCycle/finishCycle/updateAfterRound`.
+- Реализован break после 3 подряд `loss` при `charterBreakAfter3LossesMin > 0` с `break_start` и таймерами `isBreakActive/breakStartedAtTs/breakEndsAtTs`.
+- `evaluateDecisionState()` теперь учитывает Устав в активном цикле и выдаёт `statusCode=charter_blocked`, не завершая цикл автоматически.
+- В UI Strategy1 добавлены кнопка `Проверить Устав` и секция диагностики `charterCheck` (refs + updateUiCounters + bind).
+- 2026-03-29: Strategy1 Этап 4 — добавлен `routeBranch()` (branch/reason/lossCount) с каноном: lossCount=0 -> first, lossCount>0 -> second.
+- Добавлены `getBranchStatusText()` и runtime `lastBranchInfo` (runtime-only, без persistence), плюс optional заглушки `checkFirstBranch/checkSecondBranch` как not_implemented.
+- `evaluateDecisionState()` для активного цикла теперь учитывает routeBranch после успешного charter-check и выставляет `branch`, `statusText` и `waitReason` по ветке.
+- При charter block branch очищается (`""`), статус `charter_blocked` сохраняется, цикл не завершается автоматически.
+- В UI Strategy1 добавлены подсказка маршрутизации и debug-кнопка `Определить ветку` (ref + bind + вызов routeBranch/evaluate/updateUi).
+- 2026-03-29: Strategy1 Этап 5 — в `MEP.State` добавлены stake EMA vector-настройки для клиентов и ставок (`stakePlayersVector*`, `stakeBetVector*`) + runtime `state/signal`.
+- В `MEP.Storage.save/load()` добавлен persistence только для config-полей vector-настроек; runtime signal/state не сохраняются.
+- В `MEP.StakeGraph` добавлены helper’ы `_calcEMA`, `_buildVectorSeries` (warmup+clip), `_updateStakeVectorState`, `_buildVectorPoints` и overlay-отрисовка 4 EMA polyline.
+- В stake params UI добавлены 2 vector-row контролов (Clients/Bet: enabled, P, S, Flat), refs и bind-обработчики с `save()+render()`.
+- Во вкладке Strategy1 (конструктор условий) добавлена мини-диагностика: `Клиенты EMA` / `Ставки EMA`, вывод через `updateUiCounters()`.
+- Исправлен flex-стиль `.mep-actions-row` по заданному шаблону (display flex + gap 8 + margin-top 8 + wrap).
+- 2026-03-29: Strategy1 Этап 6 — реализован hardcoded `checkFirstBranch()` с последовательной проверкой: LT2 streak(>=3) -> diff up -> frequency up -> stake bet up -> stake players up -> extraCondition.
+- Добавлены helper’ы `getLt2Streak()` и `getFirstBranchFailText()`; результат FIRST_BRANCH теперь структурный (`passed/failedAt/details/waitReason/statusText`).
+- В runtime добавлен `lastFirstBranchResult` (runtime-only, без persistence), плюс синхронизация `conditions.lastResult` для FIRST_BRANCH/second-заглушки.
+- `evaluateDecisionState()` расширен: branch=first проверяет FIRST_BRANCH и ставит `bet_allowed` только при passed=true; branch=second отдаёт честный статус `second_branch_not_implemented`.
+- В Strategy1 UI добавлена диагностика FIRST_BRANCH (passed, lt2, vector states, failedAt, waitReason) и debug-кнопка `Проверить 1 ветку` (ref + bind).
