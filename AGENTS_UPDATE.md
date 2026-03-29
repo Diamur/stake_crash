@@ -143,3 +143,8 @@
 - `evaluateDecisionState()` для branch=first после успешного FIRST_BRANCH теперь вызывает `buildStakePlan()` и разрешает ставку только при `plan.ready=true`.
 - Обновлён UI блока «Конструктор ставок»: добавлена детальная диагностика расчёта (calcMode/step/bet/target/maxAllowed/allowedByRisk/ready/invalidReason) + новые refs и вывод в `updateUiCounters()`.
 - Добавлена debug-кнопка `Проверить план ставки` (ref + bind): `buildStakePlan()` -> `evaluateDecisionState()` -> `updateUiCounters()`.
+- 2026-03-29: Strategy1 Этап 8 — реализован hardcoded `checkSecondBranch()` с последовательными проверками `maxLosses -> stakePlan -> diffVector -> frequencyVector` и структурным результатом (`passed/failedAt/details/waitReason/statusText/shouldEndCycle/endReason`).
+- Добавлен helper `getSecondBranchFailText(failedAt, extra)`; special-case для `max_stake_exceeded|max_stake_not_allowed` теперь выставляет `shouldEndCycle=true` и `endReason=max_stake_reached` без авто `finishCycle()`.
+- В runtime Strategy1 добавлен контейнер `lastSecondBranchResult` (runtime-only, без persistence).
+- `evaluateDecisionState()` для `branch=second` интегрирован с `checkSecondBranch()` и now возвращает `waiting_signal | cycle_should_end | bet_allowed` по результату ветки.
+- В UI Strategy1 добавлены: debug-кнопка `Проверить 2 ветку`, refs/bind и компактный diagnostics-блок SECOND_BRANCH в «Конструктор условий».
