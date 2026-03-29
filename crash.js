@@ -4301,22 +4301,81 @@
                 st.timers = { ...d.timers };
                 st.runtime.waitingRoundResult = false;
                 st.runtime.lastCycleAction = "resetCycle";
+                if (MEP.State.activeStrategyId === st.id && !st.cycle.isActive) {
+                    MEP.State.activeStrategyId = null;
+                }
                 this.evaluateDecisionState();
                 this.updateUiCounters();
                 return st.cycle;
+            },
+
+            getCurrentBalance() {
+                const list = MEP.State?.balanceHistory;
+                if (!Array.isArray(list) || !list.length) return 0;
+                const last = Number(list[list.length - 1]);
+                return Number.isFinite(last) ? last : 0;
+            },
+
+            isProfitReached() {
+                const st = this.getState();
+                if (!st) return false;
+                return Number(st.cycle.currentBalance) > Number(st.cycle.startBalance);
+            },
+
+            isMaxLossesReached() {
+                const st = this.getState();
+                if (!st) return false;
+                const maxLosses = Math.floor(Number(st.config?.maxLosses) || 0);
+                if (!Number.isFinite(maxLosses) || maxLosses <= 0) return false;
+                return Number(st.cycle.lossCount) >= maxLosses;
+            },
+
+            isMaxStakeReached(nextStake = null) {
+                const st = this.getState();
+                if (!st) return false;
+                const stakePercent = Number(MEP.State?.charterMaxStakePercent) || 0;
+                if (!Number.isFinite(stakePercent) || stakePercent <= 0) return false;
+                const currentBalance = this.getCurrentBalance();
+                const maxAllowedStake = currentBalance * (stakePercent / 100);
+                if (Number.isFinite(Number(nextStake))) {
+                    return Number(nextStake) > maxAllowedStake;
+                }
+                const lastStake = Number(st.cycle?.lastStake) || 0;
+                if (lastStake <= 0) return false;
+                return lastStake > maxAllowedStake;
             },
 
             startCycle() {
                 const st = this.getState();
                 if (!st) return false;
                 if (MEP.State.activeStrategyId && MEP.State.activeStrategyId !== st.id) return false;
+                const now = Date.now();
+                const currentBalanceNow = this.getCurrentBalance();
                 st.isExecuting = true;
                 st.executionLocked = false;
                 MEP.State.activeStrategyId = st.id;
                 st.cycle.isActive = true;
-                st.cycle.cycleId = `s1_${Date.now()}`;
+                st.cycle.cycleId = `s1_${now}`;
                 st.cycle.endReason = "";
-                st.timers.cycleStartedAtTs = Date.now();
+                st.cycle.startBalance = currentBalanceNow;
+                st.cycle.currentBalance = currentBalanceNow;
+                st.cycle.cyclePnL = 0;
+                st.cycle.totalStakeSum = 0;
+                st.cycle.roundCount = 0;
+                st.cycle.lossCount = 0;
+                st.cycle.winCount = 0;
+                st.cycle.stepIndex = 0;
+                st.cycle.lastStake = 0;
+                st.cycle.lastTargetMultiplier = 0;
+                st.counters.startBalanceBeforeCycle = currentBalanceNow;
+                st.counters.currentBalanceAfterRound = currentBalanceNow;
+                st.counters.lastStake = 0;
+                st.counters.totalStakeSumInCycle = 0;
+                st.counters.lossRoundCount = 0;
+                st.counters.winRoundCount = 0;
+                st.timers.cycleStartedAtTs = now;
+                st.timers.cycleFinishedAtTs = 0;
+                st.timers.cycleDurationMs = 0;
                 st.runtime.lastCycleAction = "startCycle";
                 this.evaluateDecisionState();
                 this.updateUiCounters();
@@ -4326,10 +4385,11 @@
             finishCycle(reason = "") {
                 const st = this.getState();
                 if (!st) return null;
+                const now = Date.now();
                 st.cycle.isActive = false;
                 st.isExecuting = false;
                 st.cycle.endReason = (reason || "manual").toString();
-                st.timers.cycleFinishedAtTs = Date.now();
+                st.timers.cycleFinishedAtTs = now;
                 st.timers.cycleDurationMs = Math.max(
                     0,
                     st.timers.cycleFinishedAtTs - (st.timers.cycleStartedAtTs || st.timers.cycleFinishedAtTs)
@@ -4373,6 +4433,59 @@
                 return { ...st.stakePlan };
             },
 
+            updateAfterRound(result = {}) {
+                const st = this.getState();
+                if (!st || !st.cycle?.isActive) return false;
+                const tsNow = Date.now();
+                const nextBalanceRaw = Number(result.balance);
+                const nextBalance = Number.isFinite(nextBalanceRaw) ? nextBalanceRaw : this.getCurrentBalance();
+                const stakeRaw = Number(result.stake);
+                const stake = Number.isFinite(stakeRaw) ? stakeRaw : 0;
+                const targetRaw = Number(result.targetMultiplier);
+                const targetMultiplier = Number.isFinite(targetRaw) ? targetRaw : 0;
+                const won = !!result.won;
+                const lost = !!result.lost;
+
+                st.cycle.currentBalance = nextBalance;
+                st.cycle.cyclePnL = nextBalance - (Number(st.cycle.startBalance) || 0);
+                st.cycle.roundCount = (Number(st.cycle.roundCount) || 0) + 1;
+                st.cycle.lastStake = stake;
+                st.cycle.lastTargetMultiplier = targetMultiplier;
+                st.cycle.totalStakeSum = (Number(st.cycle.totalStakeSum) || 0) + stake;
+                st.cycle.stepIndex = (Number(st.cycle.stepIndex) || 0) + 1;
+                if (lost) st.cycle.lossCount = (Number(st.cycle.lossCount) || 0) + 1;
+                if (won) st.cycle.winCount = (Number(st.cycle.winCount) || 0) + 1;
+
+                st.counters.currentBalanceAfterRound = nextBalance;
+                st.counters.lastStake = stake;
+                st.counters.totalStakeSumInCycle = st.cycle.totalStakeSum;
+                st.counters.lossRoundCount = st.cycle.lossCount;
+                st.counters.winRoundCount = st.cycle.winCount;
+
+                const roundTs = Number(result.ts);
+                st.timers.lastRoundResultAtTs = Number.isFinite(roundTs) && roundTs > 0 ? roundTs : tsNow;
+                if (result.roundId !== undefined && result.roundId !== null && String(result.roundId)) {
+                    st.runtime.lastProcessedRoundId = String(result.roundId);
+                }
+                st.runtime.lastCycleAction = "updateAfterRound";
+
+                if (this.isProfitReached()) {
+                    this.finishCycle("profit_reached");
+                    return true;
+                }
+                if (this.isMaxStakeReached()) {
+                    this.finishCycle("max_stake_reached");
+                    return true;
+                }
+                if (this.isMaxLossesReached()) {
+                    this.finishCycle("max_losses_reached");
+                    return true;
+                }
+                this.evaluateDecisionState();
+                this.updateUiCounters();
+                return true;
+            },
+
             updateDecisionState(partial = {}) {
                 const st = this.getState();
                 if (!st) return null;
@@ -4404,13 +4517,14 @@
                     });
                 }
                 if (!st.cycle?.isActive) {
+                    const hasEndReason = !!(st.cycle?.endReason || "").toString().trim();
                     return this.updateDecisionState({
                         canMakeBet: false,
                         shouldEndCycle: false,
                         statusCode: this.DECISION_STATUS.IDLE,
-                        statusText: "Ожидание запуска цикла",
+                        statusText: hasEndReason ? "Цикл завершён" : "Ожидание запуска цикла",
                         branch: "",
-                        waitReason: "Цикл не активирован",
+                        waitReason: hasEndReason ? st.cycle.endReason : "Цикл не активирован",
                     });
                 }
                 return this.updateDecisionState({
@@ -5135,6 +5249,11 @@
             <span class="mep-strategy-label">Вкл / Откл стратегии</span>
             <label class="mep-charter-label"><input class="mep-strategy1-enabled" type="checkbox" /> Включена</label>
         </div>
+        <div class="mep-actions-row">
+            <button class="mep-btn mep-strategy1-start-cycle" type="button">Старт цикла</button>
+            <button class="mep-btn mep-strategy1-finish-cycle" type="button">Завершить цикл</button>
+            <button class="mep-btn mep-strategy1-reset-cycle" type="button">Сбросить цикл</button>
+        </div>
     </div>
     <div class="mep-strategy-section">
         <div class="mep-strategy-section-title">Текущее состояние стратегии</div>
@@ -5241,6 +5360,9 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                     strategy1TargetMultiplierInput: panel.querySelector("input.mep-strategy1-target-multiplier"),
                     strategy1TargetMultiplierArrayInput: panel.querySelector("input.mep-strategy1-target-multiplier-array"),
                     strategy1MaxLossesInput: panel.querySelector("input.mep-strategy1-max-losses"),
+                    strategy1StartCycleBtn: panel.querySelector("button.mep-strategy1-start-cycle"),
+                    strategy1FinishCycleBtn: panel.querySelector("button.mep-strategy1-finish-cycle"),
+                    strategy1ResetCycleBtn: panel.querySelector("button.mep-strategy1-reset-cycle"),
                     strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
                     strategy1ConditionsCanBetEl: panel.querySelector(".mep-strategy1-conditions-canbet"),
                     strategy1ConditionsEndEl: panel.querySelector(".mep-strategy1-conditions-end"),
@@ -5496,6 +5618,21 @@ LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, s
                             MEP.Storage.save();
                             MEP.Strategy1?.evaluateDecisionState?.();
                             MEP.Strategy1?.updateUiCounters?.();
+                        });
+                    }
+                    if (ui.strategy1StartCycleBtn) {
+                        ui.strategy1StartCycleBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.startCycle?.();
+                        });
+                    }
+                    if (ui.strategy1FinishCycleBtn) {
+                        ui.strategy1FinishCycleBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.finishCycle?.("manual_stop");
+                        });
+                    }
+                    if (ui.strategy1ResetCycleBtn) {
+                        ui.strategy1ResetCycleBtn.addEventListener("click", () => {
+                            MEP.Strategy1?.resetCycle?.();
                         });
                     }
 

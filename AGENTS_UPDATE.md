@@ -111,3 +111,8 @@
 - Во вкладке `Игра -> Стратегия1` добавлен отдельный блок «Текущее состояние стратегии» с 6 диагностическими полями (status/code/canBet/endCycle/branch/waitReason).
 - `updateUiCounters()` расширен выводом decisionState; добавлены соответствующие refs в `MEP.UI.ui`.
 - Persistence не изменён: по-прежнему сохраняются только `strategy1.enabled` и `strategy1.config`; decisionState runtime-only.
+- 2026-03-29: Strategy1 Этап 2 — оживлён cycle engine (`startCycle/finishCycle/resetCycle`) с инициализацией от текущего баланса и snapshot-поведением после finish.
+- Добавлены helper-методы: `getCurrentBalance`, `isProfitReached`, `isMaxLossesReached`, `isMaxStakeReached`, `updateAfterRound` (обновление cycle/counters/timers + авто-finish по profit/maxStake/maxLosses).
+- `evaluateDecisionState()` расширен: при неактивном цикле с `endReason` теперь показывает «Цикл завершён» и причину.
+- В UI Strategy1 добавлены debug-кнопки `Старт цикла / Завершить цикл / Сбросить цикл`, refs и bind-обработчики на методы Strategy1.
+- Persistence не расширялся: runtime cycle/counters/timers/decision не сохраняются, только прежние `strategy1.enabled` и `strategy1.config`.
