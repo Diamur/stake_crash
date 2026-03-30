@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.27  ====
+// === crash.js 0.1.5.31  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -392,7 +392,7 @@
             executionLocked: true,
             runtime: {},
         });
-        MEP.ver = "0.1.5.30";
+        MEP.ver = "0.1.5.31";
 
         // -------------------------
         // Settings module
@@ -4852,50 +4852,90 @@
                 return raw && raw !== "-0" ? raw : "0";
             },
 
-            findBySelectors(selectors = []) {
+            findBySelectors(selectors = [], root = null) {
                 if (!Array.isArray(selectors)) return null;
+                const scope = root && typeof root.querySelector === "function" ? root : document;
                 for (const sel of selectors) {
                     try {
-                        const el = document.querySelector(sel);
+                        const el = scope.querySelector(sel);
                         if (el) return el;
                     } catch (e) {}
                 }
                 return null;
             },
 
-            findBetAmountInput() {
-                return this.findBySelectors([
-                    "input[data-test='bet-amount']",
-                    "input[name='bet-amount']",
-                    "input[placeholder*='Bet']",
-                    "input[placeholder*='Став']",
-                    "#main-content input[type='text']",
-                ]);
+            findSidebarRoot() {
+                return (
+                    document.querySelector('[data-testid="game-frame"] .game-sidebar') ||
+                    document.querySelector(".game-sidebar") ||
+                    null
+                );
             },
 
-            findTargetMultiplierInput() {
-                return this.findBySelectors([
-                    "input[data-test='cashout-amount']",
-                    "input[name='target-multiplier']",
-                    "input[placeholder*='Auto']",
-                    "input[placeholder*='x']",
-                    "#main-content input[type='number']",
-                ]);
+            findManualTabButton(root = null) {
+                const scope = root || this.findSidebarRoot();
+                if (!scope) return null;
+                return scope.querySelector('button[data-testid="manual-tab"]');
             },
 
-            findBetButton() {
-                return this.findBySelectors([
-                    "button[data-test='place-bet']",
-                    "button[data-test='bet-button']",
-                    "button[class*='bet']",
-                    "#main-content button.button",
-                ]);
+            findBetAmountInput(root = null) {
+                const scope = root || this.findSidebarRoot();
+                if (!scope) return null;
+                return scope.querySelector('input[data-testid="input-game-amount"]');
+            },
+
+            findTargetMultiplierInput(root = null) {
+                const scope = root || this.findSidebarRoot();
+                if (!scope) return null;
+                return scope.querySelector('input[type="number"][min="1.01"]');
+            },
+
+            findBetButton(root = null) {
+                const scope = root || this.findSidebarRoot();
+                if (!scope) return null;
+                return scope.querySelector('button[data-testid="bet-button"]');
             },
 
             readBetButtonState(btn) {
-                if (!btn) return { found: false, disabled: true, reason: "bet_button_not_found" };
+                if (!btn) {
+                    return {
+                        found: false,
+                        disabled: true,
+                        actionEnabled: false,
+                        actionBet: "disabled",
+                        text: "",
+                        canClick: false,
+                        reason: "bet_button_not_found",
+                    };
+                }
                 const disabled = !!btn.disabled || btn.getAttribute("aria-disabled") === "true";
-                return { found: true, disabled, reason: disabled ? "bet_button_disabled" : "" };
+                const actionEnabledRaw = (btn.getAttribute("data-test-action-enabled") || "").toString().toLowerCase();
+                const actionBet = (btn.getAttribute("data-test-action-bet") || "").toString().toLowerCase();
+                const actionEnabled = actionEnabledRaw !== "false";
+                const text = (btn.textContent || "").toString().trim();
+                const textBlocksClick = /начинается/i.test(text);
+                const canClick = !disabled && actionEnabled && actionBet !== "disabled" && !textBlocksClick;
+                let reason = "";
+                if (disabled) reason = "bet_button_disabled";
+                else if (!canClick) reason = "bet_button_unavailable_state";
+                return { found: true, disabled, actionEnabled, actionBet, text, canClick, reason };
+            },
+
+            async ensureManualMode(root = null) {
+                const scope = root || this.findSidebarRoot();
+                if (!scope) return { applied: false, reason: "sidebar_not_found" };
+                const manualBtn = this.findManualTabButton(scope);
+                if (!manualBtn) return { applied: false, reason: "manual_mode_unavailable" };
+                try {
+                    manualBtn.click();
+                } catch (e) {
+                    return { applied: false, reason: "manual_mode_unavailable" };
+                }
+                await MEP.Utils.sleep(150);
+                const amountInput = this.findBetAmountInput(scope);
+                const betButton = this.findBetButton(scope);
+                if (!amountInput || !betButton) return { applied: false, reason: "manual_mode_unavailable" };
+                return { applied: true, reason: "" };
             },
 
             setNativeInputValue(el, value) {
@@ -4916,26 +4956,41 @@
                 }
             },
 
-            syncBetInputsToDom(plan = {}) {
-                const betInput = this.findBetAmountInput();
-                const targetInput = this.findTargetMultiplierInput();
-                if (!betInput) return { applied: false, reason: "bet_amount_input_not_found", stage: "find_dom" };
+            async syncBetInputsToDom(plan = {}) {
+                const root = this.findSidebarRoot();
+                if (!root) return { applied: false, reason: "sidebar_not_found", stage: "find_dom" };
+                const manual = await this.ensureManualMode(root);
+                if (!manual?.applied) return { applied: false, reason: manual?.reason || "manual_mode_unavailable", stage: "manual_mode" };
+                const betInput = this.findBetAmountInput(root);
+                const targetInput = this.findTargetMultiplierInput(root);
+                if (!betInput) return { applied: false, reason: "amount_input_not_found", stage: "find_dom" };
                 if (!targetInput) return { applied: false, reason: "target_input_not_found", stage: "find_dom" };
                 const betValue = this.formatDomNumber(plan?.betAmount, "0");
                 const targetValue = this.formatDomNumber(plan?.targetMultiplier, "2");
                 const betOk = this.setNativeInputValue(betInput, betValue);
                 const targetOk = this.setNativeInputValue(targetInput, targetValue);
                 if (!betOk || !targetOk) return { applied: false, reason: "dom_sync_failed", stage: "set_dom", betOk, targetOk };
+                const betApplied = (betInput.value || "").toString().trim();
+                const targetApplied = (targetInput.value || "").toString().trim();
+                if (!betApplied || betApplied !== betValue) {
+                    return { applied: false, reason: "bet_amount_value_not_applied", stage: "verify_dom", betValue, betApplied };
+                }
+                if (!targetApplied || targetApplied !== targetValue) {
+                    return { applied: false, reason: "target_value_not_applied", stage: "verify_dom", targetValue, targetApplied };
+                }
                 const st = this.getState();
                 if (st?.runtime) st.runtime.lastDomSyncAtTs = Date.now();
                 return { applied: true, reason: "", stage: "dom_synced", betValue, targetValue };
             },
 
             clickBetButton() {
-                const btn = this.findBetButton();
+                const root = this.findSidebarRoot();
+                if (!root) return { applied: false, reason: "sidebar_not_found", stage: "click" };
+                const btn = this.findBetButton(root);
                 const state = this.readBetButtonState(btn);
                 if (!state.found) return { applied: false, reason: "bet_button_not_found", stage: "click" };
                 if (state.disabled) return { applied: false, reason: "bet_button_disabled", stage: "click" };
+                if (!state.canClick) return { applied: false, reason: "bet_button_unavailable_state", stage: "click" };
                 try {
                     btn.click();
                     return { applied: true, reason: "", stage: "clicked" };

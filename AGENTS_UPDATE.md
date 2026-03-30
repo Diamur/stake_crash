@@ -203,3 +203,9 @@
 - Добавлены execution event codes + тексты/уровни (`execution_started/rejected/round_wait/round_processed/timeout`) и интеграция в existing status/voice layer.
 - Добавлена кнопка `Выполнить ставку`, refs/bind и execution diagnostics в блоке состояния (state/locks/pending/last execution).
 - Встроен round-result bridge через Tracker.addNewest() при `waitingRoundResult=true` + safe timeout unlock без авто win/loss.
+
+- 2026-03-30: Strategy1 execution bridge hotfix под реальную DOM-разметку Stake (manual-tab/input-game-amount/target[min=1.01]/bet-button) с жёстким scope в `.game-sidebar`.
+- Добавлены helper’ы `findSidebarRoot/findManualTabButton/findBetAmountInput/findTargetMultiplierInput/findBetButton` и `ensureManualMode()` (click manual + verify inputs/button).
+- `syncBetInputsToDom()` переведён на канонический pipeline: sidebar -> manual mode -> inputs -> controlled write -> value verify с точными reject-reason.
+- `readBetButtonState()`/`clickBetButton()` обновлены под data-test-action checks (`action-enabled`, `action-bet`) и защиту текста `Начинается`.
+- Автоисполнение не включалось: execution остаётся manual-only через кнопку `Выполнить ставку`; decision/gateway/branch/charter/pause/hard-exit/waiting-recovery pipeline не менялся.
