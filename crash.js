@@ -2449,11 +2449,13 @@
 				#mep-control-panel > div.mep-two-stat-wrap > div.mep-two-head > div.mep-two-subrow > label > span {
         font-size: 13px;
         }
-        .mep-game-tab-btn.mep-strategy1-tab-live{
-        background:#00ff00;
-        color:#04120a;
-        border-color:rgba(255,255,255,.92);
-        box-shadow:0 0 0 1px rgba(255,255,255,.35) inset;
+        #${PANEL_ID} .mep-game-tab-btn.mep-strategy1-tab-live,
+        #${PANEL_ID} .mep-game-tab-btn.mep-strategy1-tab-live.is-active,
+        #${PANEL_ID} .mep-game-tab-btn.mep-strategy1-tab-live:hover{
+        background:#00e51f !important;
+        color:#021007 !important;
+        border-color:rgba(2,16,7,.82) !important;
+        box-shadow:0 0 0 1px rgba(255,255,255,.35) inset, 0 0 12px rgba(0,229,31,.45);
         }
         .mep-strategy1-minimal-root{
         display:flex;
@@ -2527,11 +2529,13 @@
         background:rgba(255,255,255,.82);
         transform:scaleY(.65);
         }
-        .mep-game-tab-btn.mep-strategy2-tab-live{
-        background:#00ff00;
-        color:#04120a;
-        border-color:rgba(255,255,255,.92);
-        box-shadow:0 0 0 1px rgba(255,255,255,.35) inset;
+        #${PANEL_ID} .mep-game-tab-btn.mep-strategy2-tab-live,
+        #${PANEL_ID} .mep-game-tab-btn.mep-strategy2-tab-live.is-active,
+        #${PANEL_ID} .mep-game-tab-btn.mep-strategy2-tab-live:hover{
+        background:#00e51f !important;
+        color:#021007 !important;
+        border-color:rgba(2,16,7,.82) !important;
+        box-shadow:0 0 0 1px rgba(255,255,255,.35) inset, 0 0 12px rgba(0,229,31,.45);
         }
         .mep-strategy2-minimal-root{
         display:flex;
@@ -7285,15 +7289,14 @@
                 ticker.textContent = fullText;
                 const barWidth = bar.clientWidth || 1;
                 const textWidth = ticker.scrollWidth || 1;
-                const overflow = Math.max(0, textWidth - barWidth);
                 ticker.classList.remove("is-running");
                 ticker.style.removeProperty("--mep-s1-ticker-shift");
                 ticker.style.removeProperty("--mep-s1-ticker-duration");
                 if (ui[timerKey]) clearTimeout(ui[timerKey]);
-                const startShift = Math.max(12, Math.min(40, Math.floor(barWidth * 0.15)));
-                const endShift = overflow > 0 ? overflow + 16 : 0;
+                const startShift = Math.max(1, Math.floor(barWidth));
+                const endShift = Math.max(1, Math.floor(textWidth));
                 const travel = startShift + endShift;
-                const durationMs = Math.min(12000, Math.max(1600, Math.floor((Math.max(24, travel) / 48) * 1000)));
+                const durationMs = Math.min(16000, Math.max(2200, Math.floor((travel / 60) * 1000)));
                 ticker.style.setProperty("--mep-s1-ticker-start", `${startShift}px`);
                 ticker.style.setProperty("--mep-s1-ticker-shift", `${endShift}px`);
                 ticker.style.setProperty("--mep-s1-ticker-duration", `${durationMs}ms`);
