@@ -2486,7 +2486,7 @@
         animation:mepS1Ticker var(--mep-s1-ticker-duration,3200ms) linear 1 forwards;
         }
         @keyframes mepS1Ticker{
-        from{transform:translateX(0);}
+        from{transform:translateX(var(--mep-s1-ticker-start, 18px));}
         to{transform:translateX(calc(-1 * var(--mep-s1-ticker-shift, 0px)));}
         }
         .mep-strategy1-control-row{
@@ -7229,12 +7229,7 @@
                 ui.charterPanel?.classList.toggle("is-active", nextTab === "charter");
                 ui.strategy1Panel?.classList.toggle("is-active", nextTab === "strategy1");
                 ui.strategy2Panel?.classList.toggle("is-active", nextTab === "strategy2");
-                if (nextTab === "strategy1" && !MEP.UI.canEnableStrategy("strategy1")) {
-                    MEP.UI.setStrategyInfoMessage("strategy1", "Стратегия1 невозможно запустить, запущена другая стратегия");
-                }
-                if (nextTab === "strategy2" && !MEP.UI.canEnableStrategy("strategy2")) {
-                    MEP.UI.setStrategyInfoMessage("strategy2", "Стратегия2 невозможно запустить, запущена другая стратегия");
-                }
+                MEP.UI.syncStrategiesUiState();
             },
 
             getStrategyState(strategyId = "") {
@@ -7295,13 +7290,12 @@
                 ticker.style.removeProperty("--mep-s1-ticker-shift");
                 ticker.style.removeProperty("--mep-s1-ticker-duration");
                 if (ui[timerKey]) clearTimeout(ui[timerKey]);
-                if (overflow <= 0) {
-                    ticker.textContent = fullText;
-                    return;
-                }
-                const shift = overflow + 16;
-                const durationMs = Math.min(12000, Math.max(2600, Math.floor((shift / 48) * 1000)));
-                ticker.style.setProperty("--mep-s1-ticker-shift", `${shift}px`);
+                const startShift = Math.max(12, Math.min(40, Math.floor(barWidth * 0.15)));
+                const endShift = overflow > 0 ? overflow + 16 : 0;
+                const travel = startShift + endShift;
+                const durationMs = Math.min(12000, Math.max(1600, Math.floor((Math.max(24, travel) / 48) * 1000)));
+                ticker.style.setProperty("--mep-s1-ticker-start", `${startShift}px`);
+                ticker.style.setProperty("--mep-s1-ticker-shift", `${endShift}px`);
                 ticker.style.setProperty("--mep-s1-ticker-duration", `${durationMs}ms`);
                 void ticker.offsetWidth;
                 ticker.classList.add("is-running");
@@ -7311,22 +7305,25 @@
                 }, durationMs + 40);
             },
 
-            setStrategy1InfoMessage(text) {
-                MEP.UI.setStrategyInfoMessage("strategy1", text);
+            setStrategy1InfoMessage(text, opts) {
+                MEP.UI.setStrategyInfoMessage("strategy1", text, opts);
             },
 
-            setStrategy2InfoMessage(text) {
-                MEP.UI.setStrategyInfoMessage("strategy2", text);
+            setStrategy2InfoMessage(text, opts) {
+                MEP.UI.setStrategyInfoMessage("strategy2", text, opts);
             },
 
-            setStrategyInfoMessage(strategyId = "strategy1", text) {
+            setStrategyInfoMessage(strategyId = "strategy1", text, opts = {}) {
                 const ui = MEP.UI.ui;
                 if (!ui) return;
                 const isS2 = strategyId === "strategy2";
                 const ticker = isS2 ? ui.strategy2InfoTicker : ui.strategy1InfoTicker;
                 const textKey = isS2 ? "_strategy2InfoText" : "_strategy1InfoText";
                 if (!ticker) return;
-                ui[textKey] = (text || "").toString().trim() || "—";
+                const nextText = (text || "").toString().trim() || "—";
+                const force = !!opts?.force;
+                if (!force && ui[textKey] === nextText) return;
+                ui[textKey] = nextText;
                 MEP.UI.replayStrategyInfoTicker(strategyId);
             },
 
@@ -7367,6 +7364,29 @@
             renderStrategyMinimalUi() {
                 MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                 MEP.UI.renderStrategy2MinimalUi(MEP.UI.getStrategyState("strategy2"));
+            },
+
+            syncStrategiesUiState(meta = {}) {
+                const s1 = MEP.UI.getStrategyState("strategy1");
+                const s2 = MEP.UI.getStrategyState("strategy2");
+                if (!s1 || !s2) return;
+                MEP.UI.renderStrategyMinimalUi();
+                const src = (meta.source || "").toString();
+                const action = (meta.action || "").toString();
+                if (s1.enabled) {
+                    MEP.UI.setStrategyInfoMessage("strategy1", "Стратегия 1 запущена...");
+                    MEP.UI.setStrategyInfoMessage("strategy2", "Стратегия2 невозможно запустить, запущена другая стратегия");
+                    return;
+                }
+                if (s2.enabled) {
+                    MEP.UI.setStrategyInfoMessage("strategy1", "Стратегия1 невозможно запустить, запущена другая стратегия");
+                    MEP.UI.setStrategyInfoMessage("strategy2", "Стратегия 2 запущена...");
+                    return;
+                }
+                const s1Idle = src === "strategy1" && action === "stop" ? "Стратегия 1 остановлена..." : "Стратегия 1 готова к работе";
+                const s2Idle = src === "strategy2" && action === "stop" ? "Стратегия 2 остановлена..." : "Стратегия 2 готова к работе";
+                MEP.UI.setStrategyInfoMessage("strategy1", s1Idle);
+                MEP.UI.setStrategyInfoMessage("strategy2", s2Idle);
             },
 
             setHistoryLoading(isLoading, nextClicks = 0) {
@@ -8257,7 +8277,7 @@
                             const next = !!ui.strategy1EnabledToggle.checked;
                             if (next && !MEP.UI.canEnableStrategy("strategy1")) {
                                 ui.strategy1EnabledToggle.checked = false;
-                                MEP.UI.setStrategy1InfoMessage("Стратегия1 невозможно запустить, запущена другая стратегия");
+                                MEP.UI.setStrategy1InfoMessage("Стратегия1 невозможно запустить, запущена другая стратегия", { force: true });
                                 return;
                             }
                             s1.enabled = next;
@@ -8265,16 +8285,14 @@
                                 if (!s1.timers || typeof s1.timers !== "object") s1.timers = {};
                                 s1.timers.enabledAtTs = Date.now();
                                 MEP.State.activeStrategyId = "strategy1";
-                                MEP.UI.setStrategy1InfoMessage("Стратегия 1 запущена...");
                             } else {
                                 if (!s1.timers || typeof s1.timers !== "object") s1.timers = {};
                                 s1.timers.enabledAtTs = 0;
                                 if (MEP.State.activeStrategyId === "strategy1" && !s1.isExecuting) MEP.State.activeStrategyId = null;
-                                MEP.UI.setStrategy1InfoMessage("Стратегия 1 остановлена...");
                             }
                             MEP.Storage.save();
                             MEP.Strategy1?.evaluateDecisionState?.();
-                            MEP.UI.renderStrategyMinimalUi();
+                            MEP.UI.syncStrategiesUiState({ source: "strategy1", action: next ? "start" : "stop" });
                         });
                     }
                 }
@@ -8289,7 +8307,7 @@
                             const next = !!ui.strategy2EnabledToggle.checked;
                             if (next && !MEP.UI.canEnableStrategy("strategy2")) {
                                 ui.strategy2EnabledToggle.checked = false;
-                                MEP.UI.setStrategy2InfoMessage("Стратегия2 невозможно запустить, запущена другая стратегия");
+                                MEP.UI.setStrategy2InfoMessage("Стратегия2 невозможно запустить, запущена другая стратегия", { force: true });
                                 return;
                             }
                             s2.enabled = next;
@@ -8297,15 +8315,13 @@
                                 if (!s2.timers || typeof s2.timers !== "object") s2.timers = {};
                                 s2.timers.enabledAtTs = Date.now();
                                 MEP.State.activeStrategyId = "strategy2";
-                                MEP.UI.setStrategy2InfoMessage("Стратегия 2 запущена...");
                             } else {
                                 if (!s2.timers || typeof s2.timers !== "object") s2.timers = {};
                                 s2.timers.enabledAtTs = 0;
                                 if (MEP.State.activeStrategyId === "strategy2" && !s2.isExecuting) MEP.State.activeStrategyId = null;
-                                MEP.UI.setStrategy2InfoMessage("Стратегия 2 остановлена...");
                             }
                             MEP.Storage.save();
-                            MEP.UI.renderStrategyMinimalUi();
+                            MEP.UI.syncStrategiesUiState({ source: "strategy2", action: next ? "start" : "stop" });
                         });
                     }
                 }
@@ -8331,8 +8347,7 @@
                         ui._strategy2InfoHoverLocked = false;
                     });
                 }
-                MEP.UI.setStrategy1InfoMessage(s1?.enabled ? "Стратегия 1 запущена..." : "Стратегия 1 не запущена...");
-                MEP.UI.setStrategy2InfoMessage(s2?.enabled ? "Стратегия 2 запущена..." : "Стратегия 2 не запущена...");
+                MEP.UI.syncStrategiesUiState();
                 if (ui._strategy1TimerInterval) clearInterval(ui._strategy1TimerInterval);
                 ui._strategy1TimerInterval = setInterval(() => {
                     MEP.UI.renderStrategyMinimalUi();
