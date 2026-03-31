@@ -2446,103 +2446,78 @@
 				#mep-control-panel > div.mep-two-stat-wrap > div.mep-two-head > div.mep-two-subrow > label > span {
         font-size: 13px;
         }
-        .mep-strategy-subgroup-title{
-        margin:8px 0 4px;
-        font-size:11px;
-        color:#9fb4cc;
-        text-transform:uppercase;
-        letter-spacing:.35px;
+        .mep-game-tab-btn.mep-strategy1-tab-live{
+        background:#00ff00;
+        color:#04120a;
+        border-color:rgba(255,255,255,.92);
+        box-shadow:0 0 0 1px rgba(255,255,255,.35) inset;
         }
-        .mep-strategy-summary-strip{
+        .mep-strategy1-minimal-root{
         display:flex;
-        gap:6px;
-        margin-bottom:8px;
-        align-items:stretch;
         flex-direction:column;
+        gap:5px;
         }
-        .mep-strategy-summary-item{
+        .mep-strategy1-info-bar{
+        height:24px;
+        background:rgba(146,146,146,.9);
+        color:#fff;
         display:flex;
-        justify-content:space-between;
-        gap:6px;
-        font-size:11px;
-        background:rgba(255,255,255,.04);
-        border:1px solid rgba(255,255,255,.08);
-        border-radius:8px;
-        padding:4px 6px;
-        }
-        .mep-strategy-state-grid{
-        gap:4px;
-        }
-        .mep-strategy-state-row{
-        display:grid;
-        grid-template-columns:1fr auto;
         align-items:center;
-        column-gap:8px;
-        min-height:22px;
-        padding:1px 0;
+        overflow:hidden;
+        padding:0 8px;
+        box-sizing:border-box;
         }
-        .mep-strategy-state-label{
-        color:#b9c8d8;
+        .mep-strategy1-info-track{
+        width:100%;
+        overflow:hidden;
+        white-space:nowrap;
+        }
+        .mep-strategy1-info-ticker{
+        display:inline-block;
+        will-change:transform;
+        transform:translateX(0);
         font-size:12px;
+        line-height:1;
         }
-        .mep-strategy-state-value{
-        font-size:12px;
-        color:#e6edf5;
-        text-align:right;
+        .mep-strategy1-info-ticker.is-running{
+        animation:mepS1Ticker var(--mep-s1-ticker-duration,3200ms) linear 1 forwards;
         }
-        .mep-diag-badge{
-        display:inline-flex;
+        @keyframes mepS1Ticker{
+        from{transform:translateX(0);}
+        to{transform:translateX(calc(-1 * var(--mep-s1-ticker-shift, 0px)));}
+        }
+        .mep-strategy1-control-row{
+        display:flex;
         align-items:center;
-        border-radius:999px;
-        padding:1px 8px;
-        line-height:1.5;
-        border:1px solid transparent;
-        font-size:11px;
+        gap:12px;
+        padding:8px 10px 0;
         }
-        .mep-diag-badge.tone-ok{background:rgba(38,166,91,.2);border-color:rgba(38,166,91,.35);color:#9ef3b9;}
-        .mep-diag-badge.tone-warn{background:rgba(255,167,38,.2);border-color:rgba(255,167,38,.35);color:#ffd08b;}
-        .mep-diag-badge.tone-bad{background:rgba(229,80,101,.2);border-color:rgba(229,80,101,.35);color:#ffb2bf;}
-        .mep-diag-badge.tone-neutral{background:rgba(125,151,179,.2);border-color:rgba(125,151,179,.35);color:#c5d6e8;}
-        .mep-system-messages-list{max-height:150px;overflow:auto;}
-        .mep-system-message{padding:6px 8px;}
-        .mep-system-message-top{margin-bottom:2px;}
-        .mep-system-message-time,.mep-system-message-level{font-size:10px;}
-        .mep-system-message-meta{font-size:10px;opacity:.75;}
-        .mep-actions-group{margin-top:8px;}
-        .mep-actions-group .mep-actions-row{margin-top:4px;}
-        .mep-strategy-param-group{border-top:1px solid rgba(255,255,255,.08);margin-top:8px;padding-top:6px;}
-        .mep-strategy-row.mep-mode-active{opacity:1;}
-        .mep-strategy-row.mep-mode-muted{opacity:.55;}
-        .mep-cond-row{display:flex;justify-content:space-between;gap:8px;align-items:center;}
-        .mep-cond-diag-line{font-size:11px;color:#a9bdd1;}
-        .mep-stake-plan-card,.mep-cycle-card{border:1px solid rgba(255,255,255,.09);border-radius:8px;padding:8px;margin-top:6px;background:rgba(0,0,0,.15);}
-        .mep-strategy-toggle{
+        .mep-strategy1-control-label,.mep-strategy1-work-timer{
+        color:#f4f7fb;
+        font-size:18px;
+        line-height:1;
+        white-space:nowrap;
+        }
+        .mep-strategy1-work-timer{margin-left:auto;}
+        .mep-strategy1-toggle{
+        position:relative;
+        width:44px;
+        height:24px;
         display:inline-flex;
-        align-items:center;
-        gap:6px;
         }
-        .mep-strategy-toggle input[type="checkbox"]{
-        width:14px;
-        height:14px;
-        accent-color:#4cafef;
-        cursor:pointer;
+        .mep-strategy1-toggle input{position:absolute;opacity:0;pointer-events:none;}
+        .mep-strategy1-toggle-ui{
+        width:44px;height:24px;border-radius:999px;border:1px solid rgba(255,255,255,.95);background:#080808;position:relative;
         }
-        .mep-strategy-toggle-status{
-        display:inline-flex;
-        align-items:center;
-        justify-content:center;
-        min-width:36px;
-        padding:1px 7px;
-        border-radius:999px;
-        font-size:11px;
-        border:1px solid rgba(125,151,179,.35);
-        background:rgba(125,151,179,.18);
-        color:#d6e2ef;
+        .mep-strategy1-toggle-ui::after{
+        content:"";position:absolute;top:1px;left:1px;width:20px;height:20px;border-radius:50%;background:#ff1717;transition:transform .18s ease,background .18s ease;
         }
-        .mep-strategy-toggle-status.is-on{
-        border-color:rgba(38,166,91,.42);
-        background:rgba(38,166,91,.22);
-        color:#a7efbf;
+        .mep-strategy1-toggle input:checked + .mep-strategy1-toggle-ui::after{transform:translateX(20px);background:#00ff00;}
+        .mep-strategy1-control-divider{
+        width:1px;
+        height:40px;
+        background:rgba(255,255,255,.82);
+        transform:scaleY(.65);
         }
         `;
                 document.head.appendChild(style);
@@ -4768,6 +4743,7 @@
                     ts: out.ts,
                     level: out.level,
                 };
+                MEP.UI?.setStrategy1InfoMessage?.((out.text || "Событие стратегии").toString());
                 return out;
             },
 
@@ -7133,430 +7109,7 @@
                 const ui = MEP.UI?.ui;
                 if (!st || !ui) return;
                 this.checkExecutionTimeout();
-                const decision = st.runtime?.decisionState || {};
-                const fmtBool = (v) => this.fmtBool(v);
-                const fmtText = (v) => this.fmtText(v);
-                const fmtCode = (v) => this.fmtCode(v);
-                const fmtTs = (v) => this.fmtTs(v);
-                const fmtNum = (v, d = 2) => this.fmtNum(v, d);
-                const fmtBalance = (v) => this.fmtBalance(v);
-                const setBadge = (el, text, tone = "neutral") => {
-                    if (!el) return;
-                    el.textContent = fmtText(text);
-                    el.classList.add("mep-diag-badge");
-                    el.classList.remove("tone-ok", "tone-warn", "tone-bad", "tone-neutral");
-                    el.classList.add(`tone-${tone}`);
-                };
-                if (ui.strategy1SystemMessagesList) {
-                    const list = Array.isArray(st.runtime?.systemMessages) ? st.runtime.systemMessages : [];
-                    ui.strategy1SystemMessagesList.innerHTML = "";
-                    if (!list.length) {
-                        const empty = document.createElement("div");
-                        empty.className = "mep-system-message is-empty";
-                        empty.textContent = "Сообщений пока нет";
-                        ui.strategy1SystemMessagesList.appendChild(empty);
-                    } else {
-                        const toTime = (ts) => {
-                            const d = new Date(Number(ts) || Date.now());
-                            const hh = String(d.getHours()).padStart(2, "0");
-                            const mm = String(d.getMinutes()).padStart(2, "0");
-                            const ss = String(d.getSeconds()).padStart(2, "0");
-                            return `${hh}:${mm}:${ss}`;
-                        };
-                        const items = list.slice().reverse();
-                        for (const msg of items) {
-                            const row = document.createElement("div");
-                            row.className = `mep-system-message level-${(msg.level || "info").toString()}`;
-                            const metaParts = [];
-                            if (msg.stage) metaParts.push(`stage=${msg.stage}`);
-                            if (msg.reason) metaParts.push(`reason=${msg.reason}`);
-                            if (msg.branch) metaParts.push(`branch=${msg.branch}`);
-                            row.innerHTML = `
-                                <div class="mep-system-message-top">
-                                    <span class="mep-system-message-time">[${toTime(msg.ts)}]</span>
-                                    <span class="mep-system-message-level">${(msg.level || "info").toString().toUpperCase()}</span>
-                                </div>
-                                <div class="mep-system-message-text">${(msg.text || "—").toString()}</div>
-                                <div class="mep-system-message-meta">${metaParts.join(" · ") || "—"}</div>
-                            `;
-                            ui.strategy1SystemMessagesList.appendChild(row);
-                        }
-                    }
-                }
-
-                if (ui.strategy1ConditionsModeEl) ui.strategy1ConditionsModeEl.textContent = st.conditions.mode || "all";
-                if (ui.strategy1StakePlayersVectorStateEl)
-                    ui.strategy1StakePlayersVectorStateEl.textContent = (MEP.State.stakePlayersVectorState || "—").toString();
-                if (ui.strategy1StakeBetVectorStateEl)
-                    ui.strategy1StakeBetVectorStateEl.textContent = (MEP.State.stakeBetVectorState || "—").toString();
-                const cfg = st.config || {};
-                if (ui.strategy1EnabledInput) ui.strategy1EnabledInput.checked = !!st.enabled;
-                if (ui.strategy1EnabledStatusEl) {
-                    const enabledNow = !!st.enabled;
-                    ui.strategy1EnabledStatusEl.textContent = enabledNow ? "Вкл" : "Выкл";
-                    ui.strategy1EnabledStatusEl.classList.toggle("is-on", enabledNow);
-                }
-                if (ui.strategy1VoiceEnabledInput) ui.strategy1VoiceEnabledInput.checked = cfg.voiceEnabled !== false;
-                if (ui.strategy1StatusEventsEnabledInput)
-                    ui.strategy1StatusEventsEnabledInput.checked = cfg.statusEventsEnabled !== false;
-                if (ui.strategy1VoiceCooldownInput) {
-                    const cd = Math.max(0, Math.floor(Number(cfg.voiceCooldownMs) || 1500));
-                    if (ui.strategy1VoiceCooldownInput.value !== String(cd)) ui.strategy1VoiceCooldownInput.value = String(cd);
-                }
-                st.runtime.voiceEventsEnabled = cfg.voiceEnabled !== false;
-                st.runtime.statusEventsEnabled = cfg.statusEventsEnabled !== false;
-                const startMode = cfg.startStakeMode === "array" ? "array" : "fixed";
-                const growthMode = cfg.stakeGrowthMode === "array" ? "array" : "factor";
-                const targetMode = cfg.targetMode === "array" ? "array" : "fixed";
-                const setModeRow = (selector, active) => {
-                    const row = ui.panel?.querySelector?.(selector);
-                    if (!row) return;
-                    row.classList.toggle("mep-mode-active", !!active);
-                    row.classList.toggle("mep-mode-muted", !active);
-                };
-                setModeRow(".mep-strategy-row-start-fixed", startMode === "fixed");
-                setModeRow(".mep-strategy-row-start-array", startMode === "array");
-                setModeRow(".mep-strategy-row-growth-factor", growthMode === "factor");
-                setModeRow(".mep-strategy-row-growth-array", growthMode === "array");
-                setModeRow(".mep-strategy-row-target-fixed", targetMode === "fixed");
-                setModeRow(".mep-strategy-row-target-array", targetMode === "array");
-                if (ui.strategy1FirstCondLt2EnabledInput) ui.strategy1FirstCondLt2EnabledInput.checked = cfg.firstCondLt2StreakEnabled !== false;
-                if (ui.strategy1FirstCondDiffEnabledInput) ui.strategy1FirstCondDiffEnabledInput.checked = cfg.firstCondDiffVectorEnabled !== false;
-                if (ui.strategy1FirstCondFrequencyEnabledInput)
-                    ui.strategy1FirstCondFrequencyEnabledInput.checked = cfg.firstCondFrequencyVectorEnabled !== false;
-                if (ui.strategy1FirstCondStakeBetEnabledInput)
-                    ui.strategy1FirstCondStakeBetEnabledInput.checked = cfg.firstCondStakeBetVectorEnabled !== false;
-                if (ui.strategy1FirstCondStakePlayersEnabledInput)
-                    ui.strategy1FirstCondStakePlayersEnabledInput.checked = cfg.firstCondStakePlayersVectorEnabled !== false;
-                if (ui.strategy1FirstCondExtraEnabledInput) ui.strategy1FirstCondExtraEnabledInput.checked = !!cfg.firstCondExtraEnabled;
-                if (ui.strategy1SecondCondMaxLossesEnabledInput)
-                    ui.strategy1SecondCondMaxLossesEnabledInput.checked = cfg.secondCondMaxLossesEnabled !== false;
-                if (ui.strategy1SecondCondMaxStakeEnabledInput)
-                    ui.strategy1SecondCondMaxStakeEnabledInput.checked = cfg.secondCondMaxStakeEnabled !== false;
-                if (ui.strategy1SecondCondDiffEnabledInput) ui.strategy1SecondCondDiffEnabledInput.checked = cfg.secondCondDiffVectorEnabled !== false;
-                if (ui.strategy1SecondCondFrequencyEnabledInput)
-                    ui.strategy1SecondCondFrequencyEnabledInput.checked = cfg.secondCondFrequencyVectorEnabled !== false;
-                const firstBranch = st.runtime?.lastFirstBranchResult || null;
-                const renderConditionLine = (cond) => {
-                    if (!cond || typeof cond !== "object") return "—";
-                    const key = (cond.key || "condition").toString();
-                    const nameMap = {
-                        lt2_streak: "LT2 streak",
-                        diff_vector: "Diff EMA",
-                        frequency_vector: "Freq EMA",
-                        stake_bet_vector: "StakeBet EMA",
-                        stake_players_vector: "StakePlayers EMA",
-                        extra_condition: "Extra",
-                        max_losses: "MaxLosses",
-                        max_stake: "MaxStake",
-                    };
-                    const label = nameMap[key] || key;
-                    return `<span class="mep-cond-diag-line">${label} — on:${fmtBool(!!cond.enabled)} raw:${fmtBool(
-                        !!cond.passed
-                    )} eff:${fmtBool(!!cond.effectivePassed)}</span>`;
-                };
-                if (ui.strategy1FirstBranchPassedEl)
-                    ui.strategy1FirstBranchPassedEl.textContent = firstBranch ? String(!!firstBranch.passed) : "—";
-                if (ui.strategy1FirstBranchLt2El)
-                    ui.strategy1FirstBranchLt2El.textContent = firstBranch
-                        ? String(Number(firstBranch.details?.lt2Streak) || 0)
-                        : "—";
-                if (ui.strategy1FirstBranchDiffEl)
-                    ui.strategy1FirstBranchDiffEl.textContent = firstBranch
-                        ? (firstBranch.details?.diffVectorState || "—").toString()
-                        : "—";
-                if (ui.strategy1FirstBranchFreqEl)
-                    ui.strategy1FirstBranchFreqEl.textContent = firstBranch
-                        ? (firstBranch.details?.frequencyVectorState || "—").toString()
-                        : "—";
-                if (ui.strategy1FirstBranchStakeBetEl)
-                    ui.strategy1FirstBranchStakeBetEl.textContent = firstBranch
-                        ? (firstBranch.details?.stakeBetVectorState || "—").toString()
-                        : "—";
-                if (ui.strategy1FirstBranchStakePlayersEl)
-                    ui.strategy1FirstBranchStakePlayersEl.textContent = firstBranch
-                        ? (firstBranch.details?.stakePlayersVectorState || "—").toString()
-                        : "—";
-                if (ui.strategy1FirstBranchFailedAtEl)
-                    ui.strategy1FirstBranchFailedAtEl.textContent = firstBranch
-                        ? (firstBranch.failedAt || "—").toString()
-                        : "—";
-                if (ui.strategy1FirstBranchWaitReasonEl)
-                    ui.strategy1FirstBranchWaitReasonEl.textContent = firstBranch
-                        ? (firstBranch.waitReason || "—").toString()
-                        : "—";
-                if (ui.strategy1FirstConditionsDiagWrap) {
-                    const rows = Array.isArray(firstBranch?.conditions) ? firstBranch.conditions : [];
-                    if (!rows.length) ui.strategy1FirstConditionsDiagWrap.textContent = "—";
-                    else ui.strategy1FirstConditionsDiagWrap.innerHTML = rows.map(renderConditionLine).join("<br/>");
-                }
-                const secondBranch = st.runtime?.lastSecondBranchResult || null;
-                if (ui.strategy1SecondBranchPassedEl)
-                    ui.strategy1SecondBranchPassedEl.textContent = secondBranch ? String(!!secondBranch.passed) : "—";
-                if (ui.strategy1SecondBranchLossCountEl)
-                    ui.strategy1SecondBranchLossCountEl.textContent = secondBranch
-                        ? String(Number(secondBranch.details?.lossCount) || 0)
-                        : "—";
-                if (ui.strategy1SecondBranchMaxLossesEl)
-                    ui.strategy1SecondBranchMaxLossesEl.textContent = secondBranch
-                        ? String(Number(secondBranch.details?.maxLosses) || 0)
-                        : "—";
-                if (ui.strategy1SecondBranchStakeReadyEl)
-                    ui.strategy1SecondBranchStakeReadyEl.textContent = secondBranch
-                        ? String(!!secondBranch.details?.stakePlanReady)
-                        : "—";
-                if (ui.strategy1SecondBranchStakeInvalidEl)
-                    ui.strategy1SecondBranchStakeInvalidEl.textContent = secondBranch
-                        ? (secondBranch.details?.stakePlanInvalidReason || "—").toString()
-                        : "—";
-                if (ui.strategy1SecondBranchDiffEl)
-                    ui.strategy1SecondBranchDiffEl.textContent = secondBranch
-                        ? (secondBranch.details?.diffVectorState || "—").toString()
-                        : "—";
-                if (ui.strategy1SecondBranchFreqEl)
-                    ui.strategy1SecondBranchFreqEl.textContent = secondBranch
-                        ? (secondBranch.details?.frequencyVectorState || "—").toString()
-                        : "—";
-                if (ui.strategy1SecondBranchFailedAtEl)
-                    ui.strategy1SecondBranchFailedAtEl.textContent = secondBranch
-                        ? (secondBranch.failedAt || "—").toString()
-                        : "—";
-                if (ui.strategy1SecondBranchShouldEndEl)
-                    ui.strategy1SecondBranchShouldEndEl.textContent = secondBranch
-                        ? String(!!secondBranch.shouldEndCycle)
-                        : "—";
-                if (ui.strategy1SecondBranchEndReasonEl)
-                    ui.strategy1SecondBranchEndReasonEl.textContent = secondBranch
-                        ? (secondBranch.endReason || "—").toString()
-                        : "—";
-                if (ui.strategy1SecondBranchWaitReasonEl)
-                    ui.strategy1SecondBranchWaitReasonEl.textContent = secondBranch
-                        ? (secondBranch.waitReason || "—").toString()
-                        : "—";
-                if (ui.strategy1SecondConditionsDiagWrap) {
-                    const rows = Array.isArray(secondBranch?.conditions) ? secondBranch.conditions : [];
-                    if (!rows.length) ui.strategy1SecondConditionsDiagWrap.textContent = "—";
-                    else ui.strategy1SecondConditionsDiagWrap.innerHTML = rows.map(renderConditionLine).join("<br/>");
-                }
-                if (ui.strategy1ConditionsCanBetEl)
-                    ui.strategy1ConditionsCanBetEl.textContent = String(!!st.conditions.lastResult?.canBet);
-                if (ui.strategy1ConditionsEndEl)
-                    ui.strategy1ConditionsEndEl.textContent = String(!!st.conditions.lastResult?.shouldEndCycle);
-                if (ui.strategy1ConditionsReasonEl)
-                    ui.strategy1ConditionsReasonEl.textContent = (st.conditions.lastResult?.reason || "—").toString();
-                if (ui.strategy1StakeCalcModeEl)
-                    ui.strategy1StakeCalcModeEl.textContent = (
-                        st.stakePlan.calcMode || `${st.config.startStakeMode}:${st.config.stakeGrowthMode}`
-                    ).toString();
-                if (ui.strategy1TargetCalcModeEl)
-                    ui.strategy1TargetCalcModeEl.textContent = (st.config.targetMode || "fixed").toString();
-                const fmtPlanNum = (value) => {
-                    const n = Number(value);
-                    if (!Number.isFinite(n)) return "—";
-                    return n.toFixed(8).replace(/\.?0+$/, "");
-                };
-                if (ui.strategy1LastBetAmountEl)
-                    ui.strategy1LastBetAmountEl.textContent = fmtPlanNum(st.stakePlan.betAmount);
-                if (ui.strategy1LastTargetMultiplierEl)
-                    ui.strategy1LastTargetMultiplierEl.textContent = fmtPlanNum(st.stakePlan.targetMultiplier);
-                if (ui.strategy1StakePlanCalcModeEl)
-                    ui.strategy1StakePlanCalcModeEl.textContent = (st.stakePlan.calcMode || "—").toString();
-                if (ui.strategy1StakePlanStepEl)
-                    ui.strategy1StakePlanStepEl.textContent = (st.stakePlan.sourceStep || "—").toString();
-                if (ui.strategy1StakePlanBetAmountEl)
-                    ui.strategy1StakePlanBetAmountEl.textContent = fmtPlanNum(st.stakePlan.betAmount);
-                if (ui.strategy1StakePlanTargetEl)
-                    ui.strategy1StakePlanTargetEl.textContent = fmtPlanNum(st.stakePlan.targetMultiplier);
-                if (ui.strategy1StakePlanRiskCapEl)
-                    ui.strategy1StakePlanRiskCapEl.textContent = fmtPlanNum(st.stakePlan.riskCap);
-                if (ui.strategy1StakePlanMaxAllowedEl)
-                    ui.strategy1StakePlanMaxAllowedEl.textContent = fmtPlanNum(st.stakePlan.maxAllowedStake);
-                if (ui.strategy1StakePlanAllowedByRiskEl)
-                    ui.strategy1StakePlanAllowedByRiskEl.textContent = String(!!st.stakePlan.allowedByRisk);
-                if (ui.strategy1StakePlanReadyEl)
-                    ui.strategy1StakePlanReadyEl.textContent = String(!!st.stakePlan.ready);
-                if (ui.strategy1StakePlanInvalidReasonEl)
-                    ui.strategy1StakePlanInvalidReasonEl.textContent = (st.stakePlan.invalidReason || "—").toString();
-                if (ui.strategy1CycleStartBalanceEl)
-                    ui.strategy1CycleStartBalanceEl.textContent = fmtBalance(
-                        Number(st.counters.startBalanceBeforeCycle) || Number(st.cycle.startBalance) || 0
-                    );
-                if (ui.strategy1CycleCurrentBalanceEl)
-                    ui.strategy1CycleCurrentBalanceEl.textContent = fmtBalance(
-                        Number(st.counters.currentBalanceAfterRound) || Number(st.cycle.currentBalance) || 0
-                    );
-                if (ui.strategy1CycleLastStakeEl)
-                    ui.strategy1CycleLastStakeEl.textContent = fmtBalance(
-                        Number(st.counters.lastStake) || Number(st.cycle.lastStake) || 0
-                    );
-                if (ui.strategy1CycleTotalStakeEl)
-                    ui.strategy1CycleTotalStakeEl.textContent = fmtBalance(
-                        Number(st.counters.totalStakeSumInCycle) || Number(st.cycle.totalStakeSum) || 0
-                    );
-                if (ui.strategy1CycleLossCountEl)
-                    ui.strategy1CycleLossCountEl.textContent = String(
-                        Number(st.counters.lossRoundCount) || Number(st.cycle.lossCount) || 0
-                    );
-                if (ui.strategy1CycleWinCountEl)
-                    ui.strategy1CycleWinCountEl.textContent = String(
-                        Number(st.counters.winRoundCount) || Number(st.cycle.winCount) || 0
-                    );
-                if (ui.strategy1CycleStatusEl)
-                    ui.strategy1CycleStatusEl.textContent = st.cycle.isActive ? "active" : st.isExecuting ? "executing" : "idle";
-                if (ui.strategy1CycleEndReasonEl)
-                    ui.strategy1CycleEndReasonEl.textContent = fmtText(st.cycle.endReason);
-                if (ui.strategy1LastRoundOutcomeEl)
-                    ui.strategy1LastRoundOutcomeEl.textContent = (st.runtime?.lastRoundOutcome || "—").toString();
-                if (ui.strategy1LastRoundIdEl)
-                    ui.strategy1LastRoundIdEl.textContent = (st.runtime?.lastRoundResult?.roundId || "—").toString();
-                if (ui.strategy1LastRoundBalanceEl) {
-                    const lastRoundBal = Number(st.runtime?.lastRoundResult?.balance);
-                    ui.strategy1LastRoundBalanceEl.textContent = Number.isFinite(lastRoundBal)
-                        ? lastRoundBal.toFixed(8).replace(/\.?0+$/, "")
-                        : "—";
-                }
-                if (ui.strategy1CyclePnlEl)
-                    ui.strategy1CyclePnlEl.textContent = fmtBalance(Number(st.cycle.cyclePnL) || 0);
-                if (ui.strategy1CycleRoundCountEl)
-                    ui.strategy1CycleRoundCountEl.textContent = String(Number(st.cycle.roundCount) || 0);
-                if (ui.strategy1CycleFinishedEl)
-                    ui.strategy1CycleFinishedEl.textContent = String(!st.cycle.isActive);
-                if (ui.strategy1CycleFinishReasonEl)
-                    ui.strategy1CycleFinishReasonEl.textContent = fmtText(st.cycle.endReason);
-                if (ui.strategy1CycleStartedAtEl) ui.strategy1CycleStartedAtEl.textContent = fmtTs(st.timers?.cycleStartedAtTs);
-                if (ui.strategy1CycleFinishedAtEl) ui.strategy1CycleFinishedAtEl.textContent = fmtTs(st.timers?.cycleFinishedAtTs);
-                if (ui.strategy1CycleLastRoundAtEl) ui.strategy1CycleLastRoundAtEl.textContent = fmtTs(st.timers?.lastRoundFinishedAtTs);
-                if (ui.strategy1CycleDurationMsEl) ui.strategy1CycleDurationMsEl.textContent = fmtNum(st.timers?.cycleDurationMs, 0);
-                if (ui.strategy1SummaryEnabledEl) setBadge(ui.strategy1SummaryEnabledEl, fmtBool(!!st.enabled), st.enabled ? "ok" : "neutral");
-                if (ui.strategy1SummaryCycleEl) setBadge(ui.strategy1SummaryCycleEl, fmtBool(!!st.cycle?.isActive), st.cycle?.isActive ? "ok" : "neutral");
-                if (ui.strategy1SummaryBranchEl) setBadge(ui.strategy1SummaryBranchEl, fmtCode(decision.branch), decision.branch ? "ok" : "neutral");
-                if (ui.strategy1SummaryCanBetEl) setBadge(ui.strategy1SummaryCanBetEl, fmtBool(!!decision.canMakeBet), decision.canMakeBet ? "ok" : "warn");
-                if (ui.strategy1SummaryPauseEl)
-                    setBadge(ui.strategy1SummaryPauseEl, fmtBool(!!st.runtime?.manualPauseActive), st.runtime?.manualPauseActive ? "warn" : "neutral");
-                if (ui.strategy1SummaryRecoveryEl)
-                    setBadge(ui.strategy1SummaryRecoveryEl, fmtBool(!!st.runtime?.waitingBalanceRecoveryActive), st.runtime?.waitingBalanceRecoveryActive ? "warn" : "neutral");
-                if (ui.strategy1SummaryExecutingEl) setBadge(ui.strategy1SummaryExecutingEl, fmtBool(!!st.isExecuting), st.isExecuting ? "ok" : "neutral");
-                if (ui.strategy1SummaryEndReasonEl) setBadge(ui.strategy1SummaryEndReasonEl, fmtText(st.cycle?.endReason), st.cycle?.endReason ? "bad" : "neutral");
-                if (ui.strategy1DecisionStatusTextEl) ui.strategy1DecisionStatusTextEl.textContent = fmtText(decision.statusText);
-                if (ui.strategy1DecisionStatusCodeEl) {
-                    const statusTone =
-                        decision.statusCode === this.DECISION_STATUS.BET_ALLOWED
-                            ? "ok"
-                            : decision.statusCode === this.DECISION_STATUS.CYCLE_SHOULD_END ||
-                                decision.statusCode === this.DECISION_STATUS.CHARTER_BLOCKED
-                              ? "bad"
-                              : decision.statusCode === this.DECISION_STATUS.WAITING_SIGNAL ||
-                                  decision.statusCode === this.DECISION_STATUS.WAITING_BALANCE_RECOVERY
-                                ? "warn"
-                                : "neutral";
-                    setBadge(ui.strategy1DecisionStatusCodeEl, fmtCode(decision.statusCode), statusTone);
-                }
-                if (ui.strategy1DecisionCanBetEl) setBadge(ui.strategy1DecisionCanBetEl, fmtBool(!!decision.canMakeBet), decision.canMakeBet ? "ok" : "warn");
-                if (ui.strategy1DecisionEndCycleEl)
-                    setBadge(ui.strategy1DecisionEndCycleEl, fmtBool(!!decision.shouldEndCycle), decision.shouldEndCycle ? "bad" : "neutral");
-                if (ui.strategy1DecisionBranchEl) setBadge(ui.strategy1DecisionBranchEl, fmtCode(decision.branch), decision.branch ? "ok" : "neutral");
-                if (ui.strategy1DecisionWaitReasonEl) ui.strategy1DecisionWaitReasonEl.textContent = fmtText(decision.waitReason);
-                if (ui.strategy1DecisionAtEl) ui.strategy1DecisionAtEl.textContent = fmtTs(decision.lastDecisionAtTs);
-                const permission = st.runtime?.lastBetPermissionResult || null;
-                if (ui.strategy1PermissionAllowedEl)
-                    setBadge(ui.strategy1PermissionAllowedEl, permission ? fmtBool(!!permission.allowed) : "—", permission?.allowed ? "ok" : "warn");
-                if (ui.strategy1PermissionStageEl)
-                    setBadge(ui.strategy1PermissionStageEl, permission ? fmtCode(permission.stage) : "—", permission?.allowed ? "ok" : "neutral");
-                if (ui.strategy1PermissionReasonEl)
-                    setBadge(ui.strategy1PermissionReasonEl, permission ? fmtCode(permission.reason) : "—", permission?.shouldEndCycle ? "bad" : "warn");
-                if (ui.strategy1PermissionShouldEndEl)
-                    setBadge(ui.strategy1PermissionShouldEndEl, permission ? fmtBool(!!permission.shouldEndCycle) : "—", permission?.shouldEndCycle ? "bad" : "neutral");
-                if (ui.strategy1ManualPauseActiveEl) setBadge(ui.strategy1ManualPauseActiveEl, fmtBool(!!st.runtime?.manualPauseActive), st.runtime?.manualPauseActive ? "warn" : "neutral");
-                if (ui.strategy1ManualPauseReasonEl) ui.strategy1ManualPauseReasonEl.textContent = fmtText(st.runtime?.manualPauseReason);
-                if (ui.strategy1ManualPauseAtEl) ui.strategy1ManualPauseAtEl.textContent = fmtTs(st.runtime?.manualPauseAtTs);
-                if (ui.strategy1ManualResumeAtEl) ui.strategy1ManualResumeAtEl.textContent = fmtTs(st.runtime?.manualResumeAtTs);
-                if (ui.strategy1HardExitRequestedEl) setBadge(ui.strategy1HardExitRequestedEl, fmtBool(!!st.runtime?.hardExitRequested), st.runtime?.hardExitRequested ? "bad" : "neutral");
-                if (ui.strategy1HardExitReasonEl) ui.strategy1HardExitReasonEl.textContent = fmtText(st.runtime?.hardExitReason);
-                if (ui.strategy1HardExitAtEl) ui.strategy1HardExitAtEl.textContent = fmtTs(st.runtime?.hardExitAtTs);
-                if (ui.strategy1WaitingRecoveryActiveEl)
-                    setBadge(
-                        ui.strategy1WaitingRecoveryActiveEl,
-                        fmtBool(!!st.runtime?.waitingBalanceRecoveryActive),
-                        st.runtime?.waitingBalanceRecoveryActive ? "warn" : "neutral"
-                    );
-                if (ui.strategy1WaitingRecoveryReasonEl)
-                    ui.strategy1WaitingRecoveryReasonEl.textContent = fmtText(st.runtime?.waitingBalanceRecoveryReason);
-                if (ui.strategy1WaitingRecoveryTargetEl)
-                    ui.strategy1WaitingRecoveryTargetEl.textContent = fmtBalance(Number(st.runtime?.waitingBalanceRecoveryTargetBalance) || 0);
-                if (ui.strategy1WaitingRecoveryCurrentEl)
-                    ui.strategy1WaitingRecoveryCurrentEl.textContent = fmtBalance(Number(st.runtime?.waitingBalanceRecoveryCurrentBalance) || 0);
-                if (ui.strategy1WaitingRecoveryReachedEl) {
-                    setBadge(
-                        ui.strategy1WaitingRecoveryReachedEl,
-                        fmtBool(!!st.runtime?.waitingBalanceRecoveryReached),
-                        st.runtime?.waitingBalanceRecoveryReached ? "ok" : "neutral"
-                    );
-                }
-                if (ui.strategy1WaitingRecoveryStartedAtEl)
-                    ui.strategy1WaitingRecoveryStartedAtEl.textContent = fmtTs(st.runtime?.waitingBalanceRecoveryStartedAtTs);
-                if (ui.strategy1WaitingRecoveryReachedAtEl)
-                    ui.strategy1WaitingRecoveryReachedAtEl.textContent = fmtTs(st.runtime?.waitingBalanceRecoveryReachedAtTs);
-                if (ui.strategy1ExecutionStateEl)
-                    setBadge(
-                        ui.strategy1ExecutionStateEl,
-                        fmtCode(st.runtime?.executionState),
-                        st.runtime?.executionState === "awaiting_round_result"
-                            ? "warn"
-                            : st.runtime?.executionState === "timeout" || st.runtime?.executionState === "rejected"
-                              ? "bad"
-                              : "neutral"
-                    );
-                const executionActive = !!st.runtime?.waitingRoundResult || (st.runtime?.executionState || "") === "awaiting_round_result";
-                if (ui.strategy1IsExecutingEl)
-                    setBadge(ui.strategy1IsExecutingEl, fmtBool(executionActive), executionActive ? "warn" : "neutral");
-                if (ui.strategy1ExecutionLockedEl)
-                    setBadge(ui.strategy1ExecutionLockedEl, fmtBool(!!st.executionLocked), st.executionLocked ? "warn" : "neutral");
-                if (ui.strategy1WaitingRoundResultEl)
-                    setBadge(
-                        ui.strategy1WaitingRoundResultEl,
-                        fmtBool(!!st.runtime?.waitingRoundResult),
-                        st.runtime?.waitingRoundResult ? "warn" : "neutral"
-                    );
-                if (ui.strategy1LastExecutionAtEl) ui.strategy1LastExecutionAtEl.textContent = fmtTs(st.runtime?.lastExecutionAtTs);
-                if (ui.strategy1LastExecutionReasonEl)
-                    ui.strategy1LastExecutionReasonEl.textContent = fmtText(st.runtime?.lastExecutionReason);
-                if (ui.strategy1LastExecutionResultEl)
-                    ui.strategy1LastExecutionResultEl.textContent = fmtText(st.runtime?.lastExecutionResult);
-                if (ui.strategy1PendingBetAmountEl)
-                    ui.strategy1PendingBetAmountEl.textContent = fmtBalance(st.runtime?.pendingBetAmount);
-                if (ui.strategy1PendingTargetMultiplierEl)
-                    ui.strategy1PendingTargetMultiplierEl.textContent = fmtNum(st.runtime?.pendingTargetMultiplier, 4);
-                if (ui.strategy1LastVoiceEventEl)
-                    setBadge(ui.strategy1LastVoiceEventEl, fmtCode(st.runtime?.lastVoiceEventCode), st.runtime?.lastVoiceEventCode ? "ok" : "neutral");
-                if (ui.strategy1LastVoiceAtEl)
-                    ui.strategy1LastVoiceAtEl.textContent = fmtTs(st.runtime?.lastVoiceEventAtTs);
-                if (ui.strategy1LastStatusEventEl)
-                    setBadge(ui.strategy1LastStatusEventEl, fmtCode(st.runtime?.lastStatusEventCode), st.runtime?.lastStatusEventCode ? "warn" : "neutral");
-                if (ui.strategy1LastStatusAtEl)
-                    ui.strategy1LastStatusAtEl.textContent = fmtTs(st.runtime?.lastStatusEventAtTs);
-                if (ui.strategy1CharterAllowedEl) ui.strategy1CharterAllowedEl.textContent = String(!!st.charterCheck?.allowed);
-                if (ui.strategy1CharterReasonEl)
-                    ui.strategy1CharterReasonEl.textContent = (st.charterCheck?.blockReason || "—").toString();
-                if (ui.strategy1CharterRoundsHourEl)
-                    ui.strategy1CharterRoundsHourEl.textContent = String(!!st.charterCheck?.roundsHourAllowed);
-                if (ui.strategy1CharterRounds6hEl)
-                    ui.strategy1CharterRounds6hEl.textContent = String(!!st.charterCheck?.rounds6hAllowed);
-                if (ui.strategy1CharterRoundsDayEl)
-                    ui.strategy1CharterRoundsDayEl.textContent = String(!!st.charterCheck?.roundsDayAllowed);
-                if (ui.strategy1CharterWinsHourEl)
-                    ui.strategy1CharterWinsHourEl.textContent = String(!!st.charterCheck?.winsHourAllowed);
-                if (ui.strategy1CharterWins6hEl)
-                    ui.strategy1CharterWins6hEl.textContent = String(!!st.charterCheck?.wins6hAllowed);
-                if (ui.strategy1CharterWinsDayEl)
-                    ui.strategy1CharterWinsDayEl.textContent = String(!!st.charterCheck?.winsDayAllowed);
-                if (ui.strategy1CharterLossesHourEl)
-                    ui.strategy1CharterLossesHourEl.textContent = String(!!st.charterCheck?.lossesHourAllowed);
-                if (ui.strategy1CharterLosses6hEl)
-                    ui.strategy1CharterLosses6hEl.textContent = String(!!st.charterCheck?.losses6hAllowed);
-                if (ui.strategy1CharterLossesDayEl)
-                    ui.strategy1CharterLossesDayEl.textContent = String(!!st.charterCheck?.lossesDayAllowed);
-                if (ui.strategy1CharterBreakEl)
-                    ui.strategy1CharterBreakEl.textContent = String(!!st.charterCheck?.breakAllowed);
+                MEP.UI.renderStrategy1MinimalUi(st);
             },
         };
 
@@ -7599,6 +7152,71 @@
                 ui.charterPanel?.classList.toggle("is-active", nextTab === "charter");
                 ui.strategy1Panel?.classList.toggle("is-active", nextTab === "strategy1");
                 ui.strategy2Panel?.classList.toggle("is-active", nextTab === "strategy2");
+            },
+
+            formatStrategy1Timer(ms = 0) {
+                const totalSec = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+                const hh = String(Math.floor(totalSec / 3600)).padStart(2, "0");
+                const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
+                const ss = String(totalSec % 60).padStart(2, "0");
+                return `${hh}:${mm}:${ss}`;
+            },
+
+            truncateStrategy1InfoText(text = "", maxChars = 72) {
+                const raw = (text || "").toString().trim();
+                if (!raw) return "—";
+                if (raw.length <= maxChars) return raw;
+                return `${raw.slice(0, Math.max(1, maxChars - 3)).trimEnd()}...`;
+            },
+
+            replayStrategy1InfoTicker() {
+                const ui = MEP.UI.ui;
+                if (!ui?.strategy1InfoBar || !ui?.strategy1InfoTicker) return;
+                const fullText = (ui._strategy1InfoText || ui.strategy1InfoTicker.textContent || "—").toString();
+                ui.strategy1InfoTicker.textContent = fullText;
+                const barWidth = ui.strategy1InfoBar.clientWidth || 1;
+                const textWidth = ui.strategy1InfoTicker.scrollWidth || 1;
+                const overflow = Math.max(0, textWidth - barWidth);
+                ui.strategy1InfoTicker.classList.remove("is-running");
+                ui.strategy1InfoTicker.style.removeProperty("--mep-s1-ticker-shift");
+                ui.strategy1InfoTicker.style.removeProperty("--mep-s1-ticker-duration");
+                if (ui._strategy1TickerTimer) clearTimeout(ui._strategy1TickerTimer);
+                if (overflow <= 0) {
+                    ui.strategy1InfoTicker.textContent = fullText;
+                    return;
+                }
+                const shift = overflow + 16;
+                const durationMs = Math.min(12000, Math.max(2600, Math.floor((shift / 48) * 1000)));
+                ui.strategy1InfoTicker.style.setProperty("--mep-s1-ticker-shift", `${shift}px`);
+                ui.strategy1InfoTicker.style.setProperty("--mep-s1-ticker-duration", `${durationMs}ms`);
+                void ui.strategy1InfoTicker.offsetWidth;
+                ui.strategy1InfoTicker.classList.add("is-running");
+                ui._strategy1TickerTimer = setTimeout(() => {
+                    ui.strategy1InfoTicker.classList.remove("is-running");
+                    ui.strategy1InfoTicker.textContent = MEP.UI.truncateStrategy1InfoText(fullText, 72);
+                }, durationMs + 40);
+            },
+
+            setStrategy1InfoMessage(text) {
+                const ui = MEP.UI.ui;
+                if (!ui?.strategy1InfoTicker) return;
+                ui._strategy1InfoText = (text || "").toString().trim() || "—";
+                MEP.UI.replayStrategy1InfoTicker();
+            },
+
+            renderStrategy1MinimalUi(st) {
+                const ui = MEP.UI.ui;
+                if (!ui || !st) return;
+                const enabled = !!st.enabled;
+                if (ui.strategy1EnabledToggle && ui.strategy1EnabledToggle.checked !== enabled) {
+                    ui.strategy1EnabledToggle.checked = enabled;
+                }
+                ui.strategy1TabBtn?.classList.toggle("mep-strategy1-tab-live", enabled);
+                if (ui.strategy1WorkTimer) {
+                    const startTs = Number(st.timers?.enabledAtTs) || 0;
+                    const elapsed = enabled && startTs > 0 ? Date.now() - startTs : 0;
+                    ui.strategy1WorkTimer.textContent = MEP.UI.formatStrategy1Timer(elapsed);
+                }
             },
 
             setHistoryLoading(isLoading, nextClicks = 0) {
@@ -8212,243 +7830,20 @@
     </div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-strategy1">
-    <div class="mep-strategy-section">
-        <div class="mep-strategy-section-title">Стратегия1 · Управление</div>
-        <div class="mep-strategy-row">
-            <span class="mep-strategy-label">Вкл / Откл стратегии</span>
-            <label class="mep-charter-label mep-strategy-toggle">
+    <div class="mep-strategy1-minimal-root">
+        <div class="mep-strategy1-info-bar" title="Последнее событие стратегии">
+            <div class="mep-strategy1-info-track">
+                <span class="mep-strategy1-info-ticker">Стратегия 1 не запущена...</span>
+            </div>
+        </div>
+        <div class="mep-strategy1-control-row">
+            <span class="mep-strategy1-control-label">Вкл/Откл</span>
+            <label class="mep-strategy1-toggle" aria-label="Включить стратегию 1">
                 <input class="mep-strategy1-enabled" type="checkbox" />
-                <span class="mep-strategy-toggle-status mep-strategy1-enabled-status">Выкл</span>
+                <span class="mep-strategy1-toggle-ui" aria-hidden="true"></span>
             </label>
-        </div>
-        <div class="mep-strategy-row">
-            <span class="mep-strategy-label">Voice events</span>
-            <label class="mep-charter-label"><input class="mep-strategy1-voice-enabled" type="checkbox" /> Вкл</label>
-        </div>
-        <div class="mep-strategy-row">
-            <span class="mep-strategy-label">Status events</span>
-            <label class="mep-charter-label"><input class="mep-strategy1-status-events-enabled" type="checkbox" /> Вкл</label>
-        </div>
-        <div class="mep-strategy-row">
-            <span class="mep-strategy-label">Voice cooldown (ms)</span>
-            <input class="mep-strategy-input mep-strategy1-voice-cooldown" type="number" min="0" step="100" />
-        </div>
-        <div class="mep-strategy-section mep-system-messages">
-            <div class="mep-system-messages-head">
-                <div class="mep-strategy-section-title">Сообщения системы</div>
-                <button class="mep-btn mep-strategy1-system-messages-clear" type="button">Очистить</button>
-            </div>
-            <div class="mep-system-messages-list">
-                <div class="mep-system-message is-empty">Сообщений пока нет</div>
-            </div>
-        </div>
-        <div class="mep-actions-group">
-            <div class="mep-strategy-subgroup-title">Управление</div>
-            <div class="mep-actions-row">
-                <button class="mep-btn mep-strategy1-execute-bet" type="button">Выполнить ставку</button>
-                <button class="mep-btn mep-strategy1-start-cycle" type="button">Старт цикла</button>
-                <button class="mep-btn mep-strategy1-finish-cycle" type="button">Завершить цикл</button>
-                <button class="mep-btn mep-strategy1-hard-exit" type="button">Жесткий выход</button>
-                <button class="mep-btn mep-strategy1-start-new-cycle" type="button">Новый цикл</button>
-                <button class="mep-btn mep-strategy1-pause-cycle" type="button">Пауза цикла</button>
-                <button class="mep-btn mep-strategy1-resume-cycle" type="button">Продолжить цикл</button>
-                <button class="mep-btn mep-strategy1-enter-waiting-recovery" type="button">Ждать восстановления</button>
-                <button class="mep-btn mep-strategy1-exit-waiting-recovery" type="button">Снять ожидание</button>
-                <button class="mep-btn mep-strategy1-reset-cycle" type="button">Сбросить цикл</button>
-            </div>
-        </div>
-        <div class="mep-actions-group">
-            <div class="mep-strategy-subgroup-title">Диагностика</div>
-            <div class="mep-actions-row">
-                <button class="mep-btn mep-strategy1-check-charter" type="button">Проверить Устав</button>
-                <button class="mep-btn mep-strategy1-route-branch" type="button">Определить ветку</button>
-                <button class="mep-btn mep-strategy1-check-first-branch" type="button">Проверить 1 ветку</button>
-                <button class="mep-btn mep-strategy1-check-second-branch" type="button">Проверить 2 ветку</button>
-                <button class="mep-btn mep-strategy1-build-stake-plan" type="button">Проверить план ставки</button>
-                <button class="mep-btn mep-strategy1-evaluate-bet-permission" type="button">Проверить допуск к ставке</button>
-                <button class="mep-btn mep-strategy1-test-round-win" type="button">Тест win</button>
-                <button class="mep-btn mep-strategy1-test-round-loss" type="button">Тест loss</button>
-            </div>
-        </div>
-    </div>
-    <div class="mep-strategy-section">
-        <div class="mep-strategy-section-title">Текущее состояние стратегии</div>
-        <div class="mep-strategy-summary-strip">
-            <div class="mep-strategy-summary-item"><span>Enabled</span><span class="mep-strategy-state-value mep-strategy1-summary-enabled">—</span></div>
-            <div class="mep-strategy-summary-item"><span>Cycle</span><span class="mep-strategy-state-value mep-strategy1-summary-cycle">—</span></div>
-            <div class="mep-strategy-summary-item"><span>Branch</span><span class="mep-strategy-state-value mep-strategy1-summary-branch">—</span></div>
-            <div class="mep-strategy-summary-item"><span>Can bet</span><span class="mep-strategy-state-value mep-strategy1-summary-canbet">—</span></div>
-            <div class="mep-strategy-summary-item"><span>Pause</span><span class="mep-strategy-state-value mep-strategy1-summary-pause">—</span></div>
-            <div class="mep-strategy-summary-item"><span>Recovery</span><span class="mep-strategy-state-value mep-strategy1-summary-recovery">—</span></div>
-            <div class="mep-strategy-summary-item"><span>Executing</span><span class="mep-strategy-state-value mep-strategy1-summary-executing">—</span></div>
-            <div class="mep-strategy-summary-item"><span>End reason</span><span class="mep-strategy-state-value mep-strategy1-summary-endreason">—</span></div>
-        </div>
-        <div class="mep-strategy-state-grid">
-            <div class="mep-strategy-subgroup-title">Сигналы</div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Статус:</span><span class="mep-strategy-state-value mep-strategy1-decision-status-text">Стратегия в ожидании</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Код статуса:</span><span class="mep-strategy-state-value mep-strategy1-decision-status-code">idle</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Ставка разрешена:</span><span class="mep-strategy-state-value mep-strategy1-decision-canbet">false</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Нужно завершить цикл:</span><span class="mep-strategy-state-value mep-strategy1-decision-endcycle">false</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Текущая ветка:</span><span class="mep-strategy-state-value mep-strategy1-decision-branch">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Причина ожидания:</span><span class="mep-strategy-state-value mep-strategy1-decision-waitreason">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last decision at:</span><span class="mep-strategy-state-value mep-strategy1-decision-at">—</span></div>
-            <div class="mep-strategy-subgroup-title">Допуск</div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission allowed:</span><span class="mep-strategy-state-value mep-strategy1-permission-allowed">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission stage:</span><span class="mep-strategy-state-value mep-strategy1-permission-stage">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission reason:</span><span class="mep-strategy-state-value mep-strategy1-permission-reason">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Permission shouldEndCycle:</span><span class="mep-strategy-state-value mep-strategy1-permission-should-end">—</span></div>
-            <div class="mep-strategy-subgroup-title">Пауза / Выход / Recovery</div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Manual pause:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-active">false</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pause reason:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-reason">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pause at:</span><span class="mep-strategy-state-value mep-strategy1-manual-pause-at">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Resume at:</span><span class="mep-strategy-state-value mep-strategy1-manual-resume-at">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit requested:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-requested">false</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit reason:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-reason">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Hard exit at:</span><span class="mep-strategy-state-value mep-strategy1-hard-exit-at">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Waiting recovery:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-active">false</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Recovery reason:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-reason">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Target balance:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-target">0</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Current balance:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-current">0</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Reached:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-reached">false</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Started at:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-started-at">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Reached at:</span><span class="mep-strategy-state-value mep-strategy1-waiting-recovery-reached-at">—</span></div>
-            <div class="mep-strategy-subgroup-title">Execution</div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Execution state:</span><span class="mep-strategy-state-value mep-strategy1-execution-state">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Is executing:</span><span class="mep-strategy-state-value mep-strategy1-is-executing">false</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Execution locked:</span><span class="mep-strategy-state-value mep-strategy1-execution-locked">false</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Waiting round result:</span><span class="mep-strategy-state-value mep-strategy1-waiting-round-result">false</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last execution at:</span><span class="mep-strategy-state-value mep-strategy1-last-execution-at">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last execution reason:</span><span class="mep-strategy-state-value mep-strategy1-last-execution-reason">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last execution result:</span><span class="mep-strategy-state-value mep-strategy1-last-execution-result">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pending bet amount:</span><span class="mep-strategy-state-value mep-strategy1-pending-bet-amount">0</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Pending target:</span><span class="mep-strategy-state-value mep-strategy1-pending-target-multiplier">0</span></div>
-            <div class="mep-strategy-subgroup-title">Последние events</div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last voice event:</span><span class="mep-strategy-state-value mep-strategy1-last-voice-event">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last voice at:</span><span class="mep-strategy-state-value mep-strategy1-last-voice-at">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last status event:</span><span class="mep-strategy-state-value mep-strategy1-last-status-event">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Last status at:</span><span class="mep-strategy-state-value mep-strategy1-last-status-at">—</span></div>
-        </div>
-    </div>
-    <div class="mep-strategy-section">
-        <div class="mep-strategy-section-title">Входные параметры</div>
-        <div class="mep-strategy-form">
-            <div class="mep-strategy-subgroup-title">Риск</div>
-            <div class="mep-strategy-row"><span class="mep-strategy-label">Процент риска от баланса</span><input class="mep-strategy-input mep-strategy1-risk-percent" type="number" min="0" step="0.1" /></div>
-            <div class="mep-strategy-subgroup-title">Начальная ставка</div>
-            <div class="mep-strategy-row"><span class="mep-strategy-label">Режим начальной ставки</span><select class="mep-strategy-input mep-strategy1-start-stake-mode"><option value="fixed">fixed</option><option value="array">array</option></select></div>
-            <div class="mep-strategy-row mep-strategy-row-start-fixed"><span class="mep-strategy-label">Начальная ставка</span><input class="mep-strategy-input mep-strategy1-start-stake-value" type="number" min="0" step="0.00000001" /></div>
-            <div class="mep-strategy-row mep-strategy-row-start-array"><span class="mep-strategy-label">Массив начальных ставок</span><input class="mep-strategy-input mep-strategy1-start-stake-array" type="text" /></div>
-            <div class="mep-strategy-subgroup-title">Рост ставки</div>
-            <div class="mep-strategy-row"><span class="mep-strategy-label">Режим приращения ставок</span><select class="mep-strategy-input mep-strategy1-stake-growth-mode"><option value="factor">factor</option><option value="array">array</option></select></div>
-            <div class="mep-strategy-row mep-strategy-row-growth-factor"><span class="mep-strategy-label">Коэффициент приращения ставок</span><input class="mep-strategy-input mep-strategy1-stake-growth-factor" type="number" min="0" step="0.01" /></div>
-            <div class="mep-strategy-row mep-strategy-row-growth-array"><span class="mep-strategy-label">Массив приращения ставок</span><input class="mep-strategy-input mep-strategy1-stake-growth-array" type="text" /></div>
-            <div class="mep-strategy-subgroup-title">Целевой множитель</div>
-            <div class="mep-strategy-row"><span class="mep-strategy-label">Режим целевого множителя</span><select class="mep-strategy-input mep-strategy1-target-mode"><option value="fixed">fixed</option><option value="array">array</option></select></div>
-            <div class="mep-strategy-row mep-strategy-row-target-fixed"><span class="mep-strategy-label">Целевой множитель игры</span><input class="mep-strategy-input mep-strategy1-target-multiplier" type="number" min="0" step="0.01" /></div>
-            <div class="mep-strategy-row mep-strategy-row-target-array"><span class="mep-strategy-label">Массив целевых множителей</span><input class="mep-strategy-input mep-strategy1-target-multiplier-array" type="text" /></div>
-            <div class="mep-strategy-subgroup-title">Лимит поражений</div>
-            <div class="mep-strategy-row"><span class="mep-strategy-label">Макс. количество проигрышей</span><input class="mep-strategy-input mep-strategy1-max-losses" type="number" min="0" step="1" /></div>
-        </div>
-    </div>
-    <div class="mep-strategy-section">
-        <div class="mep-strategy-section-title">Диагностика Устава</div>
-        <div class="mep-strategy-state-grid">
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Устав разрешает:</span><span class="mep-strategy-state-value mep-strategy1-charter-allowed">true</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Причина блока:</span><span class="mep-strategy-state-value mep-strategy1-charter-reason">—</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Раунды / час:</span><span class="mep-strategy-state-value mep-strategy1-charter-rounds-hour">true</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Раунды / 6ч:</span><span class="mep-strategy-state-value mep-strategy1-charter-rounds-6h">true</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Раунды / сутки:</span><span class="mep-strategy-state-value mep-strategy1-charter-rounds-day">true</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Победы / час:</span><span class="mep-strategy-state-value mep-strategy1-charter-wins-hour">true</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Победы / 6ч:</span><span class="mep-strategy-state-value mep-strategy1-charter-wins-6h">true</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Победы / сутки:</span><span class="mep-strategy-state-value mep-strategy1-charter-wins-day">true</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Поражения / час:</span><span class="mep-strategy-state-value mep-strategy1-charter-losses-hour">true</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Поражения / 6ч:</span><span class="mep-strategy-state-value mep-strategy1-charter-losses-6h">true</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Поражения / сутки:</span><span class="mep-strategy-state-value mep-strategy1-charter-losses-day">true</span></div>
-            <div class="mep-strategy-state-row"><span class="mep-strategy-state-label">Перерыв разрешает:</span><span class="mep-strategy-state-value mep-strategy1-charter-break">true</span></div>
-        </div>
-    </div>
-    <div class="mep-strategy-section">
-        <div class="mep-strategy-section-title">Конструктор условий</div>
-        <div class="mep-strategy-placeholder">Маршрутизация: первый раунд цикла -> first, после минусов -> second.
-Проверка по Уставу + доп. проверки сущностей.
-Режим: <span class="mep-strategy1-conditions-mode">all</span>
-Клиенты EMA: <span class="mep-strategy1-stake-players-vector-state">—</span>
-Ставки EMA: <span class="mep-strategy1-stake-bet-vector-state">—</span>
-<div class="mep-strategy-subgroup-title">FIRST branch</div>
-<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-lt2-enabled" type="checkbox" /> LT2 streak</label></div>
-<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-diff-enabled" type="checkbox" /> Diff EMA</label></div>
-<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-frequency-enabled" type="checkbox" /> Frequency EMA</label></div>
-<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-stake-bet-enabled" type="checkbox" /> Stake Bet EMA</label></div>
-<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-stake-players-enabled" type="checkbox" /> Stake Players EMA</label></div>
-<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-first-cond-extra-enabled" type="checkbox" /> Extra</label></div>
-<div class="mep-strategy1-first-conditions-diag-wrap">—</div>
-FIRST_BRANCH passed: <span class="mep-strategy1-first-branch-passed">—</span>
-LT2 streak: <span class="mep-strategy1-first-branch-lt2">—</span>
-Diff vector: <span class="mep-strategy1-first-branch-diff">—</span>
-Frequency vector: <span class="mep-strategy1-first-branch-freq">—</span>
-Stake bet vector: <span class="mep-strategy1-first-branch-stake-bet">—</span>
-Stake players vector: <span class="mep-strategy1-first-branch-stake-players">—</span>
-Failed at: <span class="mep-strategy1-first-branch-failed-at">—</span>
-Wait reason: <span class="mep-strategy1-first-branch-wait-reason">—</span>
-<div class="mep-strategy-subgroup-title">SECOND branch</div>
-<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-second-cond-max-losses-enabled" type="checkbox" /> Max losses</label></div>
-<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-second-cond-max-stake-enabled" type="checkbox" /> Max stake</label></div>
-<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-second-cond-diff-enabled" type="checkbox" /> Diff EMA</label></div>
-<div class="mep-cond-row"><label class="mep-charter-label"><input class="mep-strategy1-second-cond-frequency-enabled" type="checkbox" /> Frequency EMA</label></div>
-<div class="mep-strategy1-second-conditions-diag-wrap">—</div>
-SECOND_BRANCH passed: <span class="mep-strategy1-second-branch-passed">—</span>
-Loss count: <span class="mep-strategy1-second-branch-loss-count">—</span>
-Max losses: <span class="mep-strategy1-second-branch-max-losses">—</span>
-Stake plan ready: <span class="mep-strategy1-second-branch-stake-ready">—</span>
-Stake plan invalidReason: <span class="mep-strategy1-second-branch-stake-invalid">—</span>
-Diff vector: <span class="mep-strategy1-second-branch-diff">—</span>
-Frequency vector: <span class="mep-strategy1-second-branch-freq">—</span>
-Failed at: <span class="mep-strategy1-second-branch-failed-at">—</span>
-Should end cycle: <span class="mep-strategy1-second-branch-should-end">—</span>
-End reason: <span class="mep-strategy1-second-branch-end-reason">—</span>
-Wait reason: <span class="mep-strategy1-second-branch-wait-reason">—</span>
-Rules: placeholder (будущий конструктор)
-LastResult: canBet=<span class="mep-strategy1-conditions-canbet">false</span>, shouldEndCycle=<span class="mep-strategy1-conditions-end">false</span>, reason=<span class="mep-strategy1-conditions-reason">—</span></div>
-    </div>
-    <div class="mep-strategy-section">
-        <div class="mep-strategy-section-title">Конструктор ставок</div>
-        <div class="mep-strategy-placeholder mep-stake-plan-card"><div class="mep-strategy-subgroup-title">План ставки</div>
-Режим ставки: <span class="mep-strategy1-stake-calc-mode">—</span>
-Режим target: <span class="mep-strategy1-target-calc-mode">—</span>
-Последний расчёт: betAmount=<span class="mep-strategy1-last-bet-amount">0</span>, targetMultiplier=<span class="mep-strategy1-last-target-multiplier">0</span>
-Режим расчёта: <span class="mep-strategy1-stake-plan-calc-mode">—</span>
-Шаг: <span class="mep-strategy1-stake-plan-step">—</span>
-Bet amount: <span class="mep-strategy1-stake-plan-bet-amount">—</span>
-Target multiplier: <span class="mep-strategy1-stake-plan-target">—</span>
-Risk cap: <span class="mep-strategy1-stake-plan-risk-cap">—</span>
-Max allowed stake: <span class="mep-strategy1-stake-plan-max-allowed">—</span>
-Allowed by risk: <span class="mep-strategy1-stake-plan-allowed-by-risk">false</span>
-Ready: <span class="mep-strategy1-stake-plan-ready">false</span>
-Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span></div>
-    </div>
-    <div class="mep-strategy-section">
-        <div class="mep-strategy-section-title">Цикл стратегии</div>
-        <div class="mep-strategy-status-grid mep-cycle-card">
-            <div class="mep-strategy-subgroup-title">Состояние цикла</div>
-            <div>Стартовый баланс: <span class="mep-strategy1-cycle-start-balance">0</span></div>
-            <div>Текущий баланс: <span class="mep-strategy1-cycle-current-balance">0</span></div>
-            <div>Последняя ставка: <span class="mep-strategy1-cycle-last-stake">0</span></div>
-            <div>Сумма ставок цикла: <span class="mep-strategy1-cycle-total-stake">0</span></div>
-            <div>Проигрышных раундов: <span class="mep-strategy1-cycle-loss-count">0</span></div>
-            <div>Выигрышных раундов: <span class="mep-strategy1-cycle-win-count">0</span></div>
-            <div>Статус цикла: <span class="mep-strategy1-cycle-status">idle</span></div>
-            <div>Причина завершения: <span class="mep-strategy1-cycle-end-reason">—</span></div>
-            <div>Last round outcome: <span class="mep-strategy1-last-round-outcome">—</span></div>
-            <div>Last round id: <span class="mep-strategy1-last-round-id">—</span></div>
-            <div>Last round balance: <span class="mep-strategy1-last-round-balance">—</span></div>
-            <div>Cycle PnL: <span class="mep-strategy1-cycle-pnl">0</span></div>
-            <div>Cycle round count: <span class="mep-strategy1-cycle-round-count">0</span></div>
-            <div>Finished: <span class="mep-strategy1-cycle-finished">false</span></div>
-            <div>Finish reason: <span class="mep-strategy1-cycle-finish-reason">—</span></div>
-            <div>Started at: <span class="mep-strategy1-cycle-started-at">—</span></div>
-            <div>Finished at: <span class="mep-strategy1-cycle-finished-at">—</span></div>
-            <div>Last round at: <span class="mep-strategy1-cycle-last-round-at">—</span></div>
-            <div>Duration ms: <span class="mep-strategy1-cycle-duration-ms">0</span></div>
+            <span class="mep-strategy1-control-divider" aria-hidden="true"></span>
+            <span class="mep-strategy1-work-timer">00:00:00</span>
         </div>
     </div>
 </div>
@@ -8491,170 +7886,11 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     charterLossesPer6HoursInput: panel.querySelector("input.mep-charter-losses-6h"),
                     charterLossesPerDayInput: panel.querySelector("input.mep-charter-losses-day"),
                     charterBreakAfter3LossesMinInput: panel.querySelector("input.mep-charter-break-3loss-min"),
-                    strategy1EnabledInput: panel.querySelector("input.mep-strategy1-enabled"),
-                    strategy1EnabledStatusEl: panel.querySelector(".mep-strategy1-enabled-status"),
-                    strategy1VoiceEnabledInput: panel.querySelector("input.mep-strategy1-voice-enabled"),
-                    strategy1StatusEventsEnabledInput: panel.querySelector("input.mep-strategy1-status-events-enabled"),
-                    strategy1VoiceCooldownInput: panel.querySelector("input.mep-strategy1-voice-cooldown"),
-                    strategy1RiskPercentInput: panel.querySelector("input.mep-strategy1-risk-percent"),
-                    strategy1StartStakeModeInput: panel.querySelector("select.mep-strategy1-start-stake-mode"),
-                    strategy1StartStakeValueInput: panel.querySelector("input.mep-strategy1-start-stake-value"),
-                    strategy1StartStakeArrayInput: panel.querySelector("input.mep-strategy1-start-stake-array"),
-                    strategy1StakeGrowthModeInput: panel.querySelector("select.mep-strategy1-stake-growth-mode"),
-                    strategy1StakeGrowthFactorInput: panel.querySelector("input.mep-strategy1-stake-growth-factor"),
-                    strategy1StakeGrowthArrayInput: panel.querySelector("input.mep-strategy1-stake-growth-array"),
-                    strategy1TargetModeInput: panel.querySelector("select.mep-strategy1-target-mode"),
-                    strategy1TargetMultiplierInput: panel.querySelector("input.mep-strategy1-target-multiplier"),
-                    strategy1TargetMultiplierArrayInput: panel.querySelector("input.mep-strategy1-target-multiplier-array"),
-                    strategy1MaxLossesInput: panel.querySelector("input.mep-strategy1-max-losses"),
-                    strategy1FirstCondLt2EnabledInput: panel.querySelector("input.mep-strategy1-first-cond-lt2-enabled"),
-                    strategy1FirstCondDiffEnabledInput: panel.querySelector("input.mep-strategy1-first-cond-diff-enabled"),
-                    strategy1FirstCondFrequencyEnabledInput: panel.querySelector("input.mep-strategy1-first-cond-frequency-enabled"),
-                    strategy1FirstCondStakeBetEnabledInput: panel.querySelector("input.mep-strategy1-first-cond-stake-bet-enabled"),
-                    strategy1FirstCondStakePlayersEnabledInput: panel.querySelector("input.mep-strategy1-first-cond-stake-players-enabled"),
-                    strategy1FirstCondExtraEnabledInput: panel.querySelector("input.mep-strategy1-first-cond-extra-enabled"),
-                    strategy1SecondCondMaxLossesEnabledInput: panel.querySelector("input.mep-strategy1-second-cond-max-losses-enabled"),
-                    strategy1SecondCondMaxStakeEnabledInput: panel.querySelector("input.mep-strategy1-second-cond-max-stake-enabled"),
-                    strategy1SecondCondDiffEnabledInput: panel.querySelector("input.mep-strategy1-second-cond-diff-enabled"),
-                    strategy1SecondCondFrequencyEnabledInput: panel.querySelector("input.mep-strategy1-second-cond-frequency-enabled"),
-                    strategy1ExecuteBetBtn: panel.querySelector("button.mep-strategy1-execute-bet"),
-                    strategy1StartCycleBtn: panel.querySelector("button.mep-strategy1-start-cycle"),
-                    strategy1FinishCycleBtn: panel.querySelector("button.mep-strategy1-finish-cycle"),
-                    strategy1HardExitBtn: panel.querySelector("button.mep-strategy1-hard-exit"),
-                    strategy1StartNewCycleBtn: panel.querySelector("button.mep-strategy1-start-new-cycle"),
-                    strategy1EnterWaitingRecoveryBtn: panel.querySelector("button.mep-strategy1-enter-waiting-recovery"),
-                    strategy1ExitWaitingRecoveryBtn: panel.querySelector("button.mep-strategy1-exit-waiting-recovery"),
-                    strategy1ResetCycleBtn: panel.querySelector("button.mep-strategy1-reset-cycle"),
-                    strategy1CheckCharterBtn: panel.querySelector("button.mep-strategy1-check-charter"),
-                    strategy1RouteBranchBtn: panel.querySelector("button.mep-strategy1-route-branch"),
-                    strategy1CheckFirstBranchBtn: panel.querySelector("button.mep-strategy1-check-first-branch"),
-                    strategy1CheckSecondBranchBtn: panel.querySelector("button.mep-strategy1-check-second-branch"),
-                    strategy1PauseCycleBtn: panel.querySelector("button.mep-strategy1-pause-cycle"),
-                    strategy1ResumeCycleBtn: panel.querySelector("button.mep-strategy1-resume-cycle"),
-                    strategy1BuildStakePlanBtn: panel.querySelector("button.mep-strategy1-build-stake-plan"),
-                    strategy1EvaluateBetPermissionBtn: panel.querySelector("button.mep-strategy1-evaluate-bet-permission"),
-                    strategy1TestRoundWinBtn: panel.querySelector("button.mep-strategy1-test-round-win"),
-                    strategy1TestRoundLossBtn: panel.querySelector("button.mep-strategy1-test-round-loss"),
-                    strategy1SystemMessagesWrap: panel.querySelector(".mep-system-messages"),
-                    strategy1SystemMessagesList: panel.querySelector(".mep-system-messages-list"),
-                    strategy1SystemMessagesClearBtn: panel.querySelector("button.mep-strategy1-system-messages-clear"),
-                    strategy1ConditionsModeEl: panel.querySelector(".mep-strategy1-conditions-mode"),
-                    strategy1StakePlayersVectorStateEl: panel.querySelector(".mep-strategy1-stake-players-vector-state"),
-                    strategy1StakeBetVectorStateEl: panel.querySelector(".mep-strategy1-stake-bet-vector-state"),
-                    strategy1FirstBranchPassedEl: panel.querySelector(".mep-strategy1-first-branch-passed"),
-                    strategy1FirstBranchLt2El: panel.querySelector(".mep-strategy1-first-branch-lt2"),
-                    strategy1FirstBranchDiffEl: panel.querySelector(".mep-strategy1-first-branch-diff"),
-                    strategy1FirstBranchFreqEl: panel.querySelector(".mep-strategy1-first-branch-freq"),
-                    strategy1FirstBranchStakeBetEl: panel.querySelector(".mep-strategy1-first-branch-stake-bet"),
-                    strategy1FirstBranchStakePlayersEl: panel.querySelector(".mep-strategy1-first-branch-stake-players"),
-                    strategy1FirstBranchFailedAtEl: panel.querySelector(".mep-strategy1-first-branch-failed-at"),
-                    strategy1FirstBranchWaitReasonEl: panel.querySelector(".mep-strategy1-first-branch-wait-reason"),
-                    strategy1SecondBranchPassedEl: panel.querySelector(".mep-strategy1-second-branch-passed"),
-                    strategy1SecondBranchLossCountEl: panel.querySelector(".mep-strategy1-second-branch-loss-count"),
-                    strategy1SecondBranchMaxLossesEl: panel.querySelector(".mep-strategy1-second-branch-max-losses"),
-                    strategy1SecondBranchStakeReadyEl: panel.querySelector(".mep-strategy1-second-branch-stake-ready"),
-                    strategy1SecondBranchStakeInvalidEl: panel.querySelector(".mep-strategy1-second-branch-stake-invalid"),
-                    strategy1SecondBranchDiffEl: panel.querySelector(".mep-strategy1-second-branch-diff"),
-                    strategy1SecondBranchFreqEl: panel.querySelector(".mep-strategy1-second-branch-freq"),
-                    strategy1SecondBranchFailedAtEl: panel.querySelector(".mep-strategy1-second-branch-failed-at"),
-                    strategy1SecondBranchShouldEndEl: panel.querySelector(".mep-strategy1-second-branch-should-end"),
-                    strategy1SecondBranchEndReasonEl: panel.querySelector(".mep-strategy1-second-branch-end-reason"),
-                    strategy1SecondBranchWaitReasonEl: panel.querySelector(".mep-strategy1-second-branch-wait-reason"),
-                    strategy1FirstConditionsDiagWrap: panel.querySelector(".mep-strategy1-first-conditions-diag-wrap"),
-                    strategy1SecondConditionsDiagWrap: panel.querySelector(".mep-strategy1-second-conditions-diag-wrap"),
-                    strategy1ConditionsCanBetEl: panel.querySelector(".mep-strategy1-conditions-canbet"),
-                    strategy1ConditionsEndEl: panel.querySelector(".mep-strategy1-conditions-end"),
-                    strategy1ConditionsReasonEl: panel.querySelector(".mep-strategy1-conditions-reason"),
-                    strategy1StakeCalcModeEl: panel.querySelector(".mep-strategy1-stake-calc-mode"),
-                    strategy1TargetCalcModeEl: panel.querySelector(".mep-strategy1-target-calc-mode"),
-                    strategy1LastBetAmountEl: panel.querySelector(".mep-strategy1-last-bet-amount"),
-                    strategy1LastTargetMultiplierEl: panel.querySelector(".mep-strategy1-last-target-multiplier"),
-                    strategy1StakePlanCalcModeEl: panel.querySelector(".mep-strategy1-stake-plan-calc-mode"),
-                    strategy1StakePlanStepEl: panel.querySelector(".mep-strategy1-stake-plan-step"),
-                    strategy1StakePlanBetAmountEl: panel.querySelector(".mep-strategy1-stake-plan-bet-amount"),
-                    strategy1StakePlanTargetEl: panel.querySelector(".mep-strategy1-stake-plan-target"),
-                    strategy1StakePlanRiskCapEl: panel.querySelector(".mep-strategy1-stake-plan-risk-cap"),
-                    strategy1StakePlanMaxAllowedEl: panel.querySelector(".mep-strategy1-stake-plan-max-allowed"),
-                    strategy1StakePlanAllowedByRiskEl: panel.querySelector(".mep-strategy1-stake-plan-allowed-by-risk"),
-                    strategy1StakePlanReadyEl: panel.querySelector(".mep-strategy1-stake-plan-ready"),
-                    strategy1StakePlanInvalidReasonEl: panel.querySelector(".mep-strategy1-stake-plan-invalid-reason"),
-                    strategy1CycleStartBalanceEl: panel.querySelector(".mep-strategy1-cycle-start-balance"),
-                    strategy1CycleCurrentBalanceEl: panel.querySelector(".mep-strategy1-cycle-current-balance"),
-                    strategy1CycleLastStakeEl: panel.querySelector(".mep-strategy1-cycle-last-stake"),
-                    strategy1CycleTotalStakeEl: panel.querySelector(".mep-strategy1-cycle-total-stake"),
-                    strategy1CycleLossCountEl: panel.querySelector(".mep-strategy1-cycle-loss-count"),
-                    strategy1CycleWinCountEl: panel.querySelector(".mep-strategy1-cycle-win-count"),
-                    strategy1CycleStatusEl: panel.querySelector(".mep-strategy1-cycle-status"),
-                    strategy1CycleEndReasonEl: panel.querySelector(".mep-strategy1-cycle-end-reason"),
-                    strategy1LastRoundOutcomeEl: panel.querySelector(".mep-strategy1-last-round-outcome"),
-                    strategy1LastRoundIdEl: panel.querySelector(".mep-strategy1-last-round-id"),
-                    strategy1LastRoundBalanceEl: panel.querySelector(".mep-strategy1-last-round-balance"),
-                    strategy1CyclePnlEl: panel.querySelector(".mep-strategy1-cycle-pnl"),
-                    strategy1CycleRoundCountEl: panel.querySelector(".mep-strategy1-cycle-round-count"),
-                    strategy1CycleFinishedEl: panel.querySelector(".mep-strategy1-cycle-finished"),
-                    strategy1CycleFinishReasonEl: panel.querySelector(".mep-strategy1-cycle-finish-reason"),
-                    strategy1CycleStartedAtEl: panel.querySelector(".mep-strategy1-cycle-started-at"),
-                    strategy1CycleFinishedAtEl: panel.querySelector(".mep-strategy1-cycle-finished-at"),
-                    strategy1CycleLastRoundAtEl: panel.querySelector(".mep-strategy1-cycle-last-round-at"),
-                    strategy1CycleDurationMsEl: panel.querySelector(".mep-strategy1-cycle-duration-ms"),
-                    strategy1DecisionStatusTextEl: panel.querySelector(".mep-strategy1-decision-status-text"),
-                    strategy1DecisionStatusCodeEl: panel.querySelector(".mep-strategy1-decision-status-code"),
-                    strategy1DecisionCanBetEl: panel.querySelector(".mep-strategy1-decision-canbet"),
-                    strategy1DecisionEndCycleEl: panel.querySelector(".mep-strategy1-decision-endcycle"),
-                    strategy1DecisionBranchEl: panel.querySelector(".mep-strategy1-decision-branch"),
-                    strategy1DecisionWaitReasonEl: panel.querySelector(".mep-strategy1-decision-waitreason"),
-                    strategy1DecisionAtEl: panel.querySelector(".mep-strategy1-decision-at"),
-                    strategy1SummaryEnabledEl: panel.querySelector(".mep-strategy1-summary-enabled"),
-                    strategy1SummaryCycleEl: panel.querySelector(".mep-strategy1-summary-cycle"),
-                    strategy1SummaryBranchEl: panel.querySelector(".mep-strategy1-summary-branch"),
-                    strategy1SummaryCanBetEl: panel.querySelector(".mep-strategy1-summary-canbet"),
-                    strategy1SummaryPauseEl: panel.querySelector(".mep-strategy1-summary-pause"),
-                    strategy1SummaryRecoveryEl: panel.querySelector(".mep-strategy1-summary-recovery"),
-                    strategy1SummaryExecutingEl: panel.querySelector(".mep-strategy1-summary-executing"),
-                    strategy1SummaryEndReasonEl: panel.querySelector(".mep-strategy1-summary-endreason"),
-                    strategy1PermissionAllowedEl: panel.querySelector(".mep-strategy1-permission-allowed"),
-                    strategy1PermissionStageEl: panel.querySelector(".mep-strategy1-permission-stage"),
-                    strategy1PermissionReasonEl: panel.querySelector(".mep-strategy1-permission-reason"),
-                    strategy1PermissionShouldEndEl: panel.querySelector(".mep-strategy1-permission-should-end"),
-                    strategy1ManualPauseActiveEl: panel.querySelector(".mep-strategy1-manual-pause-active"),
-                    strategy1ManualPauseReasonEl: panel.querySelector(".mep-strategy1-manual-pause-reason"),
-                    strategy1ManualPauseAtEl: panel.querySelector(".mep-strategy1-manual-pause-at"),
-                    strategy1ManualResumeAtEl: panel.querySelector(".mep-strategy1-manual-resume-at"),
-                    strategy1HardExitRequestedEl: panel.querySelector(".mep-strategy1-hard-exit-requested"),
-                    strategy1HardExitReasonEl: panel.querySelector(".mep-strategy1-hard-exit-reason"),
-                    strategy1HardExitAtEl: panel.querySelector(".mep-strategy1-hard-exit-at"),
-                    strategy1WaitingRecoveryActiveEl: panel.querySelector(".mep-strategy1-waiting-recovery-active"),
-                    strategy1WaitingRecoveryReasonEl: panel.querySelector(".mep-strategy1-waiting-recovery-reason"),
-                    strategy1WaitingRecoveryTargetEl: panel.querySelector(".mep-strategy1-waiting-recovery-target"),
-                    strategy1WaitingRecoveryCurrentEl: panel.querySelector(".mep-strategy1-waiting-recovery-current"),
-                    strategy1WaitingRecoveryReachedEl: panel.querySelector(".mep-strategy1-waiting-recovery-reached"),
-                    strategy1WaitingRecoveryStartedAtEl: panel.querySelector(".mep-strategy1-waiting-recovery-started-at"),
-                    strategy1WaitingRecoveryReachedAtEl: panel.querySelector(".mep-strategy1-waiting-recovery-reached-at"),
-                    strategy1ExecutionStateEl: panel.querySelector(".mep-strategy1-execution-state"),
-                    strategy1IsExecutingEl: panel.querySelector(".mep-strategy1-is-executing"),
-                    strategy1ExecutionLockedEl: panel.querySelector(".mep-strategy1-execution-locked"),
-                    strategy1WaitingRoundResultEl: panel.querySelector(".mep-strategy1-waiting-round-result"),
-                    strategy1LastExecutionAtEl: panel.querySelector(".mep-strategy1-last-execution-at"),
-                    strategy1LastExecutionReasonEl: panel.querySelector(".mep-strategy1-last-execution-reason"),
-                    strategy1LastExecutionResultEl: panel.querySelector(".mep-strategy1-last-execution-result"),
-                    strategy1PendingBetAmountEl: panel.querySelector(".mep-strategy1-pending-bet-amount"),
-                    strategy1PendingTargetMultiplierEl: panel.querySelector(".mep-strategy1-pending-target-multiplier"),
-                    strategy1LastVoiceEventEl: panel.querySelector(".mep-strategy1-last-voice-event"),
-                    strategy1LastVoiceAtEl: panel.querySelector(".mep-strategy1-last-voice-at"),
-                    strategy1LastStatusEventEl: panel.querySelector(".mep-strategy1-last-status-event"),
-                    strategy1LastStatusAtEl: panel.querySelector(".mep-strategy1-last-status-at"),
-                    strategy1CharterAllowedEl: panel.querySelector(".mep-strategy1-charter-allowed"),
-                    strategy1CharterReasonEl: panel.querySelector(".mep-strategy1-charter-reason"),
-                    strategy1CharterRoundsHourEl: panel.querySelector(".mep-strategy1-charter-rounds-hour"),
-                    strategy1CharterRounds6hEl: panel.querySelector(".mep-strategy1-charter-rounds-6h"),
-                    strategy1CharterRoundsDayEl: panel.querySelector(".mep-strategy1-charter-rounds-day"),
-                    strategy1CharterWinsHourEl: panel.querySelector(".mep-strategy1-charter-wins-hour"),
-                    strategy1CharterWins6hEl: panel.querySelector(".mep-strategy1-charter-wins-6h"),
-                    strategy1CharterWinsDayEl: panel.querySelector(".mep-strategy1-charter-wins-day"),
-                    strategy1CharterLossesHourEl: panel.querySelector(".mep-strategy1-charter-losses-hour"),
-                    strategy1CharterLosses6hEl: panel.querySelector(".mep-strategy1-charter-losses-6h"),
-                    strategy1CharterLossesDayEl: panel.querySelector(".mep-strategy1-charter-losses-day"),
-                    strategy1CharterBreakEl: panel.querySelector(".mep-strategy1-charter-break"),
+                    strategy1EnabledToggle: panel.querySelector("input.mep-strategy1-enabled"),
+                    strategy1InfoBar: panel.querySelector(".mep-strategy1-info-bar"),
+                    strategy1InfoTicker: panel.querySelector(".mep-strategy1-info-ticker"),
+                    strategy1WorkTimer: panel.querySelector(".mep-strategy1-work-timer"),
+                    strategy1TabBtn: panel.querySelector('button.mep-game-tab-btn[data-tab="strategy1"]'),
                     textarea: panel.querySelector("textarea.mep-stats"),
                     copyBtn: panel.querySelector("button.mep-copy"),
                     sendDbBtn: panel.querySelector("button.mep-send-db"),
@@ -8840,453 +8076,57 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
 
                 const s1 = MEP.State?.strategies?.strategy1;
                 if (s1) {
-                    const setNonNegNumber = (inp, key, step = 0.1) => {
-                        if (!inp) return;
-                        const n0 = Math.max(0, Number(s1.config[key]) || 0);
-                        s1.config[key] = n0;
-                        inp.value = String(n0);
-                        inp.addEventListener("input", () => {
-                            let v = Number(inp.value);
-                            if (!Number.isFinite(v) || v < 0) v = 0;
-                            if (step === 1) v = Math.floor(v);
-                            s1.config[key] = v;
-                            inp.value = String(v);
-                            MEP.Storage.save();
-                            MEP.Strategy1?.buildStakePlan?.();
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    };
-                    const setModeSelect = (inp, key, allowed) => {
-                        if (!inp) return;
-                        const cur = allowed.includes(s1.config[key]) ? s1.config[key] : allowed[0];
-                        s1.config[key] = cur;
-                        inp.value = cur;
-                        inp.addEventListener("change", () => {
-                            const val = allowed.includes(inp.value) ? inp.value : allowed[0];
-                            s1.config[key] = val;
-                            inp.value = val;
-                            MEP.Storage.save();
-                            MEP.Strategy1?.buildStakePlan?.();
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    };
-                    const setTextInput = (inp, key) => {
-                        if (!inp) return;
-                        inp.value = (s1.config[key] || "").toString();
-                        inp.addEventListener("input", () => {
-                            s1.config[key] = (inp.value || "").toString();
-                            MEP.Storage.save();
-                            MEP.Strategy1?.buildStakePlan?.();
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    };
-                    const setToggleInput = (inp, key, defaultValue) => {
-                        if (!inp) return;
-                        if (typeof s1.config[key] !== "boolean") s1.config[key] = !!defaultValue;
-                        inp.checked = !!s1.config[key];
-                        inp.addEventListener("change", () => {
-                            s1.config[key] = !!inp.checked;
-                            MEP.Storage.save();
-                            MEP.Strategy1?.evaluateDecisionState?.();
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    };
-
-                    if (ui.strategy1EnabledInput) {
-                        ui.strategy1EnabledInput.checked = !!s1.enabled;
-                        ui.strategy1EnabledInput.addEventListener("change", () => {
-                            const next = !!ui.strategy1EnabledInput.checked;
+                    if (s1.enabled && (!s1.timers || !Number(s1.timers.enabledAtTs))) {
+                        if (!s1.timers || typeof s1.timers !== "object") s1.timers = {};
+                        s1.timers.enabledAtTs = Date.now();
+                    }
+                    if (ui.strategy1EnabledToggle) {
+                        ui.strategy1EnabledToggle.checked = !!s1.enabled;
+                        ui.strategy1EnabledToggle.addEventListener("change", () => {
+                            const next = !!ui.strategy1EnabledToggle.checked;
                             const active = MEP.State.activeStrategyId;
                             if (next && active && active !== "strategy1") {
-                                ui.strategy1EnabledInput.checked = false;
+                                ui.strategy1EnabledToggle.checked = false;
+                                MEP.UI.setStrategy1InfoMessage("Стратегия 1 не может быть запущена: активна другая стратегия...");
                                 return;
                             }
                             s1.enabled = next;
-                            if (!next && active === "strategy1" && !s1.isExecuting) {
-                                MEP.State.activeStrategyId = null;
+                            if (next) {
+                                if (!s1.timers || typeof s1.timers !== "object") s1.timers = {};
+                                s1.timers.enabledAtTs = Date.now();
+                                MEP.State.activeStrategyId = "strategy1";
+                                MEP.UI.setStrategy1InfoMessage("Стратегия 1 запущена...");
+                            } else {
+                                if (!s1.timers || typeof s1.timers !== "object") s1.timers = {};
+                                s1.timers.enabledAtTs = 0;
+                                if (active === "strategy1" && !s1.isExecuting) MEP.State.activeStrategyId = null;
+                                MEP.UI.setStrategy1InfoMessage("Стратегия 1 остановлена...");
                             }
                             MEP.Storage.save();
                             MEP.Strategy1?.evaluateDecisionState?.();
                             MEP.Strategy1?.updateUiCounters?.();
                         });
                     }
-                    if (ui.strategy1VoiceEnabledInput) {
-                        ui.strategy1VoiceEnabledInput.checked = s1.config.voiceEnabled !== false;
-                        ui.strategy1VoiceEnabledInput.addEventListener("change", () => {
-                            s1.config.voiceEnabled = !!ui.strategy1VoiceEnabledInput.checked;
-                            s1.runtime.voiceEventsEnabled = s1.config.voiceEnabled !== false;
-                            MEP.Storage.save();
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1StatusEventsEnabledInput) {
-                        ui.strategy1StatusEventsEnabledInput.checked = s1.config.statusEventsEnabled !== false;
-                        ui.strategy1StatusEventsEnabledInput.addEventListener("change", () => {
-                            s1.config.statusEventsEnabled = !!ui.strategy1StatusEventsEnabledInput.checked;
-                            s1.runtime.statusEventsEnabled = s1.config.statusEventsEnabled !== false;
-                            MEP.Storage.save();
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1VoiceCooldownInput) {
-                        const cooldown = Math.max(0, Math.floor(Number(s1.config.voiceCooldownMs) || 1500));
-                        s1.config.voiceCooldownMs = cooldown;
-                        ui.strategy1VoiceCooldownInput.value = String(cooldown);
-                        ui.strategy1VoiceCooldownInput.addEventListener("input", () => {
-                            let next = Math.floor(Number(ui.strategy1VoiceCooldownInput.value) || 0);
-                            if (!Number.isFinite(next) || next < 0) next = 0;
-                            s1.config.voiceCooldownMs = next;
-                            ui.strategy1VoiceCooldownInput.value = String(next);
-                            MEP.Storage.save();
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1StartCycleBtn) {
-                        ui.strategy1StartCycleBtn.addEventListener("click", () => {
-                            const applied = !!MEP.Strategy1?.startCycle?.();
-                            const sNow = MEP.State?.strategies?.strategy1;
-                            console.debug("[MEP][Strategy1][bind startCycle]", {
-                                applied,
-                                strategyEnabled: !!sNow?.enabled,
-                                cycleIsActive: !!sNow?.cycle?.isActive,
-                                activeStrategyId: (MEP.State?.activeStrategyId || "").toString(),
-                            });
-                            const active = MEP.State?.activeStrategyId;
-                            const blockedByOther = !applied && !!active && active !== "strategy1";
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: applied ? "ok" : "warn",
-                                action: "startCycle",
-                                text: applied
-                                    ? "Старт цикла выполнен"
-                                    : blockedByOther
-                                      ? "Старт цикла пропущен: активна другая стратегия"
-                                      : "Старт цикла пропущен: цикл уже активен",
-                                code: applied ? "cycle_started" : "cycle_start_skipped",
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1ExecuteBetBtn) {
-                        ui.strategy1ExecuteBetBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.executeBet?.();
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1FinishCycleBtn) {
-                        ui.strategy1FinishCycleBtn.addEventListener("click", () => {
-                            const stNow = MEP.State?.strategies?.strategy1;
-                            const wasActive = !!stNow?.cycle?.isActive;
-                            const reason = MEP.Strategy1?.finishCycle?.("manual_stop");
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: wasActive ? "ok" : "warn",
-                                action: "finishCycle",
-                                text: wasActive ? "Цикл завершён вручную" : "Завершение цикла пропущено: цикл не активен",
-                                code: wasActive ? "cycle_finished_manual" : "cycle_finish_skipped",
-                                reason: (reason || "").toString(),
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1HardExitBtn) {
-                        ui.strategy1HardExitBtn.addEventListener("click", () => {
-                            const res = MEP.Strategy1?.requestHardExit?.("hard_exit");
-                            if (!res?.applied) {
-                                MEP.Strategy1?.pushSystemMessage?.({
-                                    level: "warn",
-                                    action: "hardExit",
-                                    text: "Hard exit не применён: цикл не активен",
-                                    code: "hard_exit_skipped",
-                                    stage: "cycle_finish",
-                                    reason: (res?.reason || "cycle_inactive").toString(),
-                                });
-                            }
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1StartNewCycleBtn) {
-                        ui.strategy1StartNewCycleBtn.addEventListener("click", () => {
-                            const res = MEP.Strategy1?.startNewCycle?.();
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: res?.applied ? "ok" : "warn",
-                                action: "startNewCycle",
-                                text: res?.applied
-                                    ? "Новый цикл запущен"
-                                    : res?.reason === "cycle_already_active"
-                                      ? "Новый цикл не запущен: цикл уже активен"
-                                      : "Новый цикл не запущен: активна другая стратегия",
-                                code: res?.applied ? "new_cycle_started" : "new_cycle_skipped",
-                                stage: "cycle_control",
-                                reason: (res?.reason || "").toString(),
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1EnterWaitingRecoveryBtn) {
-                        ui.strategy1EnterWaitingRecoveryBtn.addEventListener("click", () => {
-                            const stNow = MEP.State?.strategies?.strategy1 || null;
-                            const cycleStartBalance = Number(stNow?.cycle?.startBalance) || 0;
-                            const currentBalance = Number(MEP.Strategy1?.getCurrentBalance?.()) || 0;
-                            const targetBalance = cycleStartBalance > 0 ? cycleStartBalance : currentBalance;
-                            const res = MEP.Strategy1?.enterWaitingBalanceRecovery?.("waiting_balance_recovery", targetBalance);
-                            if (!res?.applied) {
-                                MEP.Strategy1?.pushSystemMessage?.({
-                                    level: "warn",
-                                    action: "enterWaitingBalanceRecovery",
-                                    text: MEP.Strategy1?.formatSystemMessageText?.("enterWaitingBalanceRecovery", { applied: false }) || "Режим ожидания не включён",
-                                    code: "waiting_balance_recovery_enter_skipped",
-                                    stage: "waiting_balance_recovery",
-                                    reason: (res?.reason || "not_applied").toString(),
-                                });
-                            }
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1ExitWaitingRecoveryBtn) {
-                        ui.strategy1ExitWaitingRecoveryBtn.addEventListener("click", () => {
-                            const res = MEP.Strategy1?.exitWaitingBalanceRecovery?.("manual_exit_waiting_balance_recovery");
-                            if (!res?.applied) {
-                                MEP.Strategy1?.pushSystemMessage?.({
-                                    level: "warn",
-                                    action: "exitWaitingBalanceRecovery",
-                                    text: MEP.Strategy1?.formatSystemMessageText?.("exitWaitingBalanceRecovery", { applied: false }) || "Режим ожидания не выключен",
-                                    code: "waiting_balance_recovery_exit_skipped",
-                                    stage: "waiting_balance_recovery",
-                                    reason: (res?.reason || "not_waiting_balance_recovery").toString(),
-                                });
-                            }
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1ResetCycleBtn) {
-                        ui.strategy1ResetCycleBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.resetCycle?.();
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: "ok",
-                                action: "resetCycle",
-                                text: "Состояние цикла сброшено",
-                                code: "cycle_reset",
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1CheckCharterBtn) {
-                        ui.strategy1CheckCharterBtn.addEventListener("click", () => {
-                            const charter = MEP.Strategy1?.checkCharter?.();
-                            MEP.Strategy1?.evaluateDecisionState?.();
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: charter?.allowed ? "ok" : "warn",
-                                action: "checkCharter",
-                                text: charter?.allowed ? "Устав разрешает продолжение" : "Устав блокирует стратегию",
-                                code: charter?.allowed ? "charter_ok" : "charter_blocked",
-                                stage: "charter",
-                                reason: (charter?.blockReason || "").toString(),
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1RouteBranchBtn) {
-                        ui.strategy1RouteBranchBtn.addEventListener("click", () => {
-                            const info = MEP.Strategy1?.routeBranch?.();
-                            MEP.Strategy1?.evaluateDecisionState?.();
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: info?.branch ? "info" : "warn",
-                                action: "routeBranch",
-                                text: info?.branch
-                                    ? `Определена ветка: ${info.branch}`
-                                    : "Ветка не выбрана: цикл не активен",
-                                code: info?.branch ? "branch_selected" : "branch_not_selected",
-                                stage: "routing",
-                                reason: (info?.reason || "").toString(),
-                                branch: (info?.branch || "").toString(),
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1CheckFirstBranchBtn) {
-                        ui.strategy1CheckFirstBranchBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.routeBranch?.();
-                            const first = MEP.Strategy1?.checkFirstBranch?.();
-                            MEP.Strategy1?.evaluateDecisionState?.();
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: first?.passed ? "ok" : "warn",
-                                action: "checkFirstBranch",
-                                text: first?.passed ? "Первая ветка пройдена" : "Первая ветка не пройдена",
-                                code: first?.passed ? "first_branch_ok" : "first_branch_fail",
-                                stage: "first_branch",
-                                reason: (first?.failedAt || "").toString(),
-                                branch: "first",
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1CheckSecondBranchBtn) {
-                        ui.strategy1CheckSecondBranchBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.routeBranch?.();
-                            const second = MEP.Strategy1?.checkSecondBranch?.();
-                            MEP.Strategy1?.evaluateDecisionState?.();
-                            const shouldEnd = !!second?.shouldEndCycle;
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: second?.passed ? "ok" : "warn",
-                                action: "checkSecondBranch",
-                                text: second?.passed
-                                    ? "Вторая ветка пройдена"
-                                    : shouldEnd
-                                      ? "Цикл должен быть завершён: достигнут максимальный уровень ставки"
-                                      : "Вторая ветка не пройдена",
-                                code: second?.passed ? "second_branch_ok" : shouldEnd ? "second_branch_cycle_end" : "second_branch_fail",
-                                stage: "second_branch",
-                                reason: (second?.endReason || second?.failedAt || "").toString(),
-                                branch: "second",
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1PauseCycleBtn) {
-                        ui.strategy1PauseCycleBtn.addEventListener("click", () => {
-                            const res = MEP.Strategy1?.pauseCycle?.("manual_pause");
-                            if (!res?.applied) {
-                                MEP.Strategy1?.pushSystemMessage?.({
-                                    level: "warn",
-                                    action: "pauseCycle",
-                                    text:
-                                        res?.reason === "already_paused"
-                                            ? "Пауза не применена: уже на паузе"
-                                            : "Пауза не применена: цикл не активен",
-                                    code: "pause_skipped",
-                                    stage: "manual_pause",
-                                    reason: (res?.reason || "").toString(),
-                                });
-                            }
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1ResumeCycleBtn) {
-                        ui.strategy1ResumeCycleBtn.addEventListener("click", () => {
-                            const res = MEP.Strategy1?.resumeCycle?.();
-                            if (!res?.applied) {
-                                MEP.Strategy1?.pushSystemMessage?.({
-                                    level: "warn",
-                                    action: "resumeCycle",
-                                    text: "Продолжение не применено: пауза не активна",
-                                    code: "resume_skipped",
-                                    stage: "manual_pause",
-                                    reason: (res?.reason || "").toString(),
-                                });
-                            }
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1BuildStakePlanBtn) {
-                        ui.strategy1BuildStakePlanBtn.addEventListener("click", () => {
-                            const plan = MEP.Strategy1?.buildStakePlan?.();
-                            MEP.Strategy1?.evaluateDecisionState?.();
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: plan?.ready ? "ok" : "warn",
-                                action: "buildStakePlan",
-                                text: plan?.ready ? "План ставки готов" : "План ставки невалиден",
-                                code: plan?.ready ? "stake_plan_ready" : "stake_plan_invalid",
-                                stage: "stake_plan",
-                                reason: (plan?.invalidReason || "").toString(),
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1EvaluateBetPermissionBtn) {
-                        ui.strategy1EvaluateBetPermissionBtn.addEventListener("click", () => {
-                            const res = MEP.Strategy1?.evaluateDecisionState?.();
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: res?.allowed ? "ok" : "warn",
-                                action: "evaluateBetPermission",
-                                text: res?.allowed ? "Допуск к ставке разрешён" : "Допуск к ставке отклонён",
-                                code: res?.allowed ? "permission_allowed" : "permission_denied",
-                                stage: (res?.stage || "").toString(),
-                                reason: (res?.reason || "").toString(),
-                                branch: (res?.branch || "").toString(),
-                                payload: { shouldEndCycle: !!res?.shouldEndCycle },
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1TestRoundWinBtn) {
-                        ui.strategy1TestRoundWinBtn.addEventListener("click", () => {
-                            const stNow = MEP.State?.strategies?.strategy1;
-                            const currentBalance = MEP.Strategy1?.getCurrentBalance?.() || 0;
-                            const upd = MEP.Strategy1?.updateAfterRound?.({
-                                balance: currentBalance + 0.00000001,
-                                stake: Number(stNow?.stakePlan?.betAmount) || 0,
-                                targetMultiplier: Number(stNow?.stakePlan?.targetMultiplier) || 2,
-                                won: true,
-                                roundId: `test_win_${Date.now()}`,
-                                ts: Date.now(),
-                                resultKind: "debug",
-                            });
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: upd?.applied ? "ok" : "warn",
-                                action: "testRoundWin",
-                                text: upd?.applied ? "Тестовый win-раунд обработан" : "Тестовый win-раунд пропущен",
-                                code: upd?.applied ? "test_win_applied" : "test_win_skipped",
-                                stage: "post_round",
-                                reason: (upd?.reason || "").toString(),
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1TestRoundLossBtn) {
-                        ui.strategy1TestRoundLossBtn.addEventListener("click", () => {
-                            const stNow = MEP.State?.strategies?.strategy1;
-                            const currentBalance = MEP.Strategy1?.getCurrentBalance?.() || 0;
-                            const upd = MEP.Strategy1?.updateAfterRound?.({
-                                balance: Math.max(0, currentBalance - 0.00000001),
-                                stake: Number(stNow?.stakePlan?.betAmount) || 0,
-                                targetMultiplier: Number(stNow?.stakePlan?.targetMultiplier) || 2,
-                                lost: true,
-                                roundId: `test_loss_${Date.now()}`,
-                                ts: Date.now(),
-                                resultKind: "debug",
-                            });
-                            MEP.Strategy1?.pushSystemMessage?.({
-                                level: upd?.applied ? "ok" : "warn",
-                                action: "testRoundLoss",
-                                text: upd?.applied ? "Тестовый loss-раунд обработан" : "Тестовый loss-раунд пропущен",
-                                code: upd?.applied ? "test_loss_applied" : "test_loss_skipped",
-                                stage: "post_round",
-                                reason: (upd?.reason || "").toString(),
-                            });
-                            MEP.Strategy1?.updateUiCounters?.();
-                        });
-                    }
-                    if (ui.strategy1SystemMessagesClearBtn) {
-                        ui.strategy1SystemMessagesClearBtn.addEventListener("click", () => {
-                            MEP.Strategy1?.clearSystemMessages?.();
-                        });
-                    }
-
-                    setNonNegNumber(ui.strategy1RiskPercentInput, "riskPercent", 0.1);
-                    setModeSelect(ui.strategy1StartStakeModeInput, "startStakeMode", ["fixed", "array"]);
-                    setNonNegNumber(ui.strategy1StartStakeValueInput, "startStakeValue", 0.00000001);
-                    setTextInput(ui.strategy1StartStakeArrayInput, "startStakeArrayText");
-                    setModeSelect(ui.strategy1StakeGrowthModeInput, "stakeGrowthMode", ["factor", "array"]);
-                    setNonNegNumber(ui.strategy1StakeGrowthFactorInput, "stakeGrowthFactor", 0.01);
-                    setTextInput(ui.strategy1StakeGrowthArrayInput, "stakeGrowthArrayText");
-                    setModeSelect(ui.strategy1TargetModeInput, "targetMode", ["fixed", "array"]);
-                    setNonNegNumber(ui.strategy1TargetMultiplierInput, "targetMultiplierValue", 0.01);
-                    setTextInput(ui.strategy1TargetMultiplierArrayInput, "targetMultiplierArrayText");
-                    setNonNegNumber(ui.strategy1MaxLossesInput, "maxLosses", 1);
-                    setToggleInput(ui.strategy1FirstCondLt2EnabledInput, "firstCondLt2StreakEnabled", true);
-                    setToggleInput(ui.strategy1FirstCondDiffEnabledInput, "firstCondDiffVectorEnabled", true);
-                    setToggleInput(ui.strategy1FirstCondFrequencyEnabledInput, "firstCondFrequencyVectorEnabled", true);
-                    setToggleInput(ui.strategy1FirstCondStakeBetEnabledInput, "firstCondStakeBetVectorEnabled", true);
-                    setToggleInput(ui.strategy1FirstCondStakePlayersEnabledInput, "firstCondStakePlayersVectorEnabled", true);
-                    setToggleInput(ui.strategy1FirstCondExtraEnabledInput, "firstCondExtraEnabled", false);
-                    setToggleInput(ui.strategy1SecondCondMaxLossesEnabledInput, "secondCondMaxLossesEnabled", true);
-                    setToggleInput(ui.strategy1SecondCondMaxStakeEnabledInput, "secondCondMaxStakeEnabled", true);
-                    setToggleInput(ui.strategy1SecondCondDiffEnabledInput, "secondCondDiffVectorEnabled", true);
-                    setToggleInput(ui.strategy1SecondCondFrequencyEnabledInput, "secondCondFrequencyVectorEnabled", true);
-
-                    MEP.Strategy1?.checkCharter?.();
-                    MEP.Strategy1?.buildStakePlan?.();
-                    MEP.Strategy1?.updateUiCounters?.();
                 }
+                if (ui.strategy1InfoBar) {
+                    ui._strategy1InfoHoverLocked = false;
+                    ui.strategy1InfoBar.addEventListener("mouseenter", () => {
+                        if (ui._strategy1InfoHoverLocked) return;
+                        ui._strategy1InfoHoverLocked = true;
+                        MEP.UI.replayStrategy1InfoTicker();
+                    });
+                    ui.strategy1InfoBar.addEventListener("mouseleave", () => {
+                        ui._strategy1InfoHoverLocked = false;
+                    });
+                }
+                MEP.UI.setStrategy1InfoMessage(s1?.enabled ? "Стратегия 1 запущена..." : "Стратегия 1 не запущена...");
+                if (ui._strategy1TimerInterval) clearInterval(ui._strategy1TimerInterval);
+                ui._strategy1TimerInterval = setInterval(() => {
+                    const stNow = MEP.State?.strategies?.strategy1;
+                    if (!stNow) return;
+                    MEP.UI.renderStrategy1MinimalUi(stNow);
+                }, 1000);
+
 
                 // -------------------------
                 // Graph controls

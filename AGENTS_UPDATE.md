@@ -180,3 +180,8 @@
 - В Strategy1 UI добавлены кнопки `Ждать восстановления` / `Снять ожидание`, refs+bind, и diagnostics-поля waiting recovery (active/reason/target/current/reached/startedAt/reachedAt).
 - В system messages добавлены значимые переходы waiting recovery: вход, выход, и единоразовое сообщение при первом достижении целевого баланса.
 
+- 2026-03-31: Strategy1 UI полностью пересобран на минимальный шаг 1: оставлены только info-bar (одно последнее событие с one-shot ticker) и control-row (Вкл/Откл toggle + вертикальный divider + таймер hh:mm:ss).
+- Удалены старые Strategy1 markup/bind/refs для diagnostics/conditions/stake-constructor/cycle/debug buttons/system messages/branch badges; bind оставлен только на новый toggle.
+- Добавлены новые refs: `strategy1InfoBar`, `strategy1InfoTicker`, `strategy1EnabledToggle`, `strategy1WorkTimer`, `strategy1TabBtn`.
+- Добавлены helper-методы UI: `setStrategy1InfoMessage`, `replayStrategy1InfoTicker`, `truncateStrategy1InfoText`, `renderStrategy1MinimalUi`, форматтер таймера.
+- Подсветка вкладки Strategy1 переведена в live-state класс `mep-strategy1-tab-live` (зелёная при enabled), таймер сбрасывается при новом запуске через `timers.enabledAtTs`.
