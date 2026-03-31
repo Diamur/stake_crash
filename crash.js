@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.32  ====
+// === crash.js 0.1.5.33  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -344,6 +344,7 @@
                 waitingBalanceRecoveryCurrentBalance: 0,
                 waitingBalanceRecoveryReached: false,
                 waitingBalanceRecoveryReachedAtTs: 0,
+                debugExecution: true,
                 voiceEventsEnabled: true,
                 statusEventsEnabled: true,
                 lastVoiceEventCode: "",
@@ -392,7 +393,7 @@
             executionLocked: true,
             runtime: {},
         });
-        MEP.ver = "0.1.5.32";
+        MEP.ver = "0.1.5.33";
 
         // -------------------------
         // Settings module
@@ -4845,6 +4846,27 @@
                 return 45000;
             },
 
+            isExecutionDebugEnabled() {
+                const st = this.getState();
+                return st?.runtime?.debugExecution !== false;
+            },
+
+            executionDebug(label = "", payload = null) {
+                if (!this.isExecutionDebugEnabled()) return;
+                try {
+                    if (arguments.length > 1) console.debug(label, payload);
+                    else console.debug(label);
+                } catch (e) {}
+            },
+
+            executionWarn(label = "", payload = null) {
+                if (!this.isExecutionDebugEnabled()) return;
+                try {
+                    if (arguments.length > 1) console.warn(label, payload);
+                    else console.warn(label);
+                } catch (e) {}
+            },
+
             formatDomNumber(v, fallback = "0") {
                 const n = Number(v);
                 if (!Number.isFinite(n) || n < 0) return fallback;
@@ -4925,6 +4947,7 @@
                 const scope = root || this.findSidebarRoot();
                 if (!scope) return { applied: false, reason: "sidebar_not_found" };
                 const manualBtn = this.findManualTabButton(scope);
+                this.executionDebug("[MEP][Strategy1][sync] manual tab found", { found: !!manualBtn });
                 if (!manualBtn) return { applied: false, reason: "manual_mode_unavailable" };
                 try {
                     manualBtn.click();
@@ -4958,49 +4981,90 @@
 
             async syncBetInputsToDom(plan = {}) {
                 const root = this.findSidebarRoot();
-                if (!root) return { applied: false, reason: "sidebar_not_found", stage: "find_dom" };
+                this.executionDebug("[MEP][Strategy1][sync] root found", { found: !!root });
+                if (!root) {
+                    const out = { applied: false, reason: "sidebar_not_found", stage: "find_dom" };
+                    this.executionWarn("[MEP][Strategy1][sync] result", out);
+                    return out;
+                }
                 const manual = await this.ensureManualMode(root);
-                if (!manual?.applied) return { applied: false, reason: manual?.reason || "manual_mode_unavailable", stage: "manual_mode" };
+                this.executionDebug("[MEP][Strategy1][sync] manual mode ensured", manual);
+                if (!manual?.applied) {
+                    const out = { applied: false, reason: manual?.reason || "manual_mode_unavailable", stage: "manual_mode" };
+                    this.executionWarn("[MEP][Strategy1][sync] result", out);
+                    return out;
+                }
                 const betInput = this.findBetAmountInput(root);
                 const targetInput = this.findTargetMultiplierInput(root);
-                if (!betInput) return { applied: false, reason: "amount_input_not_found", stage: "find_dom" };
-                if (!targetInput) return { applied: false, reason: "target_input_not_found", stage: "find_dom" };
+                this.executionDebug("[MEP][Strategy1][sync] bet input found", { found: !!betInput });
+                this.executionDebug("[MEP][Strategy1][sync] target input found", { found: !!targetInput });
+                if (!betInput) {
+                    const out = { applied: false, reason: "amount_input_not_found", stage: "find_dom" };
+                    this.executionWarn("[MEP][Strategy1][sync] result", out);
+                    return out;
+                }
+                if (!targetInput) {
+                    const out = { applied: false, reason: "target_input_not_found", stage: "find_dom" };
+                    this.executionWarn("[MEP][Strategy1][sync] result", out);
+                    return out;
+                }
                 const betValue = this.formatDomNumber(plan?.betAmount, "0");
                 const targetValue = this.formatDomNumber(plan?.targetMultiplier, "2");
+                this.executionDebug("[MEP][Strategy1][sync] set values", { betValue, targetValue });
                 const betOk = this.setNativeInputValue(betInput, betValue);
                 if (!betOk) {
-                    return { applied: false, reason: "bet_amount_value_not_applied", stage: "set_dom", betValue };
+                    const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "set_dom", betValue };
+                    this.executionWarn("[MEP][Strategy1][sync] result", out);
+                    return out;
                 }
                 const targetOk = this.setNativeInputValue(targetInput, targetValue);
                 if (!targetOk) {
-                    return { applied: false, reason: "target_value_not_applied", stage: "set_dom", targetValue };
+                    const out = { applied: false, reason: "target_value_not_applied", stage: "set_dom", targetValue };
+                    this.executionWarn("[MEP][Strategy1][sync] result", out);
+                    return out;
                 }
                 const betApplied = (betInput.value || "").toString().trim();
                 const targetApplied = (targetInput.value || "").toString().trim();
+                this.executionDebug("[MEP][Strategy1][sync] verify values", { betApplied, targetApplied });
                 if (!betApplied || betApplied !== betValue) {
-                    return { applied: false, reason: "bet_amount_value_not_applied", stage: "verify_dom", betValue, betApplied };
+                    const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "verify_dom", betValue, betApplied };
+                    this.executionWarn("[MEP][Strategy1][sync] result", out);
+                    return out;
                 }
                 if (!targetApplied || targetApplied !== targetValue) {
-                    return { applied: false, reason: "target_value_not_applied", stage: "verify_dom", targetValue, targetApplied };
+                    const out = { applied: false, reason: "target_value_not_applied", stage: "verify_dom", targetValue, targetApplied };
+                    this.executionWarn("[MEP][Strategy1][sync] result", out);
+                    return out;
                 }
                 const st = this.getState();
                 if (st?.runtime) st.runtime.lastDomSyncAtTs = Date.now();
-                return { applied: true, reason: "", stage: "dom_synced", betValue, targetValue };
+                const out = { applied: true, reason: "", stage: "dom_synced", betValue, targetValue };
+                this.executionDebug("[MEP][Strategy1][sync] result", out);
+                return out;
             },
 
             clickBetButton() {
                 const root = this.findSidebarRoot();
-                if (!root) return { applied: false, reason: "sidebar_not_found", stage: "click" };
+                if (!root) {
+                    const out = { applied: false, reason: "sidebar_not_found", stage: "click" };
+                    this.executionWarn("[MEP][Strategy1][clickBetButton state]", { ...out, found: false });
+                    return out;
+                }
                 const btn = this.findBetButton(root);
                 const state = this.readBetButtonState(btn);
+                this.executionDebug("[MEP][Strategy1][clickBetButton state]", state);
                 if (!state.found) return { applied: false, reason: "bet_button_not_found", stage: "click" };
                 if (state.disabled) return { applied: false, reason: "bet_button_disabled", stage: "click" };
                 if (!state.canClick) return { applied: false, reason: "bet_button_unavailable_state", stage: "click" };
                 try {
                     btn.click();
-                    return { applied: true, reason: "", stage: "clicked" };
+                    const out = { applied: true, reason: "", stage: "clicked" };
+                    this.executionDebug("[MEP][Strategy1][clickBetButton result]", out);
+                    return out;
                 } catch (e) {
-                    return { applied: false, reason: "dom_click_failed", stage: "click" };
+                    const out = { applied: false, reason: "dom_click_failed", stage: "click" };
+                    this.executionWarn("[MEP][Strategy1][clickBetButton result]", out);
+                    return out;
                 }
             },
 
@@ -5026,6 +5090,16 @@
             onExecutionRejected(reason = "execution_rejected", extra = {}) {
                 const st = this.getState();
                 if (!st) return { applied: false, reason: "strategy1_not_found", stage: "reject" };
+                this.executionWarn("[MEP][Strategy1][execution rejected]", {
+                    reason: (reason || "").toString(),
+                    extra: extra && typeof extra === "object" ? { ...extra } : {},
+                    state: {
+                        cycleIsActive: !!st.cycle?.isActive,
+                        executionLocked: !!st.executionLocked,
+                        permissionSnapshot: st.runtime?.lastBetPermissionResult || null,
+                        planSnapshot: st.runtime?.lastStakePlanResult || null,
+                    },
+                });
                 st.runtime.lastExecutionAtTs = Date.now();
                 st.runtime.lastExecutionReason = (reason || "").toString();
                 st.runtime.lastExecutionResult = "rejected";
@@ -5070,6 +5144,16 @@
                 st.cycle.lastStake = Number(p.betAmount) || 0;
                 st.cycle.lastTargetMultiplier = Number(p.targetMultiplier) || 0;
                 st.counters.lastStake = Number(p.betAmount) || 0;
+                this.executionDebug("[MEP][Strategy1][execution accepted]", {
+                    betAmount: Number(p.betAmount) || 0,
+                    targetMultiplier: Number(p.targetMultiplier) || 0,
+                    branch: (p.branch || "").toString(),
+                    cycleId: (st.cycle?.cycleId || "").toString(),
+                    pendingExecutionPayload: st.runtime.pendingExecutionPayload ? { ...st.runtime.pendingExecutionPayload } : null,
+                    executionLocked: !!st.executionLocked,
+                    waitingRoundResult: !!st.runtime.waitingRoundResult,
+                    executionState: (st.runtime.executionState || "").toString(),
+                });
                 this.pushSystemMessage({
                     level: "ok",
                     action: "executeBet",
@@ -5093,43 +5177,151 @@
 
             executeBet() {
                 const st = this.getState();
-                if (!st) return this.onExecutionRejected("strategy1_not_found");
-                if (st.enabled !== true) return this.onExecutionRejected("strategy_disabled");
-                if (st.executionLocked) return this.onExecutionRejected("execution_locked");
-                if (!st.cycle?.isActive) return this.onExecutionRejected("cycle_inactive");
-                if (st.runtime?.manualPauseActive) return this.onExecutionRejected("manual_pause_active");
-                if (st.runtime?.waitingBalanceRecoveryActive) return this.onExecutionRejected("waiting_balance_recovery_active");
-                if (st.runtime?.waitingRoundResult) return this.onExecutionRejected("waiting_round_result");
-                if ((st.runtime?.executionState || "") === "awaiting_round_result") return this.onExecutionRejected("already_executing");
+                if (this.isExecutionDebugEnabled()) {
+                    try {
+                        console.groupCollapsed("[MEP][Strategy1][executeBet]");
+                    } catch (e) {}
+                }
+                if (!st) {
+                    this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "strategy1_not_found" });
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected("strategy1_not_found");
+                }
+                this.executionDebug("[MEP][Strategy1][executeBet state]", {
+                    enabled: !!st.enabled,
+                    isExecuting: !!st.isExecuting,
+                    executionLocked: !!st.executionLocked,
+                    cycleIsActive: !!st.cycle?.isActive,
+                    cycleId: (st.cycle?.cycleId || "").toString(),
+                    cycleLossCount: Number(st.cycle?.lossCount) || 0,
+                    cycleStepIndex: Number(st.cycle?.stepIndex) || 0,
+                    manualPauseActive: !!st.runtime?.manualPauseActive,
+                    waitingBalanceRecoveryActive: !!st.runtime?.waitingBalanceRecoveryActive,
+                    waitingRoundResult: !!st.runtime?.waitingRoundResult,
+                    executionState: (st.runtime?.executionState || "").toString(),
+                    activeStrategyId: (MEP.State?.activeStrategyId || "").toString(),
+                });
+                if (st.enabled !== true) {
+                    this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "strategy_disabled" });
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected("strategy_disabled");
+                }
+                if (st.executionLocked) {
+                    this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "execution_locked" });
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected("execution_locked");
+                }
+                if (!st.cycle?.isActive) {
+                    this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "cycle_inactive" });
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected("cycle_inactive");
+                }
+                if (st.runtime?.manualPauseActive) {
+                    this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "manual_pause_active" });
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected("manual_pause_active");
+                }
+                if (st.runtime?.waitingBalanceRecoveryActive) {
+                    this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "waiting_balance_recovery_active" });
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected("waiting_balance_recovery_active");
+                }
+                if (st.runtime?.waitingRoundResult) {
+                    this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "waiting_round_result" });
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected("waiting_round_result");
+                }
+                if ((st.runtime?.executionState || "") === "awaiting_round_result") {
+                    this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "already_executing" });
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected("already_executing");
+                }
 
                 const permission = this.evaluateBetPermission();
-                if (!permission?.allowed) return this.onExecutionRejected(permission?.reason || "permission_denied", { stage: permission?.stage || "" });
-                if (permission?.shouldEndCycle) return this.onExecutionRejected("cycle_should_end");
+                this.executionDebug("[MEP][Strategy1][permission]", permission);
+                if (!permission?.allowed) {
+                    this.executionWarn("[MEP][Strategy1][permission reject]", {
+                        reason: permission?.reason || "permission_denied",
+                        stage: permission?.stage || "",
+                        shouldEndCycle: !!permission?.shouldEndCycle,
+                        branch: permission?.branch || "",
+                        statusCode: permission?.statusCode || "",
+                    });
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected(permission?.reason || "permission_denied", { stage: permission?.stage || "" });
+                }
+                if (permission?.shouldEndCycle) {
+                    this.executionWarn("[MEP][Strategy1][permission reject]", {
+                        reason: "cycle_should_end",
+                        stage: permission?.stage || "",
+                        shouldEndCycle: true,
+                        branch: permission?.branch || "",
+                        statusCode: permission?.statusCode || "",
+                    });
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected("cycle_should_end");
+                }
 
                 const plan = this.buildStakePlan();
-                if (!plan?.ready) return this.onExecutionRejected(plan?.invalidReason || "stake_plan_invalid");
+                this.executionDebug("[MEP][Strategy1][plan]", {
+                    ready: plan?.ready,
+                    invalidReason: plan?.invalidReason,
+                    betAmount: plan?.betAmount,
+                    targetMultiplier: plan?.targetMultiplier,
+                    riskCap: plan?.riskCap,
+                    maxAllowedStake: plan?.maxAllowedStake,
+                    allowedByRisk: plan?.allowedByRisk,
+                    calcMode: plan?.calcMode,
+                    sourceStep: plan?.sourceStep,
+                });
+                if (!plan?.ready) {
+                    this.executionWarn("[MEP][Strategy1][plan reject]", plan);
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected(plan?.invalidReason || "stake_plan_invalid");
+                }
 
                 const sync = this.syncBetInputsToDom(plan);
-                if (!sync?.applied) return this.onExecutionRejected(sync?.reason || "dom_sync_failed", sync || {});
+                this.executionDebug("[MEP][Strategy1][sync result raw]", sync);
+                if (!sync?.applied) {
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected(sync?.reason || "dom_sync_failed", sync || {});
+                }
 
                 const click = this.clickBetButton();
-                if (!click?.applied) return this.onExecutionRejected(click?.reason || "dom_click_failed", click || {});
+                this.executionDebug("[MEP][Strategy1][click result]", click);
+                if (!click?.applied) {
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected(click?.reason || "dom_click_failed", click || {});
+                }
 
-                return this.onExecutionAccepted({
+                const accepted = this.onExecutionAccepted({
                     betAmount: plan.betAmount,
                     targetMultiplier: plan.targetMultiplier,
                     branch: permission?.branch || "",
                 });
+                if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                return accepted;
             },
 
             handleRoundFinishedForExecution(payload = {}) {
                 const st = this.getState();
+                this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution called]", {
+                    hasState: !!st,
+                    waitingRoundResult: !!st?.runtime?.waitingRoundResult,
+                    isExecuting: !!st?.isExecuting,
+                    payload: payload && typeof payload === "object" ? { ...payload } : {},
+                });
                 if (!st) return { applied: false, reason: "strategy1_not_found" };
                 if (!st.isExecuting || !st.runtime?.waitingRoundResult) return { applied: false, reason: "execution_not_waiting" };
                 const p = payload && typeof payload === "object" ? payload : {};
                 const roundId = (p.roundId || "").toString();
                 const ts = Number(p.ts) || Date.now();
                 const currentBalance = Number(this.getCurrentBalance()) || 0;
+                this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution payload]", {
+                    roundId,
+                    balance: Number.isFinite(Number(p.balance)) ? Number(p.balance) : currentBalance,
+                    ts,
+                });
                 const result = {
                     balance: Number.isFinite(Number(p.balance)) ? Number(p.balance) : currentBalance,
                     stake: Number(st.runtime.pendingBetAmount) || 0,
@@ -5141,7 +5333,9 @@
                     lost: p.lost === true,
                     resultKind: "execution_bridge",
                 };
+                this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution normalized]", result);
                 const updated = this.updateAfterRound(result);
+                this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution updateAfterRound]", updated);
                 st.runtime.lastExecutionRoundId = result.roundId;
                 st.runtime.lastExecutionResult = updated?.applied ? "round_processed" : "round_apply_failed";
                 st.runtime.executionState = "idle";
@@ -5150,6 +5344,11 @@
                 st.runtime.pendingTargetMultiplier = 0;
                 st.runtime.waitingRoundResult = false;
                 st.executionLocked = false;
+                this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution final]", {
+                    executionLocked: !!st.executionLocked,
+                    waitingRoundResult: !!st.runtime.waitingRoundResult,
+                    executionState: st.runtime.executionState || "",
+                });
                 this.pushSystemMessage({
                     level: updated?.applied ? "ok" : "warn",
                     action: "executionRound",
@@ -5805,10 +6004,31 @@
 
             startCycle() {
                 const st = this.getState();
-                if (!st) return false;
-                if (MEP.State.activeStrategyId && MEP.State.activeStrategyId !== st.id) return false;
+                this.executionDebug("[MEP][Strategy1][startCycle] enter", {
+                    hasState: !!st,
+                    activeStrategyIdBefore: (MEP.State?.activeStrategyId || "").toString(),
+                    cycleIsActiveBefore: !!st?.cycle?.isActive,
+                    enabled: !!st?.enabled,
+                });
+                if (!st) {
+                    this.executionWarn("[MEP][Strategy1][startCycle] reject", { reason: "strategy1_not_found" });
+                    return false;
+                }
+                if (MEP.State.activeStrategyId && MEP.State.activeStrategyId !== st.id) {
+                    this.executionWarn("[MEP][Strategy1][startCycle] reject", {
+                        reason: "other_strategy_active",
+                        activeStrategyIdBefore: (MEP.State?.activeStrategyId || "").toString(),
+                    });
+                    return false;
+                }
                 const now = Date.now();
                 const currentBalanceNow = this.getCurrentBalance();
+                this.executionDebug("[MEP][Strategy1][startCycle] seed", {
+                    currentBalanceNow: Number(currentBalanceNow) || 0,
+                    cycleIdCandidate: `s1_${now}`,
+                    cycleIsActiveBefore: !!st.cycle?.isActive,
+                    activeStrategyIdBefore: (MEP.State?.activeStrategyId || "").toString(),
+                });
                 st.isExecuting = true;
                 st.executionLocked = false;
                 MEP.State.activeStrategyId = st.id;
@@ -5843,6 +6063,12 @@
                 });
                 this.evaluateDecisionState();
                 this.updateUiCounters();
+                this.executionDebug("[MEP][Strategy1][startCycle] applied", {
+                    result: true,
+                    cycleId: st.cycle.cycleId,
+                    cycleIsActiveAfter: !!st.cycle?.isActive,
+                    activeStrategyIdAfter: (MEP.State?.activeStrategyId || "").toString(),
+                });
                 return true;
             },
 
@@ -8717,6 +8943,13 @@ Invalid reason: <span class="mep-strategy1-stake-plan-invalid-reason">—</span>
                     if (ui.strategy1StartCycleBtn) {
                         ui.strategy1StartCycleBtn.addEventListener("click", () => {
                             const applied = !!MEP.Strategy1?.startCycle?.();
+                            const sNow = MEP.State?.strategies?.strategy1;
+                            console.debug("[MEP][Strategy1][bind startCycle]", {
+                                applied,
+                                strategyEnabled: !!sNow?.enabled,
+                                cycleIsActive: !!sNow?.cycle?.isActive,
+                                activeStrategyId: (MEP.State?.activeStrategyId || "").toString(),
+                            });
                             const active = MEP.State?.activeStrategyId;
                             const blockedByOther = !applied && !!active && active !== "strategy1";
                             MEP.Strategy1?.pushSystemMessage?.({

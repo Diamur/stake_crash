@@ -213,3 +213,7 @@
 - 2026-03-31: Execution bridge доведён до канона verified DOM: primary селекторы manual-tab/input-game-amount/target[min=1.01]/bet-button + поиск строго внутри sidebar root.
 - В `syncBetInputsToDom()` убран общий `dom_sync_failed`: причины отказа нормализованы к точечным `bet_amount_value_not_applied` / `target_value_not_applied` (включая stage=`set_dom`).
 - Поднят frontend version marker до `0.1.5.32` (header + `MEP.ver`) без изменений decision/charter/branch/pause/hard-exit логики.
+
+- 2026-03-31: DEBUG-pass для Strategy1 execution path (без изменения decision/execution логики) — добавлен runtime-флаг `debugExecution=true` и точечные console debug/warn в ключевые шаги.
+- Детализированы логи в `startCycle`, `executeBet`, `syncBetInputsToDom`, `clickBetButton`, `onExecutionRejected`, `onExecutionAccepted`, `handleRoundFinishedForExecution` + bind `Старт цикла`.
+- Цель: прозрачно увидеть маршрут `start -> cycle active? -> execute guard -> permission -> plan -> dom sync -> click -> accepted/rejected` в реальном runtime.
