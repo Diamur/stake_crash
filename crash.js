@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.31  ====
+// === crash.js 0.1.5.32  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -392,7 +392,7 @@
             executionLocked: true,
             runtime: {},
         });
-        MEP.ver = "0.1.5.31";
+        MEP.ver = "0.1.5.32";
 
         // -------------------------
         // Settings module
@@ -4968,8 +4968,13 @@
                 const betValue = this.formatDomNumber(plan?.betAmount, "0");
                 const targetValue = this.formatDomNumber(plan?.targetMultiplier, "2");
                 const betOk = this.setNativeInputValue(betInput, betValue);
+                if (!betOk) {
+                    return { applied: false, reason: "bet_amount_value_not_applied", stage: "set_dom", betValue };
+                }
                 const targetOk = this.setNativeInputValue(targetInput, targetValue);
-                if (!betOk || !targetOk) return { applied: false, reason: "dom_sync_failed", stage: "set_dom", betOk, targetOk };
+                if (!targetOk) {
+                    return { applied: false, reason: "target_value_not_applied", stage: "set_dom", targetValue };
+                }
                 const betApplied = (betInput.value || "").toString().trim();
                 const targetApplied = (targetInput.value || "").toString().trim();
                 if (!betApplied || betApplied !== betValue) {

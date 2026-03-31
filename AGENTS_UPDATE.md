@@ -209,3 +209,7 @@
 - `syncBetInputsToDom()` переведён на канонический pipeline: sidebar -> manual mode -> inputs -> controlled write -> value verify с точными reject-reason.
 - `readBetButtonState()`/`clickBetButton()` обновлены под data-test-action checks (`action-enabled`, `action-bet`) и защиту текста `Начинается`.
 - Автоисполнение не включалось: execution остаётся manual-only через кнопку `Выполнить ставку`; decision/gateway/branch/charter/pause/hard-exit/waiting-recovery pipeline не менялся.
+
+- 2026-03-31: Execution bridge доведён до канона verified DOM: primary селекторы manual-tab/input-game-amount/target[min=1.01]/bet-button + поиск строго внутри sidebar root.
+- В `syncBetInputsToDom()` убран общий `dom_sync_failed`: причины отказа нормализованы к точечным `bet_amount_value_not_applied` / `target_value_not_applied` (включая stage=`set_dom`).
+- Поднят frontend version marker до `0.1.5.32` (header + `MEP.ver`) без изменений decision/charter/branch/pause/hard-exit логики.
