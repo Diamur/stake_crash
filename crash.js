@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.33  ====
+// === crash.js 0.1.5.34  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -393,7 +393,7 @@
             executionLocked: true,
             runtime: {},
         });
-        MEP.ver = "0.1.5.33";
+        MEP.ver = "0.1.5.34";
 
         // -------------------------
         // Settings module
@@ -2454,10 +2454,11 @@
         letter-spacing:.35px;
         }
         .mep-strategy-summary-strip{
-        display:grid;
-        grid-template-columns:repeat(4,minmax(0,1fr));
+        display:flex;
         gap:6px;
         margin-bottom:8px;
+        align-items:stretch;
+        flex-direction:column;
         }
         .mep-strategy-summary-item{
         display:flex;

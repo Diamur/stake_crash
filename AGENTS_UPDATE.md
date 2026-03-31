@@ -217,3 +217,6 @@
 - 2026-03-31: DEBUG-pass для Strategy1 execution path (без изменения decision/execution логики) — добавлен runtime-флаг `debugExecution=true` и точечные console debug/warn в ключевые шаги.
 - Детализированы логи в `startCycle`, `executeBet`, `syncBetInputsToDom`, `clickBetButton`, `onExecutionRejected`, `onExecutionAccepted`, `handleRoundFinishedForExecution` + bind `Старт цикла`.
 - Цель: прозрачно увидеть маршрут `start -> cycle active? -> execute guard -> permission -> plan -> dom sync -> click -> accepted/rejected` в реальном runtime.
+
+- 2026-03-31: UI-фикс Strategy1 summary-strip — `.mep-strategy-summary-strip` переведён из grid в column flex (`display:flex; flex-direction:column; align-items:stretch; gap:6px; margin-bottom:8px;`).
+- Поднят frontend version marker до `0.1.5.34` (header + `MEP.ver`), логика Strategy1/execution не менялась.
