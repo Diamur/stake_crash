@@ -185,3 +185,8 @@
 - Добавлены новые refs: `strategy1InfoBar`, `strategy1InfoTicker`, `strategy1EnabledToggle`, `strategy1WorkTimer`, `strategy1TabBtn`.
 - Добавлены helper-методы UI: `setStrategy1InfoMessage`, `replayStrategy1InfoTicker`, `truncateStrategy1InfoText`, `renderStrategy1MinimalUi`, форматтер таймера.
 - Подсветка вкладки Strategy1 переведена в live-state класс `mep-strategy1-tab-live` (зелёная при enabled), таймер сбрасывается при новом запуске через `timers.enabledAtTs`.
+- 2026-03-31: Добавлен стартовый минимальный UI вкладки `Стратегия2` (info-bar 24px + control-row: Вкл/Откл + toggle + divider + timer `hh:mm:ss`) в стиле нового Strategy1.
+- Добавлены refs Strategy2: `strategy2InfoBar`, `strategy2InfoTicker`, `strategy2EnabledToggle`, `strategy2WorkTimer`, `strategy2TabBtn`.
+- Добавлена двусторонняя UI-блокировка стратегий через helper `canEnableStrategy(strategyId)`: одновременно активна только одна стратегия.
+- При блокировке запуска показываются сообщения: `Стратегия2 невозможно запустить, запущена другая стратегия` / `Стратегия1 невозможно запустить, запущена другая стратегия`.
+- Добавлены отдельные таймеры включения для Strategy2 (`timers.enabledAtTs`) и live-подсветка вкладки `strategy2` без вмешательства в execution/decision/cycle engine.
