@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.34  ====
+// === crash.js 0.1.5.39  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -396,7 +396,7 @@
             },
             runtime: {},
         });
-        MEP.ver = "0.1.5.34";
+        MEP.ver = "0.1.5.39";
 
         // -------------------------
         // Settings module
@@ -7296,7 +7296,7 @@
                 const startShift = Math.max(1, Math.floor(barWidth));
                 const endShift = Math.max(1, Math.floor(textWidth));
                 const travel = startShift + endShift;
-                const durationMs = Math.min(16000, Math.max(2200, Math.floor((travel / 60) * 1000)));
+                const durationMs = Math.min(13000, Math.max(1800, Math.floor((travel / 75) * 1000)));
                 ticker.style.setProperty("--mep-s1-ticker-start", `${startShift}px`);
                 ticker.style.setProperty("--mep-s1-ticker-shift", `${endShift}px`);
                 ticker.style.setProperty("--mep-s1-ticker-duration", `${durationMs}ms`);
