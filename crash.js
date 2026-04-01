@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.43  ====
+// === crash.js 0.1.5.44  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -404,7 +404,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.43";
+        MEP.ver = "0.1.5.44";
 
         // -------------------------
         // Settings module
@@ -1247,7 +1247,7 @@
                 style.id = STYLE_ID;
                 style.textContent = `
 				#${PANEL_ID}{
-				position:fixed; top:0; right:0; height:100vh; width:400px;
+				position:fixed; top:0; right:0; height:100vh; width:450px;
 				z-index:2147483647;
 				background: rgba(16,22,30,0.92);
 				border-left:1px solid rgba(255,255,255,0.08);
@@ -2547,22 +2547,26 @@
         margin-top:8px;
         display:flex;
         align-items:center;
-        gap:8px;
+        gap:6px;
         border-top:1px dashed rgba(255,255,255,.28);
         border-bottom:1px dashed rgba(255,255,255,.28);
         padding:6px 10px;
-        font-size:13px;
+        font-size:12px;
+        min-width:0;
+        overflow:hidden;
+        flex-wrap:nowrap;
         }
         .mep-strategy1-coin-icon svg{width:18px;height:18px;display:block;}
-        .mep-strategy1-start-balance{color:#9aa3ad;}
-        .mep-strategy1-current-balance{color:#fff;font-weight:700;}
+        .mep-strategy1-start-balance{color:#9aa3ad;max-width:82px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mep-strategy1-current-balance{color:#fff;font-weight:700;max-width:96px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .mep-strategy1-balance-divider,
         .mep-strategy1-start-divider{width:1px;height:24px;background:rgba(255,255,255,.65);}
         .mep-strategy1-pnl.is-pos{color:#00ff57;}
         .mep-strategy1-pnl.is-neg{color:#ff6f9f;}
         .mep-strategy1-pnl.is-neutral{color:#a9b2bc;}
-        .mep-strategy1-risk-amount{color:#d7dde5;cursor:pointer;}
-        .mep-strategy1-risk-percent{width:42px;height:26px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;text-align:center;}
+        .mep-strategy1-pnl{max-width:56px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mep-strategy1-risk-amount{color:#d7dde5;cursor:pointer;max-width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mep-strategy1-risk-percent{width:36px;height:24px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;text-align:center;}
         .mep-strategy1-risk-percent-sign{font-size:48px;transform:scale(.26);transform-origin:left center;color:#fff;}
         .mep-strategy1-toggle{
         position:relative;
@@ -2675,22 +2679,26 @@
         margin-top:8px;
         display:flex;
         align-items:center;
-        gap:8px;
+        gap:6px;
         border-top:1px dashed rgba(255,255,255,.28);
         border-bottom:1px dashed rgba(255,255,255,.28);
         padding:6px 10px;
-        font-size:13px;
+        font-size:12px;
+        min-width:0;
+        overflow:hidden;
+        flex-wrap:nowrap;
         }
         .mep-strategy2-coin-icon svg{width:18px;height:18px;display:block;}
-        .mep-strategy2-start-balance{color:#9aa3ad;}
-        .mep-strategy2-current-balance{color:#fff;font-weight:700;}
+        .mep-strategy2-start-balance{color:#9aa3ad;max-width:82px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mep-strategy2-current-balance{color:#fff;font-weight:700;max-width:96px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .mep-strategy2-balance-divider,
         .mep-strategy2-start-divider{width:1px;height:24px;background:rgba(255,255,255,.65);}
         .mep-strategy2-pnl.is-pos{color:#00ff57;}
         .mep-strategy2-pnl.is-neg{color:#ff6f9f;}
         .mep-strategy2-pnl.is-neutral{color:#a9b2bc;}
-        .mep-strategy2-risk-amount{color:#d7dde5;cursor:pointer;}
-        .mep-strategy2-risk-percent{width:42px;height:26px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;text-align:center;}
+        .mep-strategy2-pnl{max-width:56px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mep-strategy2-risk-amount{color:#d7dde5;cursor:pointer;max-width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mep-strategy2-risk-percent{width:36px;height:24px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;text-align:center;}
         .mep-strategy2-risk-percent-sign{font-size:48px;transform:scale(.26);transform-origin:left center;color:#fff;}
         .mep-strategy2-toggle{
         position:relative;
