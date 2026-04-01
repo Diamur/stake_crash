@@ -180,3 +180,43 @@
 - В Strategy1 UI добавлены кнопки `Ждать восстановления` / `Снять ожидание`, refs+bind, и diagnostics-поля waiting recovery (active/reason/target/current/reached/startedAt/reachedAt).
 - В system messages добавлены значимые переходы waiting recovery: вход, выход, и единоразовое сообщение при первом достижении целевого баланса.
 
+- 2026-03-29: Strategy1 Этап 15 — добавлены config toggles для FIRST/SECOND_BRANCH условий (on/off) с persistence через существующий `strategy1.config` save/load.
+- `checkFirstBranch()` и `checkSecondBranch()` переведены на condition-модель (`enabled/raw passed/effectivePassed`) и возвращают расширенную diagnostics `conditions[]`.
+- Для SECOND max_stake добавлено правило toggle-aware: при выключенном `secondCondMaxStakeEnabled` блокировка и `shouldEndCycle` по max stake не срабатывают.
+- В UI Strategy1 добавлены checkbox-переключатели условий, refs/bind и живой ререндер после клика (`save -> evaluateDecisionState -> updateUiCounters`).
+- В diagnostics добавлены компактные строки по каждому условию: `on/raw/eff` для FIRST и SECOND веток.
+- 2026-03-29: Strategy1 Этап 16 — добавлен runtime/config слой status+voice events (event codes, emitStatusEvent, emitVoiceEvent, announceStateTransition) без TTS/autoclick.
+- В runtime добавлены lastVoice/lastStatus + lastAnnounced* поля; в config добавлены voiceEnabled/statusEventsEnabled/voiceCooldownMs (через текущий strategy1.config persistence path).
+- Подключены переходы: start/finish/new cycle, pause/resume, waiting recovery on/off/reached, permission/branch transitions, round outcome events.
+- Добавлен cooldown/dedupe для voice (voiceCooldownMs) и state-dedupe для branch/permission transition событий.
+- В Strategy1 UI добавлены controls Voice/Status/Cooldown и diagnostics Last voice/status event + ts; обновлены refs/bind/updateUiCounters.
+- 2026-03-29: Strategy1 Этап 17 — выполнена UI-polish переработка: сгруппированы блоки управления/диагностики, добавлены summary-strip и компактные subgroup-заголовки.
+- Добавлены format helpers `fmtBool/fmtText/fmtCode/fmtNum/fmtBalance/fmtTs` и badge-рендер ключевых state полей без изменения decision pipeline.
+- Диагностика времени переведена на человекочитаемый `HH:MM:SS` для decision/pause/hard-exit/recovery/voice/status/cycle timestamps.
+- Разделены action/debug кнопки на 2 подгруппы, улучшен блок system messages (компактнее, max-height+scroll).
+- Полирован блок параметров (режимы fixed/array/factor подсвечиваются), conditions diagnostics и stakePlan/cycle summary cards.
+- 2026-03-29: UI фикс Strategy1 — строка «Вкл / Откл стратегии» переведена в реальный clickable toggle (`input.mep-strategy1-enabled`) с индикатором `Вкл/Выкл`.
+- Добавлен ref `strategy1EnabledStatusEl` и синхронизация в `updateUiCounters()` (`checked` + badge/text status).
+- Bind Strategy1 enabled сохранён по прежнему канону: `state.enabled -> save -> evaluateDecisionState -> updateUiCounters`.
+- 2026-03-29: Strategy1 Этап 18 — добавлен execution bridge (DOM sync bet/target + click bet) с runtime execution-state и lock-guard от дублей.
+- Реализованы методы `executeBet`, `syncBetInputsToDom`, `clickBetButton`, `onExecutionAccepted`, `onExecutionRejected`, `lockExecution`, `unlockExecution`, `handleRoundFinishedForExecution`, `checkExecutionTimeout`.
+- Добавлены execution event codes + тексты/уровни (`execution_started/rejected/round_wait/round_processed/timeout`) и интеграция в existing status/voice layer.
+- Добавлена кнопка `Выполнить ставку`, refs/bind и execution diagnostics в блоке состояния (state/locks/pending/last execution).
+- Встроен round-result bridge через Tracker.addNewest() при `waitingRoundResult=true` + safe timeout unlock без авто win/loss.
+
+- 2026-03-30: Strategy1 execution bridge hotfix под реальную DOM-разметку Stake (manual-tab/input-game-amount/target[min=1.01]/bet-button) с жёстким scope в `.game-sidebar`.
+- Добавлены helper’ы `findSidebarRoot/findManualTabButton/findBetAmountInput/findTargetMultiplierInput/findBetButton` и `ensureManualMode()` (click manual + verify inputs/button).
+- `syncBetInputsToDom()` переведён на канонический pipeline: sidebar -> manual mode -> inputs -> controlled write -> value verify с точными reject-reason.
+- `readBetButtonState()`/`clickBetButton()` обновлены под data-test-action checks (`action-enabled`, `action-bet`) и защиту текста `Начинается`.
+- Автоисполнение не включалось: execution остаётся manual-only через кнопку `Выполнить ставку`; decision/gateway/branch/charter/pause/hard-exit/waiting-recovery pipeline не менялся.
+
+- 2026-03-31: Execution bridge доведён до канона verified DOM: primary селекторы manual-tab/input-game-amount/target[min=1.01]/bet-button + поиск строго внутри sidebar root.
+- В `syncBetInputsToDom()` убран общий `dom_sync_failed`: причины отказа нормализованы к точечным `bet_amount_value_not_applied` / `target_value_not_applied` (включая stage=`set_dom`).
+- Поднят frontend version marker до `0.1.5.32` (header + `MEP.ver`) без изменений decision/charter/branch/pause/hard-exit логики.
+
+- 2026-03-31: DEBUG-pass для Strategy1 execution path (без изменения decision/execution логики) — добавлен runtime-флаг `debugExecution=true` и точечные console debug/warn в ключевые шаги.
+- Детализированы логи в `startCycle`, `executeBet`, `syncBetInputsToDom`, `clickBetButton`, `onExecutionRejected`, `onExecutionAccepted`, `handleRoundFinishedForExecution` + bind `Старт цикла`.
+- Цель: прозрачно увидеть маршрут `start -> cycle active? -> execute guard -> permission -> plan -> dom sync -> click -> accepted/rejected` в реальном runtime.
+
+- 2026-03-31: UI-фикс Strategy1 summary-strip — `.mep-strategy-summary-strip` переведён из grid в column flex (`display:flex; flex-direction:column; align-items:stretch; gap:6px; margin-bottom:8px;`).
+- Поднят frontend version marker до `0.1.5.34` (header + `MEP.ver`), логика Strategy1/execution не менялась.
