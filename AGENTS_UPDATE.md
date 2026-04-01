@@ -222,3 +222,9 @@
 - Строка финансового блока ужата под ширину панели: уменьшены gap/размеры, добавлены `overflow:hidden` + `text-overflow:ellipsis` и max-width на критичных числовых полях.
 - Исправлено вылезание значений за правый край в balance-row для Strategy1/2.
 - Версия повышена до `0.1.5.44` в шапке и `MEP.ver`.
+- 2026-04-01: В settings modal добавлены табы `Настройки/Объекты` без демонтажа существующего блока настроек (старый контент перенесён во вкладку `Настройки`).
+- Добавлен foundation-модуль `MEP.ConditionObjects`: normalize/decode/validate по `type`, runtime-cache (`list/get/create/update/remove`) и загрузка/сохранение через текущий endpoint (`objects_list`, `object_save`, `object_delete`).
+- Во вкладке `Объекты` реализован реестр: list (label/type/id), кнопка `Редактировать`, кнопки `Обновить список` и `+ Добавить объект`.
+- Добавлена отдельная модалка `Объект условия` (create/edit): поля id/type/label/group/enabled + JSON textarea для `params/ui/runtimeDefaults`.
+- Backend v0.1.6 расширен actions `objects_list`, `object_get`, `object_save`, `object_delete`; db_core_0.1.3 дополнен helper-функциями для CRUD-lite.
+- В SQL-дамп добавлена новая таблица `stake_condition_objects` с индексами `ux_device_object`, `idx_device_type`, `idx_updated_at`.

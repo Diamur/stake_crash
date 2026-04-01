@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.44  ====
+// === crash.js 0.1.5.45  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -404,7 +404,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.44";
+        MEP.ver = "0.1.5.45";
 
         // -------------------------
         // Settings module
@@ -695,6 +695,180 @@
 
             getEndpoint() {
                 return (this.state.endpointUrl ?? "").toString().trim();
+            },
+        };
+
+        // -------------------------
+        // Condition Objects registry + storage
+        // -------------------------
+        MEP.ConditionObjects = {
+            cache: new Map(),
+            loadedAtTs: 0,
+
+            typeRegistry: {
+                charter: { requiredParams: [] },
+                streak_lt: { requiredParams: ["threshold"] },
+                ema_above: { requiredParams: ["period"] },
+            },
+
+            makeDefault() {
+                return {
+                    id: "",
+                    type: "streak_lt",
+                    label: "",
+                    enabled: true,
+                    groupId: "",
+                    groupMode: "single",
+                    params: {},
+                    ui: { order: 0, visible: true },
+                    runtimeDefaults: {
+                        currentValue: 0,
+                        reached: false,
+                        result: false,
+                        resultText: "",
+                    },
+                };
+            },
+
+            _clone(v) {
+                return JSON.parse(JSON.stringify(v));
+            },
+
+            normalizeConditionObject(obj) {
+                const src = obj && typeof obj === "object" ? obj : {};
+                const base = this.makeDefault();
+                const out = { ...base, ...src };
+
+                out.id = (out.id ?? "").toString().trim();
+                out.type = (out.type ?? "").toString().trim().toLowerCase();
+                out.label = (out.label ?? "").toString().trim();
+                out.groupId = (out.groupId ?? "").toString().trim();
+                out.groupMode = (out.groupMode ?? "").toString().trim().toLowerCase() || "single";
+                out.enabled = !!out.enabled;
+                out.params = out.params && typeof out.params === "object" && !Array.isArray(out.params) ? out.params : {};
+                out.ui = out.ui && typeof out.ui === "object" && !Array.isArray(out.ui) ? out.ui : {};
+                out.runtimeDefaults =
+                    out.runtimeDefaults && typeof out.runtimeDefaults === "object" && !Array.isArray(out.runtimeDefaults)
+                        ? out.runtimeDefaults
+                        : {};
+
+                if (!out.label) out.label = out.id || out.type || "Object";
+
+                const uiOrder = Number(out.ui.order);
+                out.ui.order = Number.isFinite(uiOrder) ? Math.floor(uiOrder) : 0;
+                out.ui.visible = out.ui.visible !== false;
+                return out;
+            },
+
+            validateConditionObject(obj) {
+                const out = this.normalizeConditionObject(obj);
+                if (!out.id) return { ok: false, error: "id is required" };
+                if (!out.type) return { ok: false, error: "type is required" };
+                if (!/^[a-z0-9._-]+$/i.test(out.id)) return { ok: false, error: "id has invalid chars" };
+
+                const typeDef = this.typeRegistry[out.type] || null;
+                if (typeDef && Array.isArray(typeDef.requiredParams)) {
+                    for (const key of typeDef.requiredParams) {
+                        if (!(key in out.params)) return { ok: false, error: `params.${key} is required for type ${out.type}` };
+                    }
+                }
+                return { ok: true, value: out };
+            },
+
+            decodeConditionObject(obj) {
+                const vr = this.validateConditionObject(obj);
+                if (!vr.ok) return vr;
+                return { ok: true, value: vr.value, typeDef: this.typeRegistry[vr.value.type] || null };
+            },
+
+            list() {
+                const arr = Array.from(this.cache.values()).map((v) => this._clone(v));
+                arr.sort((a, b) => {
+                    const ao = Number(a?.ui?.order || 0);
+                    const bo = Number(b?.ui?.order || 0);
+                    if (ao !== bo) return ao - bo;
+                    return String(a.id).localeCompare(String(b.id));
+                });
+                return arr;
+            },
+
+            get(id) {
+                return this.cache.has(id) ? this._clone(this.cache.get(id)) : null;
+            },
+
+            async loadFromDb(reason = "objects_list") {
+                const url = (MEP.Settings.getEndpoint?.() ?? "").toString().trim();
+                if (!url || !MEP.Net?.postJson) return [];
+                const payload = {
+                    action: "objects_list",
+                    ts: Date.now(),
+                    ver: MEP.ver,
+                    reason: (reason ?? "").toString(),
+                    game_slug: (MEP.State?.gameSlug ?? "").toString(),
+                    device_id: MEP.Settings.getDeviceId(),
+                };
+                const resp = await MEP.Net.postJson(url, payload, 9000);
+                if (!(resp?.ok && resp?.json?.ok === true)) return [];
+                const items = Array.isArray(resp?.json?.items) ? resp.json.items : [];
+                this.cache.clear();
+                for (const raw of items) {
+                    const dec = this.decodeConditionObject(raw);
+                    if (!dec.ok) continue;
+                    this.cache.set(dec.value.id, dec.value);
+                }
+                this.loadedAtTs = Date.now();
+                return this.list();
+            },
+
+            async saveToDb(obj, reason = "object_save") {
+                const dec = this.decodeConditionObject(obj);
+                if (!dec.ok) throw new Error(dec.error || "invalid object");
+                const url = (MEP.Settings.getEndpoint?.() ?? "").toString().trim();
+                if (!url || !MEP.Net?.postJson) throw new Error("endpoint or Net.postJson is not available");
+                const payload = {
+                    action: "object_save",
+                    ts: Date.now(),
+                    ver: MEP.ver,
+                    reason: (reason ?? "").toString(),
+                    game_slug: (MEP.State?.gameSlug ?? "").toString(),
+                    device_id: MEP.Settings.getDeviceId(),
+                    object: dec.value,
+                };
+                const resp = await MEP.Net.postJson(url, payload, 9000);
+                if (!(resp?.ok && resp?.json?.ok === true)) throw new Error(resp?.json?.error || "save failed");
+                this.cache.set(dec.value.id, dec.value);
+                return this.get(dec.value.id);
+            },
+
+            async create(obj) {
+                return this.saveToDb(obj, "object_create");
+            },
+
+            async update(obj) {
+                return this.saveToDb(obj, "object_update");
+            },
+
+            async remove(id) {
+                const objectId = (id ?? "").toString().trim();
+                if (!objectId) return false;
+                const url = (MEP.Settings.getEndpoint?.() ?? "").toString().trim();
+                if (!url || !MEP.Net?.postJson) return false;
+                const resp = await MEP.Net.postJson(
+                    url,
+                    {
+                        action: "object_delete",
+                        ts: Date.now(),
+                        ver: MEP.ver,
+                        device_id: MEP.Settings.getDeviceId(),
+                        object_id: objectId,
+                    },
+                    9000
+                );
+                if (resp?.ok && resp?.json?.ok === true) {
+                    this.cache.delete(objectId);
+                    return true;
+                }
+                return false;
             },
         };
 
@@ -8100,45 +8274,86 @@
             <div class="mep-modal-title">Настройки</div>
             <button class="mep-modal-close" aria-label="Закрыть">×</button>
         </div>
-        <div class="mep-form-row">
-            <div class="mep-label">POST URL (PHP endpoint)</div>
-            <input class="mep-input mep-endpoint" placeholder="https://site.com/track.php" />
+        <div class="mep-settings-tabs">
+            <button class="mep-settings-tab-btn is-active" type="button" data-tab="settings">Настройки</button>
+            <button class="mep-settings-tab-btn" type="button" data-tab="objects">Объекты</button>
         </div>
-        <div class="mep-form-row">
-            <div class="mep-label">Звуки (key=url, по одному в строке)</div>
-            <textarea class="mep-input mep-sounds" style="height: 90px; resize: none"></textarea>
+        <div class="mep-settings-tab-panel mep-settings-tab-panel-settings is-active">
+            <div class="mep-form-row">
+                <div class="mep-label">POST URL (PHP endpoint)</div>
+                <input class="mep-input mep-endpoint" placeholder="https://site.com/track.php" />
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Звуки (key=url, по одному в строке)</div>
+                <textarea class="mep-input mep-sounds" style="height: 90px; resize: none"></textarea>
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Звук по умолчанию</div>
+                <select class="mep-input mep-sound-default"></select>
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Подсветка при срабатывании (мс)</div>
+                <input class="mep-input mep-hit-ms" type="number" min="500" step="100" />
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Пауза между “Далее” при загрузке истории (мс)</div>
+                <input class="mep-input mep-history-next-ms" type="number" min="0" step="100" />
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Приоритет звука при одновременном срабатывании</div>
+                <select class="mep-input mep-priority-mode">
+                    <option value="high">Высокий X (большее значение)</option>
+                    <option value="low">Низкий X (меньшее значение)</option>
+                </select>
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Реестр игр (slug, по одному в строке)</div>
+                <textarea class="mep-input mep-games" spellcheck="false" placeholder="crash&#10;spribe-aviator"></textarea>
+            </div>
+            <div class="mep-modal-actions">
+                <button class="mep-btn mep-test-endpoint">Тест</button>
+                <button class="mep-btn mep-test-sound">Тест звука</button>
+            </div>
+            <div class="mep-modal-actions">
+                <button class="mep-btn mep-load-settings">Загрузить с БД</button>
+                <button class="mep-btn mep-save-settings">Сохранить</button>
+                <button class="mep-btn mep-cancel-settings">Отмена</button>
+            </div>
         </div>
-        <div class="mep-form-row">
-            <div class="mep-label">Звук по умолчанию</div>
-            <select class="mep-input mep-sound-default"></select>
+        <div class="mep-settings-tab-panel mep-settings-tab-panel-objects">
+            <div class="mep-objects-list"></div>
+            <div class="mep-modal-actions">
+                <button class="mep-btn mep-objects-refresh">Обновить список</button>
+                <button class="mep-btn mep-objects-add">+ Добавить объект</button>
+            </div>
         </div>
-        <div class="mep-form-row">
-            <div class="mep-label">Подсветка при срабатывании (мс)</div>
-            <input class="mep-input mep-hit-ms" type="number" min="500" step="100" />
+    </div>
+</div>
+<div class="mep-modal-overlay" data-mep-modal="object-editor" style="display: none">
+    <div class="mep-modal" role="dialog" aria-modal="true" aria-label="Объект условия">
+        <div class="mep-modal-head">
+            <div class="mep-modal-title">Объект условия</div>
+            <button class="mep-modal-close mep-object-modal-close" aria-label="Закрыть">×</button>
         </div>
+        <div class="mep-form-row"><div class="mep-label">ID объекта</div><input class="mep-input mep-object-id" /></div>
+        <div class="mep-form-row"><div class="mep-label">Type объекта</div><input class="mep-input mep-object-type" placeholder="streak_lt" /></div>
+        <div class="mep-form-row"><div class="mep-label">Label</div><input class="mep-input mep-object-label" /></div>
+        <div class="mep-form-row"><div class="mep-label">Group ID</div><input class="mep-input mep-object-group-id" /></div>
         <div class="mep-form-row">
-            <div class="mep-label">Пауза между “Далее” при загрузке истории (мс)</div>
-            <input class="mep-input mep-history-next-ms" type="number" min="0" step="100" />
-        </div>
-        <div class="mep-form-row">
-            <div class="mep-label">Приоритет звука при одновременном срабатывании</div>
-            <select class="mep-input mep-priority-mode">
-                <option value="high">Высокий X (большее значение)</option>
-                <option value="low">Низкий X (меньшее значение)</option>
+            <div class="mep-label">Group Mode</div>
+            <select class="mep-input mep-object-group-mode">
+                <option value="single">single</option>
+                <option value="multi">multi</option>
             </select>
         </div>
-        <div class="mep-form-row">
-            <div class="mep-label">Реестр игр (slug, по одному в строке)</div>
-            <textarea class="mep-input mep-games" spellcheck="false" placeholder="crash&#10;spribe-aviator"></textarea>
-        </div>
+        <div class="mep-form-row"><label class="mep-label"><input class="mep-object-enabled" type="checkbox" checked /> Enabled по умолчанию</label></div>
+        <div class="mep-form-row"><div class="mep-label">JSON params</div><textarea class="mep-input mep-object-params" spellcheck="false">{}</textarea></div>
+        <div class="mep-form-row"><div class="mep-label">JSON ui</div><textarea class="mep-input mep-object-ui" spellcheck="false">{}</textarea></div>
+        <div class="mep-form-row"><div class="mep-label">JSON runtimeDefaults</div><textarea class="mep-input mep-object-runtime" spellcheck="false">{}</textarea></div>
+        <div class="mep-form-row"><div class="mep-label mep-object-editor-msg"></div></div>
         <div class="mep-modal-actions">
-            <button class="mep-btn mep-test-endpoint">Тест</button>
-            <button class="mep-btn mep-test-sound">Тест звука</button>
-        </div>
-        <div class="mep-modal-actions">
-            <button class="mep-btn mep-load-settings">Загрузить с БД</button>
-            <button class="mep-btn mep-save-settings">Сохранить</button>
-            <button class="mep-btn mep-cancel-settings">Отмена</button>
+            <button class="mep-btn mep-object-save">Сохранить</button>
+            <button class="mep-btn mep-object-cancel">Отмена</button>
         </div>
     </div>
 </div>
@@ -8294,6 +8509,7 @@
                 document.body.classList.add("mep-panel-open");
 
                 const settingsOverlay = panel.querySelector('.mep-modal-overlay[data-mep-modal="settings"]');
+                const objectOverlay = panel.querySelector('.mep-modal-overlay[data-mep-modal="object-editor"]');
 
                 MEP.UI.ui = {
                     panel,
@@ -8449,13 +8665,20 @@
 
                     // settings
                     settingsOverlay,
+                    objectOverlay,
                     settingsCloseBtn: settingsOverlay?.querySelector(".mep-modal-close"),
                     settingsSaveBtn: settingsOverlay?.querySelector(".mep-save-settings"),
                     settingsCancelBtn: settingsOverlay?.querySelector(".mep-cancel-settings"),
                     settingsLoadBtn: settingsOverlay?.querySelector(".mep-load-settings"),
+                    settingsTabButtons: [...(settingsOverlay?.querySelectorAll(".mep-settings-tab-btn") || [])],
+                    settingsTabPanelSettings: settingsOverlay?.querySelector(".mep-settings-tab-panel-settings"),
+                    settingsTabPanelObjects: settingsOverlay?.querySelector(".mep-settings-tab-panel-objects"),
                     endpointInput: settingsOverlay?.querySelector("input.mep-endpoint"),
                     testEndpointBtn: settingsOverlay?.querySelector(".mep-test-endpoint"),
                     testSoundBtn: settingsOverlay?.querySelector(".mep-test-sound"),
+                    objectsList: settingsOverlay?.querySelector(".mep-objects-list"),
+                    objectsRefreshBtn: settingsOverlay?.querySelector(".mep-objects-refresh"),
+                    objectsAddBtn: settingsOverlay?.querySelector(".mep-objects-add"),
 
                     soundsInput: settingsOverlay?.querySelector("textarea.mep-sounds"),
                     soundDefaultSelect: settingsOverlay?.querySelector("select.mep-sound-default"),
@@ -8463,6 +8686,20 @@
                     historyNextMsInput: settingsOverlay?.querySelector("input.mep-history-next-ms"),
                     priorityModeSelect: settingsOverlay?.querySelector("select.mep-priority-mode"),
                     gamesInput: settingsOverlay?.querySelector("textarea.mep-games"),
+
+                    objectModalCloseBtn: objectOverlay?.querySelector(".mep-object-modal-close"),
+                    objectIdInput: objectOverlay?.querySelector(".mep-object-id"),
+                    objectTypeInput: objectOverlay?.querySelector(".mep-object-type"),
+                    objectLabelInput: objectOverlay?.querySelector(".mep-object-label"),
+                    objectGroupIdInput: objectOverlay?.querySelector(".mep-object-group-id"),
+                    objectGroupModeSelect: objectOverlay?.querySelector(".mep-object-group-mode"),
+                    objectEnabledInput: objectOverlay?.querySelector(".mep-object-enabled"),
+                    objectParamsInput: objectOverlay?.querySelector(".mep-object-params"),
+                    objectUiInput: objectOverlay?.querySelector(".mep-object-ui"),
+                    objectRuntimeInput: objectOverlay?.querySelector(".mep-object-runtime"),
+                    objectSaveBtn: objectOverlay?.querySelector(".mep-object-save"),
+                    objectCancelBtn: objectOverlay?.querySelector(".mep-object-cancel"),
+                    objectEditorMsg: objectOverlay?.querySelector(".mep-object-editor-msg"),
                 };
 
                 // применяем настройки к UI
@@ -9317,6 +9554,76 @@
                 // -------------------------
                 // Settings modal helpers
                 // -------------------------
+                const setSettingsTab = (tab = "settings") => {
+                    ui._settingsTab = tab === "objects" ? "objects" : "settings";
+                    for (const btn of ui.settingsTabButtons || []) {
+                        const is = (btn.dataset.tab || "") === ui._settingsTab;
+                        btn.classList.toggle("is-active", is);
+                    }
+                    ui.settingsTabPanelSettings?.classList.toggle("is-active", ui._settingsTab === "settings");
+                    ui.settingsTabPanelObjects?.classList.toggle("is-active", ui._settingsTab === "objects");
+                };
+
+                const renderObjectsList = () => {
+                    if (!ui.objectsList) return;
+                    const items = MEP.ConditionObjects.list();
+                    if (!items.length) {
+                        ui.objectsList.innerHTML = `<div class="mep-objects-empty">Пока нет объектов</div>`;
+                        return;
+                    }
+                    const lines = items
+                        .map((it) => {
+                            const label = (it.label || "").replace(/</g, "&lt;");
+                            const type = (it.type || "").replace(/</g, "&lt;");
+                            const id = (it.id || "").replace(/</g, "&lt;");
+                            return `<div class="mep-object-row">
+<div class="mep-object-meta"><b>${label}</b><span>${type}</span><code>${id}</code></div>
+<button class="mep-btn mep-object-edit" data-object-id="${id}">Редактировать</button>
+</div>`;
+                        })
+                        .join("");
+                    ui.objectsList.innerHTML = lines;
+                };
+
+                const closeObjectEditor = () => {
+                    if (ui.objectOverlay) ui.objectOverlay.style.display = "none";
+                    if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = "";
+                    ui._objectEditId = "";
+                };
+
+                const openObjectEditor = (existingObj = null) => {
+                    const obj = existingObj ? MEP.ConditionObjects.normalizeConditionObject(existingObj) : MEP.ConditionObjects.makeDefault();
+                    ui._objectEditId = obj.id || "";
+                    if (ui.objectIdInput) ui.objectIdInput.value = obj.id || "";
+                    if (ui.objectTypeInput) ui.objectTypeInput.value = obj.type || "";
+                    if (ui.objectLabelInput) ui.objectLabelInput.value = obj.label || "";
+                    if (ui.objectGroupIdInput) ui.objectGroupIdInput.value = obj.groupId || "";
+                    if (ui.objectGroupModeSelect) ui.objectGroupModeSelect.value = obj.groupMode || "single";
+                    if (ui.objectEnabledInput) ui.objectEnabledInput.checked = !!obj.enabled;
+                    if (ui.objectParamsInput) ui.objectParamsInput.value = JSON.stringify(obj.params || {}, null, 2);
+                    if (ui.objectUiInput) ui.objectUiInput.value = JSON.stringify(obj.ui || {}, null, 2);
+                    if (ui.objectRuntimeInput) ui.objectRuntimeInput.value = JSON.stringify(obj.runtimeDefaults || {}, null, 2);
+                    if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = "";
+                    if (ui.objectOverlay) ui.objectOverlay.style.display = "flex";
+                };
+
+                const parseJsonField = (txt, fallback = {}) => {
+                    const s = (txt ?? "").toString().trim();
+                    if (!s) return fallback;
+                    const v = JSON.parse(s);
+                    if (!v || typeof v !== "object" || Array.isArray(v)) throw new Error("JSON должен быть объектом");
+                    return v;
+                };
+
+                const refreshObjectsFromDb = async () => {
+                    try {
+                        await MEP.ConditionObjects.loadFromDb("settings_tab_objects");
+                        renderObjectsList();
+                    } catch (e) {
+                        if (ui.objectsList) ui.objectsList.innerHTML = `<div class="mep-objects-empty">Ошибка загрузки объектов</div>`;
+                    }
+                };
+
                 const openSettings = async () => {
                     if (!ui.settingsOverlay) return;
 
@@ -9368,11 +9675,13 @@
                     if (ui.gamesInput) ui.gamesInput.value = MEP.Settings.getSupportedGamesText();
 
                     ui.settingsOverlay.style.display = "flex";
+                    setSettingsTab("settings");
                 };
 
                 const closeSettings = () => {
                     if (!ui.settingsOverlay) return;
                     ui.settingsOverlay.style.display = "none";
+                    closeObjectEditor();
                 };
 
                 // open
@@ -9385,6 +9694,52 @@
                 // click outside modal
                 ui.settingsOverlay?.addEventListener("click", (e) => {
                     if (e.target === ui.settingsOverlay) closeSettings();
+                });
+                for (const btn of ui.settingsTabButtons || []) {
+                    btn.addEventListener("click", async () => {
+                        const tab = btn.dataset.tab || "settings";
+                        setSettingsTab(tab);
+                        if (tab === "objects") await refreshObjectsFromDb();
+                    });
+                }
+
+                ui.objectsRefreshBtn?.addEventListener("click", refreshObjectsFromDb);
+                ui.objectsAddBtn?.addEventListener("click", () => openObjectEditor(null));
+                ui.objectsList?.addEventListener("click", (e) => {
+                    const btn = e.target?.closest?.("button.mep-object-edit");
+                    if (!btn) return;
+                    const id = (btn.getAttribute("data-object-id") || "").trim();
+                    if (!id) return;
+                    const obj = MEP.ConditionObjects.get(id);
+                    if (!obj) return;
+                    openObjectEditor(obj);
+                });
+                ui.objectModalCloseBtn?.addEventListener("click", closeObjectEditor);
+                ui.objectCancelBtn?.addEventListener("click", closeObjectEditor);
+                ui.objectOverlay?.addEventListener("click", (e) => {
+                    if (e.target === ui.objectOverlay) closeObjectEditor();
+                });
+                ui.objectSaveBtn?.addEventListener("click", async () => {
+                    try {
+                        const obj = {
+                            id: (ui.objectIdInput?.value || "").trim(),
+                            type: (ui.objectTypeInput?.value || "").trim(),
+                            label: (ui.objectLabelInput?.value || "").trim(),
+                            groupId: (ui.objectGroupIdInput?.value || "").trim(),
+                            groupMode: (ui.objectGroupModeSelect?.value || "single").trim(),
+                            enabled: !!ui.objectEnabledInput?.checked,
+                            params: parseJsonField(ui.objectParamsInput?.value || "{}", {}),
+                            ui: parseJsonField(ui.objectUiInput?.value || "{}", {}),
+                            runtimeDefaults: parseJsonField(ui.objectRuntimeInput?.value || "{}", {}),
+                        };
+                        const vr = MEP.ConditionObjects.validateConditionObject(obj);
+                        if (!vr.ok) throw new Error(vr.error || "validation failed");
+                        await MEP.ConditionObjects.saveToDb(vr.value, ui._objectEditId ? "object_update_modal" : "object_create_modal");
+                        await refreshObjectsFromDb();
+                        closeObjectEditor();
+                    } catch (e) {
+                        if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = `Ошибка: ${e?.message || e}`;
+                    }
                 });
 
                 // save settings
