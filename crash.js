@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.41  ====
+// === crash.js 0.1.5.42  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -396,7 +396,7 @@
             },
             runtime: {},
         });
-        MEP.ver = "0.1.5.41";
+        MEP.ver = "0.1.5.42";
 
         // -------------------------
         // Settings module
@@ -2507,18 +2507,25 @@
         margin-left:auto;
         display:inline-flex;
         align-items:center;
-        justify-content:flex-end;
+        justify-content:space-between;
         gap:8px;
         flex:1 1 auto;
         min-width:0;
         }
-        .mep-strategy1-current-dt{
+        .mep-strategy1-current-date{
         color:rgba(240,246,255,.9);
         font-size:13px;
         line-height:1;
         white-space:nowrap;
         overflow:hidden;
         text-overflow:ellipsis;
+        }
+        .mep-strategy1-current-time{
+        color:#f7e7a2;
+        font-size:13px;
+        line-height:1;
+        white-space:nowrap;
+        flex:0 0 auto;
         }
         .mep-strategy1-work-timer{
         font-size:13px;
@@ -2607,18 +2614,25 @@
         margin-left:auto;
         display:inline-flex;
         align-items:center;
-        justify-content:flex-end;
+        justify-content:space-between;
         gap:8px;
         flex:1 1 auto;
         min-width:0;
         }
-        .mep-strategy2-current-dt{
+        .mep-strategy2-current-date{
         color:rgba(240,246,255,.9);
         font-size:13px;
         line-height:1;
         white-space:nowrap;
         overflow:hidden;
         text-overflow:ellipsis;
+        }
+        .mep-strategy2-current-time{
+        color:#f7e7a2;
+        font-size:13px;
+        line-height:1;
+        white-space:nowrap;
+        flex:0 0 auto;
         }
         .mep-strategy2-work-timer{
         font-size:13px;
@@ -7309,7 +7323,7 @@
                 return `${hh}:${mm}:${ss}`;
             },
 
-            formatCurrentDateTime(ts = Date.now()) {
+            formatCurrentDateTimeParts(ts = Date.now()) {
                 const d = new Date(Number(ts) || Date.now());
                 const dd = String(d.getDate()).padStart(2, "0");
                 const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -7317,7 +7331,7 @@
                 const hh = String(d.getHours()).padStart(2, "0");
                 const mi = String(d.getMinutes()).padStart(2, "0");
                 const ss = String(d.getSeconds()).padStart(2, "0");
-                return `${dd}.${mm}.${yy} ${hh}:${mi}:${ss}`;
+                return { date: `${dd}.${mm}.${yy}`, time: `${hh}:${mi}:${ss}` };
             },
 
             truncateStrategy1InfoText(text = "", maxChars = 72) {
@@ -7398,9 +7412,9 @@
                     ui.strategy1EnabledToggle.checked = enabled;
                 }
                 ui.strategy1TabBtn?.classList.toggle("mep-strategy1-tab-live", enabled);
-                if (ui.strategy1CurrentDateTime) {
-                    ui.strategy1CurrentDateTime.textContent = MEP.UI.formatCurrentDateTime(nowTs);
-                }
+                const dt1 = MEP.UI.formatCurrentDateTimeParts(nowTs);
+                if (ui.strategy1CurrentDate) ui.strategy1CurrentDate.textContent = dt1.date;
+                if (ui.strategy1CurrentTime) ui.strategy1CurrentTime.textContent = dt1.time;
                 if (ui.strategy1WorkTimer) {
                     const startTs = Number(st.timers?.enabledAtTs) || 0;
                     const elapsed = enabled && startTs > 0 ? nowTs - startTs : 0;
@@ -7421,9 +7435,9 @@
                     ui.strategy2EnabledToggle.checked = enabled;
                 }
                 ui.strategy2TabBtn?.classList.toggle("mep-strategy2-tab-live", enabled);
-                if (ui.strategy2CurrentDateTime) {
-                    ui.strategy2CurrentDateTime.textContent = MEP.UI.formatCurrentDateTime(nowTs);
-                }
+                const dt2 = MEP.UI.formatCurrentDateTimeParts(nowTs);
+                if (ui.strategy2CurrentDate) ui.strategy2CurrentDate.textContent = dt2.date;
+                if (ui.strategy2CurrentTime) ui.strategy2CurrentTime.textContent = dt2.time;
                 if (ui.strategy2WorkTimer) {
                     const startTs = Number(st.timers?.enabledAtTs) || 0;
                     const elapsed = enabled && startTs > 0 ? nowTs - startTs : 0;
@@ -8088,7 +8102,8 @@
             </label>
             <span class="mep-strategy1-control-divider" aria-hidden="true"></span>
             <span class="mep-strategy1-right-meta">
-                <span class="mep-strategy1-current-dt">01.01.26 00:00:00</span>
+                <span class="mep-strategy1-current-date">01.01.26</span>
+                <span class="mep-strategy1-current-time">00:00:00</span>
                 <span class="mep-strategy1-work-timer">00:00:00</span>
             </span>
         </div>
@@ -8109,7 +8124,8 @@
             </label>
             <span class="mep-strategy2-control-divider" aria-hidden="true"></span>
             <span class="mep-strategy2-right-meta">
-                <span class="mep-strategy2-current-dt">01.01.26 00:00:00</span>
+                <span class="mep-strategy2-current-date">01.01.26</span>
+                <span class="mep-strategy2-current-time">00:00:00</span>
                 <span class="mep-strategy2-work-timer">00:00:00</span>
             </span>
         </div>
@@ -8154,13 +8170,15 @@
                     strategy1EnabledToggle: panel.querySelector("input.mep-strategy1-enabled"),
                     strategy1InfoBar: panel.querySelector(".mep-strategy1-info-bar"),
                     strategy1InfoTicker: panel.querySelector(".mep-strategy1-info-ticker"),
-                    strategy1CurrentDateTime: panel.querySelector(".mep-strategy1-current-dt"),
+                    strategy1CurrentDate: panel.querySelector(".mep-strategy1-current-date"),
+                    strategy1CurrentTime: panel.querySelector(".mep-strategy1-current-time"),
                     strategy1WorkTimer: panel.querySelector(".mep-strategy1-work-timer"),
                     strategy1TabBtn: panel.querySelector('button.mep-game-tab-btn[data-tab="strategy1"]'),
                     strategy2EnabledToggle: panel.querySelector("input.mep-strategy2-enabled"),
                     strategy2InfoBar: panel.querySelector(".mep-strategy2-info-bar"),
                     strategy2InfoTicker: panel.querySelector(".mep-strategy2-info-ticker"),
-                    strategy2CurrentDateTime: panel.querySelector(".mep-strategy2-current-dt"),
+                    strategy2CurrentDate: panel.querySelector(".mep-strategy2-current-date"),
+                    strategy2CurrentTime: panel.querySelector(".mep-strategy2-current-time"),
                     strategy2WorkTimer: panel.querySelector(".mep-strategy2-work-timer"),
                     strategy2TabBtn: panel.querySelector('button.mep-game-tab-btn[data-tab="strategy2"]'),
                     textarea: panel.querySelector("textarea.mep-stats"),
