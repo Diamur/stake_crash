@@ -212,3 +212,9 @@
 - Цвет времени установлен в светло-жёлтый (`#f7e7a2`), дата оставлена нейтральной.
 - В `...-right-meta` применено `justify-content: space-between` (по запросу) для раздвижения даты, времени и секундомера.
 - Версия повышена до `0.1.5.42` в шапке и `MEP.ver`.
+- 2026-04-01: Добавлена новая финансовая строка в минимальный UI Strategy1/2 (иконка монеты, start/current balance, PnL%, risk amount, risk% input).
+- Текущий баланс и иконка читаются из DOM `data-testid="coin-toggle-default-wrap"` (число + SVG монеты).
+- Start balance фиксируется при включении стратегии (`runtime.startBalanceSnapshot`), скрыт до запуска и очищается при выключении.
+- Добавлены расчёты PnL и riskAmount, клик по riskAmount сохраняет значение в `runtime.copiedRiskAmount` и показывает info-сообщение.
+- Добавлена обработка riskPercent input для обеих стратегий с live-пересчётом строки.
+- Версия повышена до `0.1.5.43` в шапке и `MEP.ver`.

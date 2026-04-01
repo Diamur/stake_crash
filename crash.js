@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.42  ====
+// === crash.js 0.1.5.43  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -365,6 +365,8 @@
                 pendingTargetMultiplier: 0,
                 pendingExecutionPayload: null,
                 lastDomSyncAtTs: 0,
+                startBalanceSnapshot: 0,
+                copiedRiskAmount: 0,
                 systemMessages: [],
                 lastActionResponse: null,
                 decisionState: {
@@ -391,12 +393,18 @@
             enabled: false,
             isExecuting: false,
             executionLocked: true,
+            config: {
+                riskPercent: 5,
+            },
             timers: {
                 enabledAtTs: 0,
             },
-            runtime: {},
+            runtime: {
+                startBalanceSnapshot: 0,
+                copiedRiskAmount: 0,
+            },
         });
-        MEP.ver = "0.1.5.42";
+        MEP.ver = "0.1.5.43";
 
         // -------------------------
         // Settings module
@@ -2535,6 +2543,27 @@
         }
         .mep-strategy1-work-timer.is-active{color:#00ff57;}
         .mep-strategy1-work-timer.is-inactive{color:#8f9aa8;}
+        .mep-strategy1-balance-row{
+        margin-top:8px;
+        display:flex;
+        align-items:center;
+        gap:8px;
+        border-top:1px dashed rgba(255,255,255,.28);
+        border-bottom:1px dashed rgba(255,255,255,.28);
+        padding:6px 10px;
+        font-size:13px;
+        }
+        .mep-strategy1-coin-icon svg{width:18px;height:18px;display:block;}
+        .mep-strategy1-start-balance{color:#9aa3ad;}
+        .mep-strategy1-current-balance{color:#fff;font-weight:700;}
+        .mep-strategy1-balance-divider,
+        .mep-strategy1-start-divider{width:1px;height:24px;background:rgba(255,255,255,.65);}
+        .mep-strategy1-pnl.is-pos{color:#00ff57;}
+        .mep-strategy1-pnl.is-neg{color:#ff6f9f;}
+        .mep-strategy1-pnl.is-neutral{color:#a9b2bc;}
+        .mep-strategy1-risk-amount{color:#d7dde5;cursor:pointer;}
+        .mep-strategy1-risk-percent{width:42px;height:26px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;text-align:center;}
+        .mep-strategy1-risk-percent-sign{font-size:48px;transform:scale(.26);transform-origin:left center;color:#fff;}
         .mep-strategy1-toggle{
         position:relative;
         width:44px;
@@ -2642,6 +2671,27 @@
         }
         .mep-strategy2-work-timer.is-active{color:#00ff57;}
         .mep-strategy2-work-timer.is-inactive{color:#8f9aa8;}
+        .mep-strategy2-balance-row{
+        margin-top:8px;
+        display:flex;
+        align-items:center;
+        gap:8px;
+        border-top:1px dashed rgba(255,255,255,.28);
+        border-bottom:1px dashed rgba(255,255,255,.28);
+        padding:6px 10px;
+        font-size:13px;
+        }
+        .mep-strategy2-coin-icon svg{width:18px;height:18px;display:block;}
+        .mep-strategy2-start-balance{color:#9aa3ad;}
+        .mep-strategy2-current-balance{color:#fff;font-weight:700;}
+        .mep-strategy2-balance-divider,
+        .mep-strategy2-start-divider{width:1px;height:24px;background:rgba(255,255,255,.65);}
+        .mep-strategy2-pnl.is-pos{color:#00ff57;}
+        .mep-strategy2-pnl.is-neg{color:#ff6f9f;}
+        .mep-strategy2-pnl.is-neutral{color:#a9b2bc;}
+        .mep-strategy2-risk-amount{color:#d7dde5;cursor:pointer;}
+        .mep-strategy2-risk-percent{width:42px;height:26px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;text-align:center;}
+        .mep-strategy2-risk-percent-sign{font-size:48px;transform:scale(.26);transform-origin:left center;color:#fff;}
         .mep-strategy2-toggle{
         position:relative;
         width:44px;
@@ -7334,6 +7384,70 @@
                 return { date: `${dd}.${mm}.${yy}`, time: `${hh}:${mi}:${ss}` };
             },
 
+            readCurrentBalanceFromDom() {
+                const wrap = document.querySelector('[data-testid="coin-toggle-default-wrap"]');
+                if (!wrap) return { amount: 0, amountText: "0", iconHtml: "◎" };
+                const amountEl = wrap.querySelector('span[data-ds-text="true"]');
+                const raw = (amountEl?.textContent || "0").replace(",", ".").replace(/[^\d.\-]/g, "");
+                const amount = Number(raw);
+                const iconSvg = wrap.querySelector('svg[data-ds-icon]');
+                const amountText = Number.isFinite(amount) ? amount.toFixed(8).replace(/\.?0+$/, "") : "0";
+                return { amount: Number.isFinite(amount) ? amount : 0, amountText, iconHtml: iconSvg ? iconSvg.outerHTML : "◎" };
+            },
+
+            formatCoinValue(v) {
+                const n = Number(v);
+                if (!Number.isFinite(n)) return "0";
+                return n.toFixed(8).replace(/\.?0+$/, "").replace(".", ",");
+            },
+
+            renderStrategyBalanceRow(strategyId = "strategy1") {
+                const ui = MEP.UI.ui;
+                const st = MEP.UI.getStrategyState(strategyId);
+                if (!ui || !st) return;
+                const isS2 = strategyId === "strategy2";
+                const coinIconEl = isS2 ? ui.strategy2CoinIconEl : ui.strategy1CoinIconEl;
+                const startEl = isS2 ? ui.strategy2StartBalanceEl : ui.strategy1StartBalanceEl;
+                const startDividerEl = isS2 ? ui.strategy2StartBalanceDividerEl : ui.strategy1StartBalanceDividerEl;
+                const currentEl = isS2 ? ui.strategy2CurrentBalanceEl : ui.strategy1CurrentBalanceEl;
+                const pnlEl = isS2 ? ui.strategy2PnlEl : ui.strategy1PnlEl;
+                const riskAmountEl = isS2 ? ui.strategy2RiskAmountEl : ui.strategy1RiskAmountEl;
+                const riskPercentInput = isS2 ? ui.strategy2RiskPercentInput : ui.strategy1RiskPercentInput;
+                const domBalance = MEP.UI.readCurrentBalanceFromDom();
+                const current = Number(domBalance.amount) || 0;
+                if (coinIconEl) coinIconEl.innerHTML = domBalance.iconHtml || "◎";
+                if (currentEl) currentEl.textContent = MEP.UI.formatCoinValue(current);
+
+                const enabled = !!st.enabled;
+                const startBalance = Number(st.runtime?.startBalanceSnapshot) || 0;
+                const hasStart = enabled && startBalance > 0;
+                if (startEl) {
+                    startEl.style.display = hasStart ? "" : "none";
+                    startEl.textContent = MEP.UI.formatCoinValue(startBalance);
+                }
+                if (startDividerEl) startDividerEl.style.display = hasStart ? "" : "none";
+
+                let pnlPct = 0;
+                if (hasStart) pnlPct = ((current - startBalance) / startBalance) * 100;
+                if (pnlEl) {
+                    pnlEl.textContent = hasStart ? `${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(1)}%` : "0%";
+                    pnlEl.classList.toggle("is-pos", hasStart && pnlPct > 0);
+                    pnlEl.classList.toggle("is-neg", hasStart && pnlPct < 0);
+                    pnlEl.classList.toggle("is-neutral", !hasStart || pnlPct === 0);
+                }
+
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                let riskPercent = Number(cfg.riskPercent);
+                if (!Number.isFinite(riskPercent) || riskPercent < 0) riskPercent = 5;
+                cfg.riskPercent = riskPercent;
+                if (riskPercentInput && document.activeElement !== riskPercentInput) riskPercentInput.value = String(riskPercent);
+                const riskAmount = current * (riskPercent / 100);
+                if (riskAmountEl) {
+                    riskAmountEl.textContent = MEP.UI.formatCoinValue(riskAmount);
+                    riskAmountEl.dataset.value = String(riskAmount);
+                }
+            },
+
             truncateStrategy1InfoText(text = "", maxChars = 72) {
                 const raw = (text || "").toString().trim();
                 if (!raw) return "—";
@@ -7424,6 +7538,7 @@
                 }
                 const blocked = !enabled && !MEP.UI.canEnableStrategy("strategy1");
                 if (ui.strategy1EnabledToggle) ui.strategy1EnabledToggle.disabled = blocked;
+                MEP.UI.renderStrategyBalanceRow("strategy1");
             },
 
             renderStrategy2MinimalUi(st) {
@@ -7447,6 +7562,7 @@
                 }
                 const blocked = !enabled && !MEP.UI.canEnableStrategy("strategy2");
                 if (ui.strategy2EnabledToggle) ui.strategy2EnabledToggle.disabled = blocked;
+                MEP.UI.renderStrategyBalanceRow("strategy2");
             },
 
             renderStrategyMinimalUi() {
@@ -8107,6 +8223,18 @@
                 <span class="mep-strategy1-work-timer">00:00:00</span>
             </span>
         </div>
+        <div class="mep-strategy1-balance-row">
+            <span class="mep-strategy1-coin-icon">◎</span>
+            <span class="mep-strategy1-start-balance" style="display:none;">0</span>
+            <span class="mep-strategy1-start-divider" style="display:none;"></span>
+            <span class="mep-strategy1-current-balance">0</span>
+            <span class="mep-strategy1-balance-divider"></span>
+            <span class="mep-strategy1-pnl">0%</span>
+            <span class="mep-strategy1-balance-divider"></span>
+            <span class="mep-strategy1-risk-amount" title="Клик: скопировать в стартовую позицию">0</span>
+            <input class="mep-strategy1-risk-percent" type="number" min="0" step="0.1" value="5" />
+            <span class="mep-strategy1-risk-percent-sign">%</span>
+        </div>
     </div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-strategy2">
@@ -8128,6 +8256,18 @@
                 <span class="mep-strategy2-current-time">00:00:00</span>
                 <span class="mep-strategy2-work-timer">00:00:00</span>
             </span>
+        </div>
+        <div class="mep-strategy2-balance-row">
+            <span class="mep-strategy2-coin-icon">◎</span>
+            <span class="mep-strategy2-start-balance" style="display:none;">0</span>
+            <span class="mep-strategy2-start-divider" style="display:none;"></span>
+            <span class="mep-strategy2-current-balance">0</span>
+            <span class="mep-strategy2-balance-divider"></span>
+            <span class="mep-strategy2-pnl">0%</span>
+            <span class="mep-strategy2-balance-divider"></span>
+            <span class="mep-strategy2-risk-amount" title="Клик: скопировать в стартовую позицию">0</span>
+            <input class="mep-strategy2-risk-percent" type="number" min="0" step="0.1" value="5" />
+            <span class="mep-strategy2-risk-percent-sign">%</span>
         </div>
     </div>
 </div>
@@ -8173,6 +8313,13 @@
                     strategy1CurrentDate: panel.querySelector(".mep-strategy1-current-date"),
                     strategy1CurrentTime: panel.querySelector(".mep-strategy1-current-time"),
                     strategy1WorkTimer: panel.querySelector(".mep-strategy1-work-timer"),
+                    strategy1CoinIconEl: panel.querySelector(".mep-strategy1-coin-icon"),
+                    strategy1StartBalanceEl: panel.querySelector(".mep-strategy1-start-balance"),
+                    strategy1StartBalanceDividerEl: panel.querySelector(".mep-strategy1-start-divider"),
+                    strategy1CurrentBalanceEl: panel.querySelector(".mep-strategy1-current-balance"),
+                    strategy1PnlEl: panel.querySelector(".mep-strategy1-pnl"),
+                    strategy1RiskAmountEl: panel.querySelector(".mep-strategy1-risk-amount"),
+                    strategy1RiskPercentInput: panel.querySelector(".mep-strategy1-risk-percent"),
                     strategy1TabBtn: panel.querySelector('button.mep-game-tab-btn[data-tab="strategy1"]'),
                     strategy2EnabledToggle: panel.querySelector("input.mep-strategy2-enabled"),
                     strategy2InfoBar: panel.querySelector(".mep-strategy2-info-bar"),
@@ -8180,6 +8327,13 @@
                     strategy2CurrentDate: panel.querySelector(".mep-strategy2-current-date"),
                     strategy2CurrentTime: panel.querySelector(".mep-strategy2-current-time"),
                     strategy2WorkTimer: panel.querySelector(".mep-strategy2-work-timer"),
+                    strategy2CoinIconEl: panel.querySelector(".mep-strategy2-coin-icon"),
+                    strategy2StartBalanceEl: panel.querySelector(".mep-strategy2-start-balance"),
+                    strategy2StartBalanceDividerEl: panel.querySelector(".mep-strategy2-start-divider"),
+                    strategy2CurrentBalanceEl: panel.querySelector(".mep-strategy2-current-balance"),
+                    strategy2PnlEl: panel.querySelector(".mep-strategy2-pnl"),
+                    strategy2RiskAmountEl: panel.querySelector(".mep-strategy2-risk-amount"),
+                    strategy2RiskPercentInput: panel.querySelector(".mep-strategy2-risk-percent"),
                     strategy2TabBtn: panel.querySelector('button.mep-game-tab-btn[data-tab="strategy2"]'),
                     textarea: panel.querySelector("textarea.mep-stats"),
                     copyBtn: panel.querySelector("button.mep-copy"),
@@ -8371,6 +8525,10 @@
                         if (!s1.timers || typeof s1.timers !== "object") s1.timers = {};
                         s1.timers.enabledAtTs = Date.now();
                     }
+                    if (s1.enabled && !(Number(s1.runtime?.startBalanceSnapshot) > 0)) {
+                        s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
+                        s1.runtime.startBalanceSnapshot = MEP.UI.readCurrentBalanceFromDom().amount || 0;
+                    }
                     if (ui.strategy1EnabledToggle) {
                         ui.strategy1EnabledToggle.checked = !!s1.enabled;
                         ui.strategy1EnabledToggle.addEventListener("change", () => {
@@ -8384,10 +8542,14 @@
                             if (next) {
                                 if (!s1.timers || typeof s1.timers !== "object") s1.timers = {};
                                 s1.timers.enabledAtTs = Date.now();
+                                s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
+                                s1.runtime.startBalanceSnapshot = MEP.UI.readCurrentBalanceFromDom().amount || 0;
                                 MEP.State.activeStrategyId = "strategy1";
                             } else {
                                 if (!s1.timers || typeof s1.timers !== "object") s1.timers = {};
                                 s1.timers.enabledAtTs = 0;
+                                s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
+                                s1.runtime.startBalanceSnapshot = 0;
                                 if (MEP.State.activeStrategyId === "strategy1" && !s1.isExecuting) MEP.State.activeStrategyId = null;
                             }
                             MEP.Storage.save();
@@ -8400,6 +8562,10 @@
                     if (s2.enabled && (!s2.timers || !Number(s2.timers.enabledAtTs))) {
                         if (!s2.timers || typeof s2.timers !== "object") s2.timers = {};
                         s2.timers.enabledAtTs = Date.now();
+                    }
+                    if (s2.enabled && !(Number(s2.runtime?.startBalanceSnapshot) > 0)) {
+                        s2.runtime = s2.runtime && typeof s2.runtime === "object" ? s2.runtime : {};
+                        s2.runtime.startBalanceSnapshot = MEP.UI.readCurrentBalanceFromDom().amount || 0;
                     }
                     if (ui.strategy2EnabledToggle) {
                         ui.strategy2EnabledToggle.checked = !!s2.enabled;
@@ -8414,16 +8580,58 @@
                             if (next) {
                                 if (!s2.timers || typeof s2.timers !== "object") s2.timers = {};
                                 s2.timers.enabledAtTs = Date.now();
+                                s2.runtime = s2.runtime && typeof s2.runtime === "object" ? s2.runtime : {};
+                                s2.runtime.startBalanceSnapshot = MEP.UI.readCurrentBalanceFromDom().amount || 0;
                                 MEP.State.activeStrategyId = "strategy2";
                             } else {
                                 if (!s2.timers || typeof s2.timers !== "object") s2.timers = {};
                                 s2.timers.enabledAtTs = 0;
+                                s2.runtime = s2.runtime && typeof s2.runtime === "object" ? s2.runtime : {};
+                                s2.runtime.startBalanceSnapshot = 0;
                                 if (MEP.State.activeStrategyId === "strategy2" && !s2.isExecuting) MEP.State.activeStrategyId = null;
                             }
                             MEP.Storage.save();
                             MEP.UI.syncStrategiesUiState({ source: "strategy2", action: next ? "start" : "stop" });
                         });
                     }
+                }
+                if (ui.strategy1RiskPercentInput && s1) {
+                    ui.strategy1RiskPercentInput.value = String(Math.max(0, Number(s1.config?.riskPercent) || 5));
+                    ui.strategy1RiskPercentInput.addEventListener("input", () => {
+                        const cfg = s1.config && typeof s1.config === "object" ? s1.config : (s1.config = {});
+                        let v = Number(ui.strategy1RiskPercentInput.value);
+                        if (!Number.isFinite(v) || v < 0) v = 0;
+                        cfg.riskPercent = v;
+                        MEP.Storage.save();
+                        MEP.UI.renderStrategyBalanceRow("strategy1");
+                    });
+                }
+                if (ui.strategy2RiskPercentInput && s2) {
+                    ui.strategy2RiskPercentInput.value = String(Math.max(0, Number(s2.config?.riskPercent) || 5));
+                    ui.strategy2RiskPercentInput.addEventListener("input", () => {
+                        const cfg = s2.config && typeof s2.config === "object" ? s2.config : (s2.config = {});
+                        let v = Number(ui.strategy2RiskPercentInput.value);
+                        if (!Number.isFinite(v) || v < 0) v = 0;
+                        cfg.riskPercent = v;
+                        MEP.Storage.save();
+                        MEP.UI.renderStrategyBalanceRow("strategy2");
+                    });
+                }
+                if (ui.strategy1RiskAmountEl && s1) {
+                    ui.strategy1RiskAmountEl.addEventListener("click", () => {
+                        const val = Number(ui.strategy1RiskAmountEl.dataset.value) || 0;
+                        s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
+                        s1.runtime.copiedRiskAmount = val;
+                        MEP.UI.setStrategy1InfoMessage("Сумма риска скопирована в стартовую позицию");
+                    });
+                }
+                if (ui.strategy2RiskAmountEl && s2) {
+                    ui.strategy2RiskAmountEl.addEventListener("click", () => {
+                        const val = Number(ui.strategy2RiskAmountEl.dataset.value) || 0;
+                        s2.runtime = s2.runtime && typeof s2.runtime === "object" ? s2.runtime : {};
+                        s2.runtime.copiedRiskAmount = val;
+                        MEP.UI.setStrategy2InfoMessage("Сумма риска скопирована в стартовую позицию");
+                    });
                 }
                 if (ui.strategy1InfoBar) {
                     ui._strategy1InfoHoverLocked = false;
