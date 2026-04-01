@@ -180,3 +180,45 @@
 - В Strategy1 UI добавлены кнопки `Ждать восстановления` / `Снять ожидание`, refs+bind, и diagnostics-поля waiting recovery (active/reason/target/current/reached/startedAt/reachedAt).
 - В system messages добавлены значимые переходы waiting recovery: вход, выход, и единоразовое сообщение при первом достижении целевого баланса.
 
+- 2026-03-31: Strategy1 UI полностью пересобран на минимальный шаг 1: оставлены только info-bar (одно последнее событие с one-shot ticker) и control-row (Вкл/Откл toggle + вертикальный divider + таймер hh:mm:ss).
+- Удалены старые Strategy1 markup/bind/refs для diagnostics/conditions/stake-constructor/cycle/debug buttons/system messages/branch badges; bind оставлен только на новый toggle.
+- Добавлены новые refs: `strategy1InfoBar`, `strategy1InfoTicker`, `strategy1EnabledToggle`, `strategy1WorkTimer`, `strategy1TabBtn`.
+- Добавлены helper-методы UI: `setStrategy1InfoMessage`, `replayStrategy1InfoTicker`, `truncateStrategy1InfoText`, `renderStrategy1MinimalUi`, форматтер таймера.
+- Подсветка вкладки Strategy1 переведена в live-state класс `mep-strategy1-tab-live` (зелёная при enabled), таймер сбрасывается при новом запуске через `timers.enabledAtTs`.
+- 2026-03-31: Добавлен стартовый минимальный UI вкладки `Стратегия2` (info-bar 24px + control-row: Вкл/Откл + toggle + divider + timer `hh:mm:ss`) в стиле нового Strategy1.
+- Добавлены refs Strategy2: `strategy2InfoBar`, `strategy2InfoTicker`, `strategy2EnabledToggle`, `strategy2WorkTimer`, `strategy2TabBtn`.
+- Добавлена двусторонняя UI-блокировка стратегий через helper `canEnableStrategy(strategyId)`: одновременно активна только одна стратегия.
+- При блокировке запуска показываются сообщения: `Стратегия2 невозможно запустить, запущена другая стратегия` / `Стратегия1 невозможно запустить, запущена другая стратегия`.
+- Добавлены отдельные таймеры включения для Strategy2 (`timers.enabledAtTs`) и live-подсветка вкладки `strategy2` без вмешательства в execution/decision/cycle engine.
+- 2026-03-31: Доделан UI-sync для минимальных Strategy1/Strategy2 через централизованный `syncStrategiesUiState()`.
+- Подсветка вкладок и disabled-state toggle теперь жёстко синхронизированы с `enabled` состоянием стратегий (S1/S2/none).
+- Исправлен ticker: теперь любая новая фраза (включая короткую) всегда делает один визуальный проход справа налево.
+- После stop активной стратегии второй инфоблок сбрасывается с блокирующей фразы на нейтральную готовность (`Стратегия X готова к работе`).
+- Добавлены stop-сообщения для выключаемой стратегии (`Стратегия X остановлена...`) при отсутствии активной второй стратегии.
+- 2026-03-31: Исправлена кинематика ticker для Strategy1/2: теперь one-shot идёт по полному пути `startX=containerWidth` -> `endX=-textWidth`.
+- Текст стартует из-за правой границы и полностью уходит за левую, хвост длинной фразы дочитывается до конца перед freeze.
+- Усилен стиль live-tab для Strategy1/2 (`#mep-control-panel` scoped + `.is-active/:hover` + `!important`), чтобы зелёный боевой цвет не перебивался базовыми tab-стилями.
+- 2026-03-31: Ускорена скорость one-shot ticker для Strategy1/2 через уменьшение длительности (`travel/75` вместо `travel/60`, обновлены min/max duration).
+- Логика полного прохода сохранена: старт из-за правого края, полный уход хвоста за левый край, hover replay и truncate без изменений.
+- Обновлена версия скрипта до `0.1.5.39` в комментарии шапки и `MEP.ver`.
+- 2026-04-01: В правой части control-row для Strategy1/2 добавлен формат `DD.MM.YY HH:MM:SS HH:MM:SS` (дата, текущее время, секундомер).
+- Добавлены refs `strategy1CurrentDateTime` / `strategy2CurrentDateTime` и live-рендер текущей даты/времени в минимальном UI.
+- Для секундомера добавлены состояния цвета: `is-active` (зелёный) и `is-inactive` (серый) отдельно от даты/времени.
+- Версия `crash.js` повышена до `0.1.5.40` в шапке и `MEP.ver`.
+- 2026-04-01: Исправлен выезд правой meta-части control-row за край панели (Strategy1/2): переработан flex для `...-right-meta` (`flex:1`, `min-width:0`, `justify-content:flex-end`).
+- Убрано scale-увеличение шрифта даты/секундомера; выставлен компактный размер и `text-overflow:ellipsis` для блока даты/времени.
+- Версия повышена до `0.1.5.41` в шапке и `MEP.ver`.
+- 2026-04-01: Блок `дата+время` разделён на отдельные элементы для Strategy1/2 (`...-current-date`, `...-current-time`).
+- Цвет времени установлен в светло-жёлтый (`#f7e7a2`), дата оставлена нейтральной.
+- В `...-right-meta` применено `justify-content: space-between` (по запросу) для раздвижения даты, времени и секундомера.
+- Версия повышена до `0.1.5.42` в шапке и `MEP.ver`.
+- 2026-04-01: Добавлена новая финансовая строка в минимальный UI Strategy1/2 (иконка монеты, start/current balance, PnL%, risk amount, risk% input).
+- Текущий баланс и иконка читаются из DOM `data-testid="coin-toggle-default-wrap"` (число + SVG монеты).
+- Start balance фиксируется при включении стратегии (`runtime.startBalanceSnapshot`), скрыт до запуска и очищается при выключении.
+- Добавлены расчёты PnL и riskAmount, клик по riskAmount сохраняет значение в `runtime.copiedRiskAmount` и показывает info-сообщение.
+- Добавлена обработка riskPercent input для обеих стратегий с live-пересчётом строки.
+- Версия повышена до `0.1.5.43` в шапке и `MEP.ver`.
+- 2026-04-01: Ширина панели увеличена до `450px` (`#${PANEL_ID}`), как requested.
+- Строка финансового блока ужата под ширину панели: уменьшены gap/размеры, добавлены `overflow:hidden` + `text-overflow:ellipsis` и max-width на критичных числовых полях.
+- Исправлено вылезание значений за правый край в balance-row для Strategy1/2.
+- Версия повышена до `0.1.5.44` в шапке и `MEP.ver`.
