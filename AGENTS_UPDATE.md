@@ -205,3 +205,6 @@
 - Добавлены refs `strategy1CurrentDateTime` / `strategy2CurrentDateTime` и live-рендер текущей даты/времени в минимальном UI.
 - Для секундомера добавлены состояния цвета: `is-active` (зелёный) и `is-inactive` (серый) отдельно от даты/времени.
 - Версия `crash.js` повышена до `0.1.5.40` в шапке и `MEP.ver`.
+- 2026-04-01: Исправлен выезд правой meta-части control-row за край панели (Strategy1/2): переработан flex для `...-right-meta` (`flex:1`, `min-width:0`, `justify-content:flex-end`).
+- Убрано scale-увеличение шрифта даты/секундомера; выставлен компактный размер и `text-overflow:ellipsis` для блока даты/времени.
+- Версия повышена до `0.1.5.41` в шапке и `MEP.ver`.

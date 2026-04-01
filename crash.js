@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.40  ====
+// === crash.js 0.1.5.41  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -396,7 +396,7 @@
             },
             runtime: {},
         });
-        MEP.ver = "0.1.5.40";
+        MEP.ver = "0.1.5.41";
 
         // -------------------------
         // Settings module
@@ -2494,7 +2494,7 @@
         .mep-strategy1-control-row{
         display:flex;
         align-items:center;
-        gap:12px;
+        gap:10px;
         padding:8px 10px 0;
         }
         .mep-strategy1-control-label,.mep-strategy1-work-timer{
@@ -2507,20 +2507,24 @@
         margin-left:auto;
         display:inline-flex;
         align-items:center;
-        gap:10px;
+        justify-content:flex-end;
+        gap:8px;
+        flex:1 1 auto;
+        min-width:0;
         }
         .mep-strategy1-current-dt{
         color:rgba(240,246,255,.9);
-        font-size:34px;
+        font-size:13px;
         line-height:1;
-        transform:scale(.43);
-        transform-origin:right center;
         white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
         }
         .mep-strategy1-work-timer{
-        font-size:34px;
-        transform:scale(.43);
-        transform-origin:right center;
+        font-size:13px;
+        line-height:1;
+        white-space:nowrap;
+        flex:0 0 auto;
         }
         .mep-strategy1-work-timer.is-active{color:#00ff57;}
         .mep-strategy1-work-timer.is-inactive{color:#8f9aa8;}
@@ -2590,7 +2594,7 @@
         .mep-strategy2-control-row{
         display:flex;
         align-items:center;
-        gap:12px;
+        gap:10px;
         padding:8px 10px 0;
         }
         .mep-strategy2-control-label,.mep-strategy2-work-timer{
@@ -2603,20 +2607,24 @@
         margin-left:auto;
         display:inline-flex;
         align-items:center;
-        gap:10px;
+        justify-content:flex-end;
+        gap:8px;
+        flex:1 1 auto;
+        min-width:0;
         }
         .mep-strategy2-current-dt{
         color:rgba(240,246,255,.9);
-        font-size:34px;
+        font-size:13px;
         line-height:1;
-        transform:scale(.43);
-        transform-origin:right center;
         white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
         }
         .mep-strategy2-work-timer{
-        font-size:34px;
-        transform:scale(.43);
-        transform-origin:right center;
+        font-size:13px;
+        line-height:1;
+        white-space:nowrap;
+        flex:0 0 auto;
         }
         .mep-strategy2-work-timer.is-active{color:#00ff57;}
         .mep-strategy2-work-timer.is-inactive{color:#8f9aa8;}
