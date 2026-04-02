@@ -240,3 +240,6 @@
 - Добавлен live-context bridge для evaluator: `lt2_streak`, `charter.allowed`, `balance.start/current`, `ema.*.state`, `stake.*.state`.
 - Добавлен single-choice behavior для `groupMode=single` внутри одной `groupId` при включении объекта в pool.
 - Версия `crash.js` повышена до `0.1.5.47`.
+- 2026-04-02: Точечно поправлен UI первой condition-row Strategy1: увеличена первая колонка (`112px`) и убрана длинная подпись `Вкл/Откл`.
+- В зоне участия оставлен компактный вид `checkbox + use`, чтобы элемент включения не терялся визуально.
+- Усилена видимость checkbox в выключенном/включенном состоянии (16x16, accent-color, border, фон, inset-контраст).

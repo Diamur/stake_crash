@@ -2880,7 +2880,7 @@
         .mep-strategy1-condition-row{
         margin-top:8px;
         display:grid;
-        grid-template-columns: 78px 1fr 84px 96px;
+        grid-template-columns: 112px 1fr 84px 96px;
         align-items:center;
         gap:6px;
         border:1px dashed rgba(255,255,255,.24);
@@ -2889,8 +2889,30 @@
         font-size:11px;
         background:rgba(255,255,255,.04);
         }
-        .mep-strategy1-cond-toggle-wrap{display:inline-flex;align-items:center;gap:6px;color:#e7edf6;}
-        .mep-strategy1-cond-toggle-wrap input{width:14px;height:14px;accent-color:#00e51f;}
+        .mep-strategy1-cond-toggle-wrap{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        color:#e7edf6;
+        font-size:11px;
+        line-height:1;
+        white-space:nowrap;
+        min-width:0;
+        }
+        .mep-strategy1-cond-toggle-wrap input{
+        width:16px;
+        height:16px;
+        accent-color:#00e51f;
+        border:1px solid rgba(255,255,255,.8);
+        border-radius:3px;
+        background:#0c1218;
+        box-shadow:0 0 0 1px rgba(0,0,0,.35) inset;
+        }
+        .mep-strategy1-cond-toggle-txt{
+        color:rgba(231,237,246,.92);
+        font-size:11px;
+        letter-spacing:.15px;
+        }
         .mep-strategy1-cond-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f5f8fc;}
         .mep-strategy1-cond-current{color:#ffd98f;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .mep-strategy1-cond-result{text-align:right;font-weight:700;white-space:nowrap;}
@@ -8773,7 +8795,7 @@
             <span class="mep-strategy1-risk-percent-sign">%</span>
         </div>
         <div class="mep-strategy1-condition-row">
-            <label class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" /><span>Вкл/Откл</span></label>
+            <label class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" /><span class="mep-strategy1-cond-toggle-txt">use</span></label>
             <div class="mep-strategy1-cond-text">—</div>
             <div class="mep-strategy1-cond-current">—</div>
             <div class="mep-strategy1-cond-result is-idle">not use</div>
