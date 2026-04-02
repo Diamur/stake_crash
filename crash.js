@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.46  ====
+// === crash.js 0.1.5.47  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -218,6 +218,7 @@
             executionLocked: false,
             config: {
                 riskPercent: 0,
+                conditionPoolIds: [],
                 startStakeMode: "fixed",
                 startStakeValue: 0,
                 startStakeArrayText: "",
@@ -404,7 +405,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.46";
+        MEP.ver = "0.1.5.47";
 
         // -------------------------
         // Settings module
@@ -2876,6 +2877,26 @@
         .mep-strategy1-risk-amount{color:#d7dde5;cursor:pointer;max-width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .mep-strategy1-risk-percent{width:36px;height:24px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;text-align:center;}
         .mep-strategy1-risk-percent-sign{font-size:48px;transform:scale(.26);transform-origin:left center;color:#fff;}
+        .mep-strategy1-condition-row{
+        margin-top:8px;
+        display:grid;
+        grid-template-columns: 78px 1fr 84px 96px;
+        align-items:center;
+        gap:6px;
+        border:1px dashed rgba(255,255,255,.24);
+        border-radius:8px;
+        padding:6px 8px;
+        font-size:11px;
+        background:rgba(255,255,255,.04);
+        }
+        .mep-strategy1-cond-toggle-wrap{display:inline-flex;align-items:center;gap:6px;color:#e7edf6;}
+        .mep-strategy1-cond-toggle-wrap input{width:14px;height:14px;accent-color:#00e51f;}
+        .mep-strategy1-cond-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f5f8fc;}
+        .mep-strategy1-cond-current{color:#ffd98f;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mep-strategy1-cond-result{text-align:right;font-weight:700;white-space:nowrap;}
+        .mep-strategy1-cond-result.is-true{color:#00ff57;}
+        .mep-strategy1-cond-result.is-false{color:#ff6f9f;}
+        .mep-strategy1-cond-result.is-idle{color:#a9b2bc;}
         .mep-strategy1-toggle{
         position:relative;
         width:44px;
@@ -7717,6 +7738,159 @@
                 return n.toFixed(8).replace(/\.?0+$/, "").replace(".", ",");
             },
 
+            getStrategy1PoolIds(st = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                const cfg = s?.config && typeof s.config === "object" ? s.config : (s.config = {});
+                if (!Array.isArray(cfg.conditionPoolIds)) cfg.conditionPoolIds = [];
+                cfg.conditionPoolIds = cfg.conditionPoolIds
+                    .map((id) => (id ?? "").toString().trim())
+                    .filter(Boolean);
+                return cfg.conditionPoolIds;
+            },
+
+            getStrategy1StreakObjects() {
+                const items = MEP.ConditionObjects.list();
+                return items.filter((it) => it?.type === "streak_lt" && it?.enabled !== false);
+            },
+
+            ensureStrategy1BridgeObject(st = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!s) return null;
+                const pool = MEP.UI.getStrategy1PoolIds(s);
+                const streakItems = MEP.UI.getStrategy1StreakObjects();
+                const byId = new Map(streakItems.map((it) => [it.id, it]));
+                let changed = false;
+
+                for (let i = pool.length - 1; i >= 0; i--) {
+                    if (!byId.has(pool[i])) {
+                        pool.splice(i, 1);
+                        changed = true;
+                    }
+                }
+
+                if (!pool.length && streakItems.length) {
+                    pool.push(streakItems[0].id);
+                    changed = true;
+                }
+
+                if (changed) MEP.Storage.save();
+                return pool[0] ? byId.get(pool[0]) || MEP.ConditionObjects.get(pool[0]) : null;
+            },
+
+            setStrategy1ConditionEnabled(objectId, enabled) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const id = (objectId ?? "").toString().trim();
+                if (!id) return;
+                const obj = MEP.ConditionObjects.get(id);
+                if (!obj || obj.type !== "streak_lt") return;
+                const pool = MEP.UI.getStrategy1PoolIds(st);
+                const want = !!enabled;
+                const inPool = pool.includes(id);
+
+                if (want && !inPool) {
+                    // single-choice group support: при groupMode=single вырубаем все из той же группы
+                    const sameGroupId = (obj.groupId || "").toString().trim();
+                    const sameGroupSingle = (obj.groupMode || "").toString().trim().toLowerCase() === "single" && !!sameGroupId;
+                    if (sameGroupSingle) {
+                        for (let i = pool.length - 1; i >= 0; i--) {
+                            const curObj = MEP.ConditionObjects.get(pool[i]);
+                            if (!curObj) continue;
+                            if ((curObj.groupId || "").toString().trim() === sameGroupId) pool.splice(i, 1);
+                        }
+                    }
+                    pool.push(id);
+                }
+                if (!want && inPool) {
+                    const idx = pool.indexOf(id);
+                    if (idx >= 0) pool.splice(idx, 1);
+                }
+
+                MEP.Storage.save();
+                MEP.UI.renderStrategy1MinimalUi(st);
+            },
+
+            buildStrategy1ObjectContext(st = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                const currentBalance = MEP.UI.readCurrentBalanceFromDom().amount || 0;
+                return {
+                    lt2_streak: MEP.Utils.countStreakLE(2),
+                    charter: { allowed: s?.charterCheck?.allowed !== false },
+                    balance: {
+                        start: Number(s?.runtime?.startBalanceSnapshot) || 0,
+                        current: Number(currentBalance) || 0,
+                    },
+                    ema: {
+                        diff: { state: (MEP.State.diffVectorState || "flat").toString() },
+                        frequency: { state: (MEP.State.frequencyVectorState || "flat").toString() },
+                    },
+                    stake: {
+                        players: { state: (MEP.State.stakePlayersVectorState || "flat").toString() },
+                        bet: { state: (MEP.State.stakeBetVectorState || "flat").toString() },
+                    },
+                };
+            },
+
+            formatStrategy1ConditionText(obj) {
+                if (!obj || obj.type !== "streak_lt") return obj?.label || "—";
+                const label = (obj.label || "Подряд x <").toString().trim();
+                const threshold = Number(obj?.params?.threshold);
+                const thresholdText = Number.isFinite(threshold) ? String(threshold) : "?";
+                return `${label} ${thresholdText}`;
+            },
+
+            renderStrategy1ConditionBridge(st = null) {
+                const ui = MEP.UI.ui;
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!ui || !s) return;
+
+                const obj = MEP.UI.ensureStrategy1BridgeObject(s);
+                const pool = MEP.UI.getStrategy1PoolIds(s);
+                const enabledInPool = !!(obj && pool.includes(obj.id));
+
+                if (!obj) {
+                    if (ui.strategy1CondEnabledInput) ui.strategy1CondEnabledInput.checked = false;
+                    if (ui.strategy1CondTextEl) ui.strategy1CondTextEl.textContent = "Нет streak_lt объекта в реестре";
+                    if (ui.strategy1CondCurrentEl) ui.strategy1CondCurrentEl.textContent = "—";
+                    if (ui.strategy1CondResultEl) {
+                        ui.strategy1CondResultEl.textContent = "not use";
+                        ui.strategy1CondResultEl.classList.remove("is-true", "is-false");
+                        ui.strategy1CondResultEl.classList.add("is-idle");
+                    }
+                    return;
+                }
+
+                const context = MEP.UI.buildStrategy1ObjectContext(s);
+                const evalResult = enabledInPool ? MEP.ConditionObjects.evaluateConditionObject(obj, context) : { ok: true, result: null, sourceValue: null };
+                const displayText = MEP.UI.formatStrategy1ConditionText(obj);
+                const currentText = enabledInPool && evalResult?.ok ? String(evalResult.sourceValue) : "—";
+                let resultText = "not use";
+                let resultClass = "is-idle";
+                if (enabledInPool && evalResult?.ok) {
+                    const v = !!evalResult.result;
+                    resultText = v ? "true" : "false";
+                    resultClass = v ? "is-true" : "is-false";
+                }
+                if (enabledInPool && !evalResult?.ok) {
+                    resultText = "error";
+                    resultClass = "is-false";
+                }
+
+                if (ui.strategy1CondEnabledInput) {
+                    ui.strategy1CondEnabledInput.dataset.objectId = obj.id;
+                    if (ui.strategy1CondEnabledInput.checked !== enabledInPool) {
+                        ui.strategy1CondEnabledInput.checked = enabledInPool;
+                    }
+                }
+                if (ui.strategy1CondTextEl) ui.strategy1CondTextEl.textContent = displayText;
+                if (ui.strategy1CondCurrentEl) ui.strategy1CondCurrentEl.textContent = currentText;
+                if (ui.strategy1CondResultEl) {
+                    ui.strategy1CondResultEl.textContent = resultText;
+                    ui.strategy1CondResultEl.classList.remove("is-true", "is-false", "is-idle");
+                    ui.strategy1CondResultEl.classList.add(resultClass);
+                }
+            },
+
             renderStrategyBalanceRow(strategyId = "strategy1") {
                 const ui = MEP.UI.ui;
                 const st = MEP.UI.getStrategyState(strategyId);
@@ -7855,6 +8029,7 @@
                 const blocked = !enabled && !MEP.UI.canEnableStrategy("strategy1");
                 if (ui.strategy1EnabledToggle) ui.strategy1EnabledToggle.disabled = blocked;
                 MEP.UI.renderStrategyBalanceRow("strategy1");
+                MEP.UI.renderStrategy1ConditionBridge(st);
             },
 
             renderStrategy2MinimalUi(st) {
@@ -8597,6 +8772,12 @@
             <input class="mep-strategy1-risk-percent" type="number" min="0" step="0.1" value="5" />
             <span class="mep-strategy1-risk-percent-sign">%</span>
         </div>
+        <div class="mep-strategy1-condition-row">
+            <label class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" /><span>Вкл/Откл</span></label>
+            <div class="mep-strategy1-cond-text">—</div>
+            <div class="mep-strategy1-cond-current">—</div>
+            <div class="mep-strategy1-cond-result is-idle">not use</div>
+        </div>
     </div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-strategy2">
@@ -8683,6 +8864,10 @@
                     strategy1PnlEl: panel.querySelector(".mep-strategy1-pnl"),
                     strategy1RiskAmountEl: panel.querySelector(".mep-strategy1-risk-amount"),
                     strategy1RiskPercentInput: panel.querySelector(".mep-strategy1-risk-percent"),
+                    strategy1CondEnabledInput: panel.querySelector("input.mep-strategy1-cond-enabled"),
+                    strategy1CondTextEl: panel.querySelector(".mep-strategy1-cond-text"),
+                    strategy1CondCurrentEl: panel.querySelector(".mep-strategy1-cond-current"),
+                    strategy1CondResultEl: panel.querySelector(".mep-strategy1-cond-result"),
                     strategy1TabBtn: panel.querySelector('button.mep-game-tab-btn[data-tab="strategy1"]'),
                     strategy2EnabledToggle: panel.querySelector("input.mep-strategy2-enabled"),
                     strategy2InfoBar: panel.querySelector(".mep-strategy2-info-bar"),
@@ -9009,6 +9194,12 @@
                         s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
                         s1.runtime.copiedRiskAmount = val;
                         MEP.UI.setStrategy1InfoMessage("Сумма риска скопирована в стартовую позицию");
+                    });
+                }
+                if (ui.strategy1CondEnabledInput && s1) {
+                    ui.strategy1CondEnabledInput.addEventListener("change", () => {
+                        const objectId = (ui.strategy1CondEnabledInput.dataset.objectId || "").trim();
+                        MEP.UI.setStrategy1ConditionEnabled(objectId, !!ui.strategy1CondEnabledInput.checked);
                     });
                 }
                 if (ui.strategy2RiskAmountEl && s2) {
@@ -9797,6 +9988,7 @@
                     try {
                         await MEP.ConditionObjects.loadFromDb("settings_tab_objects");
                         renderObjectsList();
+                        MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                     } catch (e) {
                         if (ui.objectsList) ui.objectsList.innerHTML = `<div class="mep-objects-empty">Ошибка загрузки объектов</div>`;
                     }
@@ -11526,6 +11718,13 @@
                 // звуки из настроек (сразу при старте)
                 try {
                     MEP.Sound?.loadFromSettings?.();
+                } catch (e) {}
+
+                // bridge-step: подгрузим реестр объектов для первой живой строки Strategy1
+                try {
+                    MEP.ConditionObjects?.loadFromDb?.("strategy1_bridge_boot")
+                        ?.then(() => MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1")))
+                        ?.catch(() => {});
                 } catch (e) {}
 
                 MEP.UI.rebuildTrackingTable();

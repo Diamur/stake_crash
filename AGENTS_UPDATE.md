@@ -234,3 +234,9 @@
 - В модалку `Объект условия` добавлены `Source` поля (select + custom input), prefill при edit и сохранение в объект.
 - Добавлен foundation evaluator-layer: `makeRuntimeContext()`, `resolveConditionSource()`, `evaluateConditionObject()`.
 - Версия `crash.js` повышена до `0.1.5.46`.
+- 2026-04-02: Strategy1 bridge-step — добавлен runtime pool `strategy1.config.conditionPoolIds` (массив objectId) для подключённых condition objects.
+- Добавлена первая живая строка условия в минимальный UI Strategy1 (toggle | условие | достижение | result) только для `type=streak_lt`.
+- Реализован автоподхват первого enabled `streak_lt` объекта из реестра при пустом пуле + рендер из объекта (не из хардкода).
+- Добавлен live-context bridge для evaluator: `lt2_streak`, `charter.allowed`, `balance.start/current`, `ema.*.state`, `stake.*.state`.
+- Добавлен single-choice behavior для `groupMode=single` внутри одной `groupId` при включении объекта в pool.
+- Версия `crash.js` повышена до `0.1.5.47`.
