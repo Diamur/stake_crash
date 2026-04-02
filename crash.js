@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.45  ====
+// === crash.js 0.1.5.46  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -404,7 +404,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.45";
+        MEP.ver = "0.1.5.46";
 
         // -------------------------
         // Settings module
@@ -705,10 +705,35 @@
             cache: new Map(),
             loadedAtTs: 0,
 
+            SOURCES: [
+                { key: "lt2_streak", label: "Подряд x < 2", valueType: "number" },
+                { key: "charter.allowed", label: "Устав: разрешено", valueType: "boolean" },
+                { key: "balance.current", label: "Баланс: текущий", valueType: "number" },
+                { key: "balance.start", label: "Баланс: старт", valueType: "number" },
+                { key: "ema.diff.state", label: "EMA Diff: state", valueType: "string" },
+                { key: "ema.frequency.state", label: "EMA Frequency: state", valueType: "string" },
+                { key: "stake.players.state", label: "Stake Players: state", valueType: "string" },
+                { key: "stake.bet.state", label: "Stake Bet: state", valueType: "string" },
+            ],
+
             typeRegistry: {
-                charter: { requiredParams: [] },
-                streak_lt: { requiredParams: ["threshold"] },
-                ema_above: { requiredParams: ["period"] },
+                charter: {
+                    requiredParams: [],
+                    sourceRequired: true,
+                    defaultSource: "charter.allowed",
+                    allowedSources: ["charter.allowed"],
+                },
+                streak_lt: {
+                    requiredParams: ["threshold"],
+                    sourceRequired: true,
+                    defaultSource: "lt2_streak",
+                    allowedSources: ["lt2_streak"],
+                },
+                ema_above: {
+                    requiredParams: ["period"],
+                    sourceRequired: true,
+                    allowedSources: ["ema.diff.state", "ema.frequency.state"],
+                },
             },
 
             makeDefault() {
@@ -717,6 +742,7 @@
                     type: "streak_lt",
                     label: "",
                     enabled: true,
+                    source: "lt2_streak",
                     groupId: "",
                     groupMode: "single",
                     params: {},
@@ -734,6 +760,32 @@
                 return JSON.parse(JSON.stringify(v));
             },
 
+            getSourceRegistryMap() {
+                const map = Object.create(null);
+                for (const it of this.SOURCES || []) {
+                    const key = (it?.key ?? "").toString().trim();
+                    if (!key) continue;
+                    map[key] = { ...it, key };
+                }
+                return map;
+            },
+
+            getTypeDef(type) {
+                const k = (type ?? "").toString().trim().toLowerCase();
+                return this.typeRegistry[k] || null;
+            },
+
+            getDefaultSourceForType(type) {
+                const def = this.getTypeDef(type);
+                return (def?.defaultSource ?? "").toString().trim();
+            },
+
+            isKnownSource(sourceKey) {
+                const key = (sourceKey ?? "").toString().trim();
+                if (!key) return false;
+                return !!this.getSourceRegistryMap()[key];
+            },
+
             normalizeConditionObject(obj) {
                 const src = obj && typeof obj === "object" ? obj : {};
                 const base = this.makeDefault();
@@ -742,6 +794,7 @@
                 out.id = (out.id ?? "").toString().trim();
                 out.type = (out.type ?? "").toString().trim().toLowerCase();
                 out.label = (out.label ?? "").toString().trim();
+                out.source = (out.source ?? "").toString().trim();
                 out.groupId = (out.groupId ?? "").toString().trim();
                 out.groupMode = (out.groupMode ?? "").toString().trim().toLowerCase() || "single";
                 out.enabled = !!out.enabled;
@@ -753,6 +806,7 @@
                         : {};
 
                 if (!out.label) out.label = out.id || out.type || "Object";
+                if (!out.source) out.source = this.getDefaultSourceForType(out.type) || "";
 
                 const uiOrder = Number(out.ui.order);
                 out.ui.order = Number.isFinite(uiOrder) ? Math.floor(uiOrder) : 0;
@@ -767,6 +821,15 @@
                 if (!/^[a-z0-9._-]+$/i.test(out.id)) return { ok: false, error: "id has invalid chars" };
 
                 const typeDef = this.typeRegistry[out.type] || null;
+                if (typeDef?.sourceRequired && !out.source) {
+                    return { ok: false, error: `source is required for type ${out.type}` };
+                }
+                if (out.source) {
+                    if (!this.isKnownSource(out.source)) return { ok: false, error: `unknown source: ${out.source}` };
+                    if (typeDef?.allowedSources?.length && !typeDef.allowedSources.includes(out.source)) {
+                        return { ok: false, error: `source ${out.source} is not allowed for type ${out.type}` };
+                    }
+                }
                 if (typeDef && Array.isArray(typeDef.requiredParams)) {
                     for (const key of typeDef.requiredParams) {
                         if (!(key in out.params)) return { ok: false, error: `params.${key} is required for type ${out.type}` };
@@ -779,6 +842,77 @@
                 const vr = this.validateConditionObject(obj);
                 if (!vr.ok) return vr;
                 return { ok: true, value: vr.value, typeDef: this.typeRegistry[vr.value.type] || null };
+            },
+
+            makeRuntimeContext(ctx = {}) {
+                const src = ctx && typeof ctx === "object" ? ctx : {};
+                const toNum = (v, fallback = 0) => {
+                    const n = Number(v);
+                    return Number.isFinite(n) ? n : fallback;
+                };
+                return {
+                    lt2_streak: toNum(src?.lt2_streak, 0),
+                    charter: {
+                        allowed: src?.charter?.allowed !== false,
+                    },
+                    balance: {
+                        start: toNum(src?.balance?.start, 0),
+                        current: toNum(src?.balance?.current, 0),
+                    },
+                    ema: {
+                        diff: { state: (src?.ema?.diff?.state ?? "flat").toString() },
+                        frequency: { state: (src?.ema?.frequency?.state ?? "flat").toString() },
+                    },
+                    stake: {
+                        players: { state: (src?.stake?.players?.state ?? "flat").toString() },
+                        bet: { state: (src?.stake?.bet?.state ?? "flat").toString() },
+                    },
+                };
+            },
+
+            resolveConditionSource(source, context = {}) {
+                const srcKey = (source ?? "").toString().trim();
+                if (!srcKey) return { ok: false, error: "source is empty", value: undefined };
+                const ctx = this.makeRuntimeContext(context);
+                const parts = srcKey.split(".");
+                let cur = ctx;
+                for (const p of parts) {
+                    if (!p) continue;
+                    if (cur && typeof cur === "object" && p in cur) {
+                        cur = cur[p];
+                    } else {
+                        return { ok: false, error: `source not found in context: ${srcKey}`, value: undefined };
+                    }
+                }
+                return { ok: true, value: cur };
+            },
+
+            evaluateConditionObject(object, context = {}) {
+                const dec = this.decodeConditionObject(object);
+                if (!dec.ok) return { ok: false, error: dec.error || "invalid object" };
+                const obj = dec.value;
+                const src = this.resolveConditionSource(obj.source, context);
+                if (!src.ok) return { ok: false, error: src.error, object: obj };
+
+                let result = false;
+                let resultText = "noop";
+                if (obj.type === "streak_lt") {
+                    const threshold = Number(obj?.params?.threshold);
+                    const v = Number(src.value);
+                    if (Number.isFinite(v) && Number.isFinite(threshold)) {
+                        result = v < threshold;
+                        resultText = `${v} < ${threshold}`;
+                    }
+                } else if (obj.type === "charter") {
+                    result = !!src.value;
+                    resultText = result ? "allowed" : "blocked";
+                } else if (obj.type === "ema_above") {
+                    const expected = (obj?.params?.state ?? "up").toString().trim().toLowerCase();
+                    const current = (src.value ?? "").toString().trim().toLowerCase();
+                    result = !!current && current === expected;
+                    resultText = `${current} === ${expected}`;
+                }
+                return { ok: true, object: obj, sourceValue: src.value, result, resultText };
             },
 
             list() {
@@ -8337,6 +8471,11 @@
         </div>
         <div class="mep-form-row"><div class="mep-label">ID объекта</div><input class="mep-input mep-object-id" /></div>
         <div class="mep-form-row"><div class="mep-label">Type объекта</div><input class="mep-input mep-object-type" placeholder="streak_lt" /></div>
+        <div class="mep-form-row">
+            <div class="mep-label">Source</div>
+            <select class="mep-input mep-object-source-select"></select>
+            <input class="mep-input mep-object-source-custom" placeholder="custom.source.key" style="margin-top:6px;" />
+        </div>
         <div class="mep-form-row"><div class="mep-label">Label</div><input class="mep-input mep-object-label" /></div>
         <div class="mep-form-row"><div class="mep-label">Group ID</div><input class="mep-input mep-object-group-id" /></div>
         <div class="mep-form-row">
@@ -8690,6 +8829,8 @@
                     objectModalCloseBtn: objectOverlay?.querySelector(".mep-object-modal-close"),
                     objectIdInput: objectOverlay?.querySelector(".mep-object-id"),
                     objectTypeInput: objectOverlay?.querySelector(".mep-object-type"),
+                    objectSourceSelect: objectOverlay?.querySelector(".mep-object-source-select"),
+                    objectSourceCustomInput: objectOverlay?.querySelector(".mep-object-source-custom"),
                     objectLabelInput: objectOverlay?.querySelector(".mep-object-label"),
                     objectGroupIdInput: objectOverlay?.querySelector(".mep-object-group-id"),
                     objectGroupModeSelect: objectOverlay?.querySelector(".mep-object-group-mode"),
@@ -9591,11 +9732,48 @@
                     ui._objectEditId = "";
                 };
 
+                const renderObjectSourceOptions = (selectedSource = "", currentType = "") => {
+                    if (!ui.objectSourceSelect) return;
+                    const srcItems = MEP.ConditionObjects.SOURCES || [];
+                    const typeDef = MEP.ConditionObjects.getTypeDef(currentType);
+                    const allowedSet = new Set((typeDef?.allowedSources || []).map((v) => (v || "").toString().trim()));
+                    const mustRestrict = allowedSet.size > 0;
+                    ui.objectSourceSelect.innerHTML = "";
+                    const emptyOpt = document.createElement("option");
+                    emptyOpt.value = "";
+                    emptyOpt.textContent = "(выберите source)";
+                    ui.objectSourceSelect.appendChild(emptyOpt);
+
+                    for (const srcDef of srcItems) {
+                        const key = (srcDef?.key || "").toString().trim();
+                        if (!key) continue;
+                        if (mustRestrict && !allowedSet.has(key)) continue;
+                        const opt = document.createElement("option");
+                        opt.value = key;
+                        opt.textContent = `${srcDef.label || key} (${key})`;
+                        ui.objectSourceSelect.appendChild(opt);
+                    }
+
+                    const normalizedSelected = (selectedSource || "").toString().trim();
+                    const hasSelected = normalizedSelected && Array.from(ui.objectSourceSelect.options).some((o) => o.value === normalizedSelected);
+                    ui.objectSourceSelect.value = hasSelected ? normalizedSelected : "";
+                    if (ui.objectSourceCustomInput) {
+                        ui.objectSourceCustomInput.value = hasSelected ? "" : normalizedSelected;
+                    }
+                };
+
+                const getObjectSourceFromUi = () => {
+                    const selectVal = (ui.objectSourceSelect?.value || "").trim();
+                    const customVal = (ui.objectSourceCustomInput?.value || "").trim();
+                    return customVal || selectVal;
+                };
+
                 const openObjectEditor = (existingObj = null) => {
                     const obj = existingObj ? MEP.ConditionObjects.normalizeConditionObject(existingObj) : MEP.ConditionObjects.makeDefault();
                     ui._objectEditId = obj.id || "";
                     if (ui.objectIdInput) ui.objectIdInput.value = obj.id || "";
                     if (ui.objectTypeInput) ui.objectTypeInput.value = obj.type || "";
+                    renderObjectSourceOptions(obj.source || "", obj.type || "");
                     if (ui.objectLabelInput) ui.objectLabelInput.value = obj.label || "";
                     if (ui.objectGroupIdInput) ui.objectGroupIdInput.value = obj.groupId || "";
                     if (ui.objectGroupModeSelect) ui.objectGroupModeSelect.value = obj.groupMode || "single";
@@ -9719,11 +9897,23 @@
                 ui.objectOverlay?.addEventListener("click", (e) => {
                     if (e.target === ui.objectOverlay) closeObjectEditor();
                 });
+                ui.objectTypeInput?.addEventListener("input", () => {
+                    const type = (ui.objectTypeInput?.value || "").trim().toLowerCase();
+                    const currentSource = getObjectSourceFromUi();
+                    const nextSource = currentSource || MEP.ConditionObjects.getDefaultSourceForType(type) || "";
+                    renderObjectSourceOptions(nextSource, type);
+                });
+                ui.objectSourceSelect?.addEventListener("change", () => {
+                    if ((ui.objectSourceSelect?.value || "").trim()) {
+                        if (ui.objectSourceCustomInput) ui.objectSourceCustomInput.value = "";
+                    }
+                });
                 ui.objectSaveBtn?.addEventListener("click", async () => {
                     try {
                         const obj = {
                             id: (ui.objectIdInput?.value || "").trim(),
                             type: (ui.objectTypeInput?.value || "").trim(),
+                            source: getObjectSourceFromUi(),
                             label: (ui.objectLabelInput?.value || "").trim(),
                             groupId: (ui.objectGroupIdInput?.value || "").trim(),
                             groupMode: (ui.objectGroupModeSelect?.value || "single").trim(),

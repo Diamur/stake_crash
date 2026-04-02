@@ -228,3 +228,9 @@
 - Добавлена отдельная модалка `Объект условия` (create/edit): поля id/type/label/group/enabled + JSON textarea для `params/ui/runtimeDefaults`.
 - Backend v0.1.6 расширен actions `objects_list`, `object_get`, `object_save`, `object_delete`; db_core_0.1.3 дополнен helper-функциями для CRUD-lite.
 - В SQL-дамп добавлена новая таблица `stake_condition_objects` с индексами `ux_device_object`, `idx_device_type`, `idx_updated_at`.
+- 2026-04-01: Стандарт condition-object расширен полем `source` + нормализация default source по type (`charter.allowed`, `lt2_streak`).
+- Добавлен registry `MEP.ConditionObjects.SOURCES` (8 базовых source-ключей с label/valueType).
+- В validate добавлены проверки source: обязательность для type, наличие в registry, соответствие allowedSources type-def.
+- В модалку `Объект условия` добавлены `Source` поля (select + custom input), prefill при edit и сохранение в объект.
+- Добавлен foundation evaluator-layer: `makeRuntimeContext()`, `resolveConditionSource()`, `evaluateConditionObject()`.
+- Версия `crash.js` повышена до `0.1.5.46`.
