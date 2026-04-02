@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.47  ====
+// === crash.js 0.1.5.48  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -405,7 +405,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.47";
+        MEP.ver = "0.1.5.48";
 
         // -------------------------
         // Settings module
@@ -2853,7 +2853,7 @@
         .mep-strategy1-work-timer.is-active{color:#00ff57;}
         .mep-strategy1-work-timer.is-inactive{color:#8f9aa8;}
         .mep-strategy1-balance-row{
-        margin-top:8px;
+        margin-top:0;
         display:flex;
         align-items:center;
         gap:6px;
@@ -2877,6 +2877,32 @@
         .mep-strategy1-risk-amount{color:#d7dde5;cursor:pointer;max-width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .mep-strategy1-risk-percent{width:36px;height:24px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;text-align:center;}
         .mep-strategy1-risk-percent-sign{font-size:48px;transform:scale(.26);transform-origin:left center;color:#fff;}
+        .mep-strategy1-conditions-wrap{
+        margin-top:8px;
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        }
+        .mep-strategy1-cond-summary{
+        font-size:11px;
+        line-height:1.1;
+        border:1px dashed rgba(255,255,255,.2);
+        border-radius:8px;
+        padding:5px 8px;
+        background:rgba(255,255,255,.03);
+        color:#a9b2bc;
+        }
+        .mep-strategy1-cond-summary.is-true{color:#00ff57;}
+        .mep-strategy1-cond-summary.is-false{color:#ff6f9f;}
+        .mep-strategy1-cond-summary.is-idle{color:#a9b2bc;}
+        .mep-strategy1-cond-list{display:flex;flex-direction:column;gap:5px;}
+        .mep-strategy1-cond-empty{
+        font-size:11px;
+        opacity:.75;
+        border:1px dashed rgba(255,255,255,.14);
+        border-radius:8px;
+        padding:6px 8px;
+        }
         .mep-strategy1-condition-row{
         margin-top:8px;
         display:grid;
@@ -7770,17 +7796,17 @@
                 return cfg.conditionPoolIds;
             },
 
-            getStrategy1StreakObjects() {
+            getStrategy1SupportedObjects() {
                 const items = MEP.ConditionObjects.list();
-                return items.filter((it) => it?.type === "streak_lt" && it?.enabled !== false);
+                return items.filter((it) => (it?.type === "streak_lt" || it?.type === "charter") && it?.enabled !== false);
             },
 
-            ensureStrategy1BridgeObject(st = null) {
+            ensureStrategy1BridgePool(st = null) {
                 const s = st || MEP.UI.getStrategyState("strategy1");
-                if (!s) return null;
+                if (!s) return [];
                 const pool = MEP.UI.getStrategy1PoolIds(s);
-                const streakItems = MEP.UI.getStrategy1StreakObjects();
-                const byId = new Map(streakItems.map((it) => [it.id, it]));
+                const supported = MEP.UI.getStrategy1SupportedObjects();
+                const byId = new Map(supported.map((it) => [it.id, it]));
                 let changed = false;
 
                 for (let i = pool.length - 1; i >= 0; i--) {
@@ -7790,13 +7816,16 @@
                     }
                 }
 
-                if (!pool.length && streakItems.length) {
+                // bridge default: если streak_lt в пуле нет, подключаем первый enabled streak_lt
+                const streakItems = supported.filter((it) => it.type === "streak_lt");
+                const hasStreakInPool = pool.some((id) => byId.get(id)?.type === "streak_lt");
+                if (!hasStreakInPool && streakItems.length) {
                     pool.push(streakItems[0].id);
                     changed = true;
                 }
 
                 if (changed) MEP.Storage.save();
-                return pool[0] ? byId.get(pool[0]) || MEP.ConditionObjects.get(pool[0]) : null;
+                return pool;
             },
 
             setStrategy1ConditionEnabled(objectId, enabled) {
@@ -7805,7 +7834,7 @@
                 const id = (objectId ?? "").toString().trim();
                 if (!id) return;
                 const obj = MEP.ConditionObjects.get(id);
-                if (!obj || obj.type !== "streak_lt") return;
+                if (!obj || (obj.type !== "streak_lt" && obj.type !== "charter")) return;
                 const pool = MEP.UI.getStrategy1PoolIds(st);
                 const want = !!enabled;
                 const inPool = pool.includes(id);
@@ -7854,68 +7883,92 @@
             },
 
             formatStrategy1ConditionText(obj) {
-                if (!obj || obj.type !== "streak_lt") return obj?.label || "—";
-                const label = (obj.label || "Подряд x <").toString().trim();
-                const threshold = Number(obj?.params?.threshold);
-                const thresholdText = Number.isFinite(threshold) ? String(threshold) : "?";
-                return `${label} ${thresholdText}`;
+                if (!obj) return "—";
+                if (obj.type === "streak_lt") {
+                    const label = (obj.label || "Подряд x <").toString().trim();
+                    const threshold = Number(obj?.params?.threshold);
+                    const thresholdText = Number.isFinite(threshold) ? String(threshold) : "?";
+                    return `${label} ${thresholdText}`;
+                }
+                if (obj.type === "charter") {
+                    const label = (obj.label || "Устав").toString().trim();
+                    return label || "Устав";
+                }
+                return (obj.label || obj.type || "—").toString();
             },
 
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
-                if (!ui || !s) return;
+                if (!ui || !s || !ui.strategy1CondListEl || !ui.strategy1CondSummaryEl) return;
 
-                const obj = MEP.UI.ensureStrategy1BridgeObject(s);
-                const pool = MEP.UI.getStrategy1PoolIds(s);
-                const enabledInPool = !!(obj && pool.includes(obj.id));
+                const pool = MEP.UI.ensureStrategy1BridgePool(s);
+                const supported = MEP.UI.getStrategy1SupportedObjects();
+                const byId = new Map(supported.map((it) => [it.id, it]));
+                const activePoolIds = pool.filter((id) => byId.has(id));
+                const context = MEP.UI.buildStrategy1ObjectContext(s);
 
-                if (!obj) {
-                    if (ui.strategy1CondEnabledInput) {
-                        ui.strategy1CondEnabledInput.checked = false;
-                        ui.strategy1CondEnabledInput.disabled = true;
-                        ui.strategy1CondEnabledInput.dataset.objectId = "";
-                    }
-                    if (ui.strategy1CondTextEl) ui.strategy1CondTextEl.textContent = "Нет streak_lt объекта в реестре";
-                    if (ui.strategy1CondCurrentEl) ui.strategy1CondCurrentEl.textContent = "—";
-                    if (ui.strategy1CondResultEl) {
-                        ui.strategy1CondResultEl.textContent = "not use";
-                        ui.strategy1CondResultEl.classList.remove("is-true", "is-false");
-                        ui.strategy1CondResultEl.classList.add("is-idle");
-                    }
+                if (!supported.length) {
+                    ui.strategy1CondSummaryEl.textContent = "Пул условий: not use";
+                    ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false");
+                    ui.strategy1CondSummaryEl.classList.add("is-idle");
+                    ui.strategy1CondListEl.innerHTML = `<div class="mep-strategy1-cond-empty">Нет поддержанных объектов (streak_lt / charter)</div>`;
                     return;
                 }
 
-                const context = MEP.UI.buildStrategy1ObjectContext(s);
-                const evalResult = enabledInPool ? MEP.ConditionObjects.evaluateConditionObject(obj, context) : { ok: true, result: null, sourceValue: null };
-                const displayText = MEP.UI.formatStrategy1ConditionText(obj);
-                const currentText = enabledInPool && evalResult?.ok ? String(evalResult.sourceValue) : "—";
-                let resultText = "not use";
-                let resultClass = "is-idle";
-                if (enabledInPool && evalResult?.ok) {
-                    const v = !!evalResult.result;
-                    resultText = v ? "true" : "false";
-                    resultClass = v ? "is-true" : "is-false";
+                let activeCount = 0;
+                let hasFalse = false;
+                const rows = [];
+                for (const obj of supported) {
+                    const enabledInPool = activePoolIds.includes(obj.id);
+                    const evalResult = enabledInPool
+                        ? MEP.ConditionObjects.evaluateConditionObject(obj, context)
+                        : { ok: true, result: null, sourceValue: null };
+                    const displayText = MEP.UI.formatStrategy1ConditionText(obj);
+                    let currentText = "—";
+                    if (enabledInPool && evalResult?.ok) {
+                        currentText = obj.type === "charter" ? (evalResult.sourceValue ? "allowed" : "blocked") : String(evalResult.sourceValue);
+                    }
+                    let resultText = "not use";
+                    let resultClass = "is-idle";
+                    if (enabledInPool) {
+                        activeCount++;
+                        if (evalResult?.ok) {
+                            const ok = !!evalResult.result;
+                            resultText = ok ? "true" : "false";
+                            resultClass = ok ? "is-true" : "is-false";
+                            if (!ok) hasFalse = true;
+                        } else {
+                            resultText = "error";
+                            resultClass = "is-false";
+                            hasFalse = true;
+                        }
+                    }
+                    rows.push(
+                        `<label class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-object-id="${obj.id}" ${enabledInPool ? "checked" : ""} /><span class="mep-strategy1-cond-toggle-txt">use</span></span>
+<span class="mep-strategy1-cond-text">${displayText}</span>
+<span class="mep-strategy1-cond-current">${currentText}</span>
+<span class="mep-strategy1-cond-result ${resultClass}">${resultText}</span>
+</label>`
+                    );
                 }
-                if (enabledInPool && !evalResult?.ok) {
-                    resultText = "error";
-                    resultClass = "is-false";
-                }
+                ui.strategy1CondListEl.innerHTML = rows.join("");
 
-                if (ui.strategy1CondEnabledInput) {
-                    ui.strategy1CondEnabledInput.dataset.objectId = obj.id;
-                    ui.strategy1CondEnabledInput.disabled = false;
-                    if (ui.strategy1CondEnabledInput.checked !== enabledInPool) {
-                        ui.strategy1CondEnabledInput.checked = enabledInPool;
+                let summaryText = "Пул условий: not use";
+                let summaryClass = "is-idle";
+                if (activeCount > 0) {
+                    if (hasFalse) {
+                        summaryText = "Пул условий: false";
+                        summaryClass = "is-false";
+                    } else {
+                        summaryText = "Пул условий: true";
+                        summaryClass = "is-true";
                     }
                 }
-                if (ui.strategy1CondTextEl) ui.strategy1CondTextEl.textContent = displayText;
-                if (ui.strategy1CondCurrentEl) ui.strategy1CondCurrentEl.textContent = currentText;
-                if (ui.strategy1CondResultEl) {
-                    ui.strategy1CondResultEl.textContent = resultText;
-                    ui.strategy1CondResultEl.classList.remove("is-true", "is-false", "is-idle");
-                    ui.strategy1CondResultEl.classList.add(resultClass);
-                }
+                ui.strategy1CondSummaryEl.textContent = summaryText;
+                ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false", "is-idle");
+                ui.strategy1CondSummaryEl.classList.add(summaryClass);
             },
 
             renderStrategyBalanceRow(strategyId = "strategy1") {
@@ -8799,11 +8852,9 @@
             <input class="mep-strategy1-risk-percent" type="number" min="0" step="0.1" value="5" />
             <span class="mep-strategy1-risk-percent-sign">%</span>
         </div>
-        <div class="mep-strategy1-condition-row">
-            <label class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" /><span class="mep-strategy1-cond-toggle-txt">use</span></label>
-            <div class="mep-strategy1-cond-text">—</div>
-            <div class="mep-strategy1-cond-current">—</div>
-            <div class="mep-strategy1-cond-result is-idle">not use</div>
+        <div class="mep-strategy1-conditions-wrap">
+            <div class="mep-strategy1-cond-summary is-idle">Пул условий: not use</div>
+            <div class="mep-strategy1-cond-list"></div>
         </div>
     </div>
 </div>
@@ -8891,10 +8942,9 @@
                     strategy1PnlEl: panel.querySelector(".mep-strategy1-pnl"),
                     strategy1RiskAmountEl: panel.querySelector(".mep-strategy1-risk-amount"),
                     strategy1RiskPercentInput: panel.querySelector(".mep-strategy1-risk-percent"),
-                    strategy1CondEnabledInput: panel.querySelector("input.mep-strategy1-cond-enabled"),
-                    strategy1CondTextEl: panel.querySelector(".mep-strategy1-cond-text"),
-                    strategy1CondCurrentEl: panel.querySelector(".mep-strategy1-cond-current"),
-                    strategy1CondResultEl: panel.querySelector(".mep-strategy1-cond-result"),
+                    strategy1CondWrapEl: panel.querySelector(".mep-strategy1-conditions-wrap"),
+                    strategy1CondSummaryEl: panel.querySelector(".mep-strategy1-cond-summary"),
+                    strategy1CondListEl: panel.querySelector(".mep-strategy1-cond-list"),
                     strategy1TabBtn: panel.querySelector('button.mep-game-tab-btn[data-tab="strategy1"]'),
                     strategy2EnabledToggle: panel.querySelector("input.mep-strategy2-enabled"),
                     strategy2InfoBar: panel.querySelector(".mep-strategy2-info-bar"),
@@ -9223,14 +9273,16 @@
                         MEP.UI.setStrategy1InfoMessage("Сумма риска скопирована в стартовую позицию");
                     });
                 }
-                if (ui.strategy1CondEnabledInput && s1) {
-                    ui.strategy1CondEnabledInput.addEventListener("change", () => {
-                        const objectId = (ui.strategy1CondEnabledInput.dataset.objectId || "").trim();
+                if (ui.strategy1CondListEl && s1) {
+                    ui.strategy1CondListEl.addEventListener("change", (e) => {
+                        const inp = e.target?.closest?.("input.mep-strategy1-cond-enabled");
+                        if (!inp) return;
+                        const objectId = (inp.dataset.objectId || "").trim();
                         if (!objectId) {
-                            ui.strategy1CondEnabledInput.checked = false;
+                            inp.checked = false;
                             return;
                         }
-                        MEP.UI.setStrategy1ConditionEnabled(objectId, !!ui.strategy1CondEnabledInput.checked);
+                        MEP.UI.setStrategy1ConditionEnabled(objectId, !!inp.checked);
                         MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                     });
                 }

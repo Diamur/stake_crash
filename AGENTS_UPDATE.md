@@ -245,3 +245,8 @@
 - Усилена видимость checkbox в выключенном/включенном состоянии (16x16, accent-color, border, фон, inset-контраст).
 - 2026-04-02: Исправлен bind checkbox первой condition-row Strategy1: при `change` теперь есть guard на пустой `dataset.objectId` + принудительный rerender Strategy1.
 - В `renderStrategy1ConditionBridge()` добавлены честные состояния доступности: нет объекта -> `checked=false`, `disabled=true`, `objectId=""`; есть объект -> `disabled=false`, `checked=enabledInPool`.
+- 2026-04-02: Strategy1 bridge расширен до mini-pool: вместо одной condition-row теперь рендерится список строк поддержанных объектов (`streak_lt`, `charter`) + summary `Пул условий`.
+- Добавлен UI-summary статуса пула: `true` (все активные true), `false` (есть active false/error), `not use` (нет активных условий).
+- `streak_lt` сохранён в single-choice режиме внутри `groupId`/`groupMode=single`; `charter` подключается независимо (без конфликта с streak-группой).
+- Участие в пуле по-прежнему управляется только `strategy1.config.conditionPoolIds`, а не глобальным enabled реестра.
+- Версия `crash.js` повышена до `0.1.5.48`.
