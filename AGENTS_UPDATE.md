@@ -255,3 +255,9 @@
 - Для streak preset автозаполняются `id/type/source/group/params` (`streak_lt_N`, `lt2_streak`, `groupId=streak_lt`, `groupMode=single`, `params.threshold=N`).
 - Для charter preset автозаполняются `id/type/source/label` (`charter_main`, `charter.allowed`, `Устав`) и дефолтные JSON-блоки.
 - Safe upsert UX: если preset-id уже существует, открывается существующий объект в edit-режиме с поясняющим сообщением.
+- 2026-04-02: Точечный debug-pass цепочки Condition Objects (quick-add/save -> object_save -> objects_list -> cache -> renderObjectsList -> Strategy1 mini-pool) без смены архитектуры.
+- В `MEP.ConditionObjects.loadFromDb()/saveToDb()` добавлен детальный trace: endpoint/payload/response, размеры/состав items, причины skip при decode/validate, факт добавления в cache.
+- Добавлена точечная нормализация `objects_list` item (`item`, `object_json`) перед validate/decode, чтобы не терять объекты при вложенном формате ответа.
+- В UI (`preset apply`, `openPresetObjectEditor`, `object modal save`, `refreshObjectsFromDb`, `renderObjectsList`) добавлены debug-логи с id/type/source/threshold и этапами рендера.
+- В Strategy1 mini-pool (`renderStrategy1ConditionBridge`) добавлен trace registry/supported/pool/summary и явная причина `supported.length === 0` (cache empty vs filtered out).
+- Стиль `.mep-form-row` в `crash.css` сжат: `gap:0`, `margin:1px 0`.

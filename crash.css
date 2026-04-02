@@ -653,8 +653,8 @@ button.mep-history-load {
 #mep-control-panel .mep-form-row{
   display:flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 10px 0;
+  gap: 0px;
+  margin: 1px 0;
 }
 
 #mep-control-panel .mep-label{

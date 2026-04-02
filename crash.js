@@ -705,6 +705,7 @@
         MEP.ConditionObjects = {
             cache: new Map(),
             loadedAtTs: 0,
+            DEBUG_TAG: "[MEP][ConditionObjects]",
 
             SOURCES: [
                 { key: "lt2_streak", label: "Подряд x < 2", valueType: "number" },
@@ -931,9 +932,35 @@
                 return this.cache.has(id) ? this._clone(this.cache.get(id)) : null;
             },
 
+            normalizeDbListItem(raw) {
+                if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+                    if (raw.object_json && typeof raw.object_json === "string") {
+                        try {
+                            const parsed = JSON.parse(raw.object_json);
+                            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+                        } catch (e) {
+                            console.warn(`${this.DEBUG_TAG} normalizeDbListItem: object_json parse failed`, {
+                                error: e?.message || e,
+                                raw,
+                            });
+                        }
+                    }
+                    if (raw.item && typeof raw.item === "object" && !Array.isArray(raw.item)) return raw.item;
+                    return raw;
+                }
+                return raw;
+            },
+
             async loadFromDb(reason = "objects_list") {
                 const url = (MEP.Settings.getEndpoint?.() ?? "").toString().trim();
-                if (!url || !MEP.Net?.postJson) return [];
+                if (!url || !MEP.Net?.postJson) {
+                    console.warn(`${this.DEBUG_TAG} loadFromDb skipped: endpoint or Net.postJson missing`, {
+                        url,
+                        hasPostJson: !!MEP.Net?.postJson,
+                        reason,
+                    });
+                    return [];
+                }
                 const payload = {
                     action: "objects_list",
                     ts: Date.now(),
@@ -942,20 +969,74 @@
                     game_slug: (MEP.State?.gameSlug ?? "").toString(),
                     device_id: MEP.Settings.getDeviceId(),
                 };
+                console.debug(`${this.DEBUG_TAG} loadFromDb start`, { endpoint: url, payload });
                 const resp = await MEP.Net.postJson(url, payload, 9000);
-                if (!(resp?.ok && resp?.json?.ok === true)) return [];
-                const items = Array.isArray(resp?.json?.items) ? resp.json.items : [];
+                console.debug(`${this.DEBUG_TAG} loadFromDb response`, {
+                    ok: !!resp?.ok,
+                    status: resp?.status,
+                    json: resp?.json,
+                    text: resp?.text,
+                    error: resp?.error,
+                });
+                if (!(resp?.ok && resp?.json?.ok === true)) {
+                    console.warn(`${this.DEBUG_TAG} loadFromDb failed`, { response: resp });
+                    return [];
+                }
+                const rootItems = Array.isArray(resp?.json?.items)
+                    ? resp.json.items
+                    : Array.isArray(resp?.json?.data?.items)
+                      ? resp.json.data.items
+                      : [];
+                if (!Array.isArray(resp?.json?.items)) {
+                    console.warn(`${this.DEBUG_TAG} loadFromDb: items are not in json.items`, {
+                        hasDataItems: Array.isArray(resp?.json?.data?.items),
+                        jsonKeys: Object.keys(resp?.json || {}),
+                    });
+                }
+                console.debug(`${this.DEBUG_TAG} loadFromDb items received`, {
+                    count: rootItems.length,
+                    ids: rootItems.map((it) => (it?.id ?? it?.object_id ?? "")).filter(Boolean),
+                    types: rootItems.map((it) => (it?.type ?? "")).filter(Boolean),
+                });
                 this.cache.clear();
-                for (const raw of items) {
-                    const dec = this.decodeConditionObject(raw);
-                    if (!dec.ok) continue;
+                const skipped = [];
+                const added = [];
+                for (const raw of rootItems) {
+                    const normalizedRaw = this.normalizeDbListItem(raw);
+                    const preVr = this.validateConditionObject(normalizedRaw);
+                    console.debug(`${this.DEBUG_TAG} loadFromDb item trace`, {
+                        raw,
+                        normalizedRaw,
+                        rawId: raw?.id ?? raw?.object_id ?? "",
+                        rawType: raw?.type ?? "",
+                        validateOk: preVr?.ok === true,
+                        validateError: preVr?.error || "",
+                    });
+                    const dec = this.decodeConditionObject(normalizedRaw);
+                    if (!dec.ok) {
+                        skipped.push({
+                            id: normalizedRaw?.id ?? raw?.id ?? raw?.object_id ?? "",
+                            type: normalizedRaw?.type ?? raw?.type ?? "",
+                            error: dec.error || preVr?.error || "decode failed",
+                        });
+                        console.warn(`${this.DEBUG_TAG} loadFromDb item skipped`, skipped[skipped.length - 1]);
+                        continue;
+                    }
                     this.cache.set(dec.value.id, dec.value);
+                    added.push({ id: dec.value.id, type: dec.value.type });
+                    console.debug(`${this.DEBUG_TAG} loadFromDb item added to cache`, added[added.length - 1]);
                 }
                 this.loadedAtTs = Date.now();
+                console.debug(`${this.DEBUG_TAG} loadFromDb completed`, {
+                    cacheSize: this.cache.size,
+                    added,
+                    skipped,
+                });
                 return this.list();
             },
 
             async saveToDb(obj, reason = "object_save") {
+                console.debug(`${this.DEBUG_TAG} saveToDb start`, { reason, objectBeforeDecode: obj });
                 const dec = this.decodeConditionObject(obj);
                 if (!dec.ok) throw new Error(dec.error || "invalid object");
                 const url = (MEP.Settings.getEndpoint?.() ?? "").toString().trim();
@@ -969,9 +1050,26 @@
                     device_id: MEP.Settings.getDeviceId(),
                     object: dec.value,
                 };
+                console.debug(`${this.DEBUG_TAG} saveToDb payload`, {
+                    endpoint: url,
+                    decodeResult: dec,
+                    payload,
+                });
                 const resp = await MEP.Net.postJson(url, payload, 9000);
+                console.debug(`${this.DEBUG_TAG} saveToDb response`, {
+                    ok: !!resp?.ok,
+                    status: resp?.status,
+                    json: resp?.json,
+                    text: resp?.text,
+                    error: resp?.error,
+                });
                 if (!(resp?.ok && resp?.json?.ok === true)) throw new Error(resp?.json?.error || "save failed");
                 this.cache.set(dec.value.id, dec.value);
+                console.debug(`${this.DEBUG_TAG} saveToDb cache updated`, {
+                    id: dec.value.id,
+                    inCache: this.cache.has(dec.value.id),
+                    cacheSize: this.cache.size,
+                });
                 return this.get(dec.value.id);
             },
 
@@ -7904,11 +8002,33 @@
 
                 const pool = MEP.UI.ensureStrategy1BridgePool(s);
                 const supported = MEP.UI.getStrategy1SupportedObjects();
+                const allObjects = MEP.ConditionObjects.list();
                 const byId = new Map(supported.map((it) => [it.id, it]));
                 const activePoolIds = pool.filter((id) => byId.has(id));
                 const context = MEP.UI.buildStrategy1ObjectContext(s);
+                console.debug("[MEP][Strategy1][ConditionBridge] render start", {
+                    registryCount: allObjects.length,
+                    registryItems: allObjects.map((it) => ({
+                        id: it?.id || "",
+                        type: it?.type || "",
+                        enabled: it?.enabled !== false,
+                        groupId: it?.groupId || "",
+                    })),
+                    supportedCount: supported.length,
+                    supportedItems: supported.map((it) => ({
+                        id: it?.id || "",
+                        type: it?.type || "",
+                        groupId: it?.groupId || "",
+                    })),
+                    poolIds: pool.slice(),
+                    activePoolIds: activePoolIds.slice(),
+                });
 
                 if (!supported.length) {
+                    console.warn("[MEP][Strategy1][ConditionBridge] no supported objects", {
+                        reason: allObjects.length ? "objects_exist_but_filtered_out" : "registry_cache_empty",
+                        registryCount: allObjects.length,
+                    });
                     ui.strategy1CondSummaryEl.textContent = "Пул условий: not use";
                     ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false");
                     ui.strategy1CondSummaryEl.classList.add("is-idle");
@@ -7969,6 +8089,12 @@
                 ui.strategy1CondSummaryEl.textContent = summaryText;
                 ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false", "is-idle");
                 ui.strategy1CondSummaryEl.classList.add(summaryClass);
+                console.debug("[MEP][Strategy1][ConditionBridge] render summary", {
+                    summaryText,
+                    summaryClass,
+                    activeCount,
+                    hasFalse,
+                });
             },
 
             renderStrategyBalanceRow(strategyId = "strategy1") {
@@ -10021,6 +10147,10 @@
                 const renderObjectsList = () => {
                     if (!ui.objectsList) return;
                     const items = MEP.ConditionObjects.list();
+                    console.debug("[MEP][ConditionObjects][UI] renderObjectsList", {
+                        count: items.length,
+                        items: items.map((it) => ({ id: it?.id || "", type: it?.type || "" })),
+                    });
                     if (!items.length) {
                         ui.objectsList.innerHTML = `<div class="mep-objects-empty">Пока нет объектов</div>`;
                         return;
@@ -10163,6 +10293,16 @@
 
                 const applyPresetToObjectForm = (presetType = "streak_lt", override = {}) => {
                     const draft = buildPresetObjectDraft(presetType, override);
+                    console.debug("[MEP][ConditionObjects][UI] applyPresetToObjectForm", {
+                        presetType,
+                        override,
+                        draft: {
+                            id: draft?.id || "",
+                            type: draft?.type || "",
+                            source: draft?.source || "",
+                            threshold: draft?.params?.threshold,
+                        },
+                    });
                     if (ui.objectIdInput) ui.objectIdInput.value = draft.id || "";
                     if (ui.objectTypeInput) ui.objectTypeInput.value = draft.type || "";
                     renderObjectSourceOptions(draft.source || "", draft.type || "");
@@ -10189,6 +10329,16 @@
 
                 const openPresetObjectEditor = (presetType = "streak_lt", override = {}) => {
                     const draft = buildPresetObjectDraft(presetType, override);
+                    console.debug("[MEP][ConditionObjects][UI] openPresetObjectEditor", {
+                        presetType,
+                        override,
+                        draft: {
+                            id: draft?.id || "",
+                            type: draft?.type || "",
+                            source: draft?.source || "",
+                            threshold: draft?.params?.threshold,
+                        },
+                    });
                     const existing = MEP.ConditionObjects.get(draft.id);
                     if (existing) {
                         openObjectEditor(existing);
@@ -10209,10 +10359,18 @@
 
                 const refreshObjectsFromDb = async () => {
                     try {
-                        await MEP.ConditionObjects.loadFromDb("settings_tab_objects");
+                        console.debug("[MEP][ConditionObjects][UI] refreshObjectsFromDb start");
+                        const loaded = await MEP.ConditionObjects.loadFromDb("settings_tab_objects");
+                        console.debug("[MEP][ConditionObjects][UI] refreshObjectsFromDb loaded", {
+                            count: Array.isArray(loaded) ? loaded.length : 0,
+                            items: (loaded || []).map((it) => ({ id: it?.id || "", type: it?.type || "" })),
+                        });
+                        console.debug("[MEP][ConditionObjects][UI] refreshObjectsFromDb renderObjectsList call");
                         renderObjectsList();
+                        console.debug("[MEP][ConditionObjects][UI] refreshObjectsFromDb renderStrategy1MinimalUi trigger");
                         MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                     } catch (e) {
+                        console.warn("[MEP][ConditionObjects][UI] refreshObjectsFromDb failed", e);
                         if (ui.objectsList) ui.objectsList.innerHTML = `<div class="mep-objects-empty">Ошибка загрузки объектов</div>`;
                     }
                 };
@@ -10328,7 +10486,14 @@
                         groupMode: (ui.objectPresetGroupModeSelect?.value || "single").trim(),
                         enabled: !!ui.objectPresetEnabledInput?.checked,
                     };
+                    console.debug("[MEP][ConditionObjects][UI] preset apply click", { presetType, override });
                     const draft = applyPresetToObjectForm(presetType, override);
+                    console.debug("[MEP][ConditionObjects][UI] preset apply draft result", {
+                        id: draft?.id || "",
+                        type: draft?.type || "",
+                        source: draft?.source || "",
+                        threshold: draft?.params?.threshold,
+                    });
                     const existing = MEP.ConditionObjects.get(draft.id);
                     if (existing) {
                         if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = `Объект ${draft.id} уже существует: сохранение обновит его`;
@@ -10361,12 +10526,20 @@
                             ui: parseJsonField(ui.objectUiInput?.value || "{}", {}),
                             runtimeDefaults: parseJsonField(ui.objectRuntimeInput?.value || "{}", {}),
                         };
+                        console.debug("[MEP][ConditionObjects][UI] modal save click: object draft", obj);
                         const vr = MEP.ConditionObjects.validateConditionObject(obj);
+                        console.debug("[MEP][ConditionObjects][UI] modal save click: validate result", vr);
                         if (!vr.ok) throw new Error(vr.error || "validation failed");
+                        console.debug("[MEP][ConditionObjects][UI] modal save click: saveToDb call", {
+                            endpoint: (MEP.Settings.getEndpoint?.() ?? "").toString().trim(),
+                            reason: ui._objectEditId ? "object_update_modal" : "object_create_modal",
+                            payloadObject: vr.value,
+                        });
                         await MEP.ConditionObjects.saveToDb(vr.value, ui._objectEditId ? "object_update_modal" : "object_create_modal");
                         await refreshObjectsFromDb();
                         closeObjectEditor();
                     } catch (e) {
+                        console.warn("[MEP][ConditionObjects][UI] modal save click failed", e);
                         if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = `Ошибка: ${e?.message || e}`;
                     }
                 });
