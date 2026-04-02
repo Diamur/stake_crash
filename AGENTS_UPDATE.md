@@ -250,3 +250,8 @@
 - `streak_lt` сохранён в single-choice режиме внутри `groupId`/`groupMode=single`; `charter` подключается независимо (без конфликта с streak-группой).
 - Участие в пуле по-прежнему управляется только `strategy1.config.conditionPoolIds`, а не глобальным enabled реестра.
 - Версия `crash.js` повышена до `0.1.5.48`.
+- 2026-04-02: В object-editor добавлен preset/quick-add блок (`streak_lt`, `charter`) с кнопкой `Подставить` для автозаполнения валидного объекта.
+- Добавлены quick-add кнопки во вкладке `Объекты`: `+ streak<2/3/4/5` и `+ charter` (открывают модалку уже заполненной).
+- Для streak preset автозаполняются `id/type/source/group/params` (`streak_lt_N`, `lt2_streak`, `groupId=streak_lt`, `groupMode=single`, `params.threshold=N`).
+- Для charter preset автозаполняются `id/type/source/label` (`charter_main`, `charter.allowed`, `Устав`) и дефолтные JSON-блоки.
+- Safe upsert UX: если preset-id уже существует, открывается существующий объект в edit-режиме с поясняющим сообщением.

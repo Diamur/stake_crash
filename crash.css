@@ -695,6 +695,23 @@ button.mep-history-load {
   gap: 8px;
   margin-top: 12px;
 }
+#mep-control-panel .mep-objects-quick-add{
+  flex-wrap: wrap;
+}
+#mep-control-panel .mep-objects-quick-add .mep-btn{
+  flex: 1 1 calc(33.33% - 8px);
+  min-width: 94px;
+}
+#mep-control-panel .mep-object-preset-wrap{
+  border:1px dashed rgba(255,255,255,.16);
+  border-radius:10px;
+  padding:8px;
+}
+#mep-control-panel .mep-object-preset-grid{
+  display:grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap:6px;
+}
 
 #mep-control-panel button.mep-btn{
   flex: 1 1 auto;

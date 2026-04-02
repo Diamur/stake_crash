@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.48  ====
+// === crash.js 0.1.5.49  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -405,7 +405,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.48";
+        MEP.ver = "0.1.5.49";
 
         // -------------------------
         // Settings module
@@ -8711,6 +8711,13 @@
         </div>
         <div class="mep-settings-tab-panel mep-settings-tab-panel-objects">
             <div class="mep-objects-list"></div>
+            <div class="mep-modal-actions mep-objects-quick-add">
+                <button class="mep-btn mep-quick-streak2">+ streak&lt;2</button>
+                <button class="mep-btn mep-quick-streak3">+ streak&lt;3</button>
+                <button class="mep-btn mep-quick-streak4">+ streak&lt;4</button>
+                <button class="mep-btn mep-quick-streak5">+ streak&lt;5</button>
+                <button class="mep-btn mep-quick-charter">+ charter</button>
+            </div>
             <div class="mep-modal-actions">
                 <button class="mep-btn mep-objects-refresh">Обновить список</button>
                 <button class="mep-btn mep-objects-add">+ Добавить объект</button>
@@ -8723,6 +8730,25 @@
         <div class="mep-modal-head">
             <div class="mep-modal-title">Объект условия</div>
             <button class="mep-modal-close mep-object-modal-close" aria-label="Закрыть">×</button>
+        </div>
+        <div class="mep-form-row mep-object-preset-wrap">
+            <div class="mep-label">Быстрое создание (preset)</div>
+            <select class="mep-input mep-object-preset-type">
+                <option value="streak_lt">streak_lt</option>
+                <option value="charter">charter</option>
+            </select>
+            <div class="mep-object-preset-grid">
+                <input class="mep-input mep-object-preset-threshold" type="number" min="1" step="1" value="3" placeholder="Threshold" />
+                <input class="mep-input mep-object-preset-label" value="Подряд x <" placeholder="Label" />
+                <input class="mep-input mep-object-preset-group-id" value="streak_lt" placeholder="Group ID" />
+                <select class="mep-input mep-object-preset-group-mode">
+                    <option value="single">single</option>
+                    <option value="multi">multi</option>
+                    <option value="">none</option>
+                </select>
+                <label class="mep-label"><input class="mep-object-preset-enabled" type="checkbox" checked /> Enabled</label>
+                <button class="mep-btn mep-object-preset-apply" type="button">Подставить</button>
+            </div>
         </div>
         <div class="mep-form-row"><div class="mep-label">ID объекта</div><input class="mep-input mep-object-id" /></div>
         <div class="mep-form-row"><div class="mep-label">Type объекта</div><input class="mep-input mep-object-type" placeholder="streak_lt" /></div>
@@ -9080,6 +9106,11 @@
                     objectsList: settingsOverlay?.querySelector(".mep-objects-list"),
                     objectsRefreshBtn: settingsOverlay?.querySelector(".mep-objects-refresh"),
                     objectsAddBtn: settingsOverlay?.querySelector(".mep-objects-add"),
+                    quickStreak2Btn: settingsOverlay?.querySelector(".mep-quick-streak2"),
+                    quickStreak3Btn: settingsOverlay?.querySelector(".mep-quick-streak3"),
+                    quickStreak4Btn: settingsOverlay?.querySelector(".mep-quick-streak4"),
+                    quickStreak5Btn: settingsOverlay?.querySelector(".mep-quick-streak5"),
+                    quickCharterBtn: settingsOverlay?.querySelector(".mep-quick-charter"),
 
                     soundsInput: settingsOverlay?.querySelector("textarea.mep-sounds"),
                     soundDefaultSelect: settingsOverlay?.querySelector("select.mep-sound-default"),
@@ -9103,6 +9134,13 @@
                     objectSaveBtn: objectOverlay?.querySelector(".mep-object-save"),
                     objectCancelBtn: objectOverlay?.querySelector(".mep-object-cancel"),
                     objectEditorMsg: objectOverlay?.querySelector(".mep-object-editor-msg"),
+                    objectPresetTypeSelect: objectOverlay?.querySelector(".mep-object-preset-type"),
+                    objectPresetThresholdInput: objectOverlay?.querySelector(".mep-object-preset-threshold"),
+                    objectPresetLabelInput: objectOverlay?.querySelector(".mep-object-preset-label"),
+                    objectPresetGroupIdInput: objectOverlay?.querySelector(".mep-object-preset-group-id"),
+                    objectPresetGroupModeSelect: objectOverlay?.querySelector(".mep-object-preset-group-mode"),
+                    objectPresetEnabledInput: objectOverlay?.querySelector(".mep-object-preset-enabled"),
+                    objectPresetApplyBtn: objectOverlay?.querySelector(".mep-object-preset-apply"),
                 };
 
                 // применяем настройки к UI
@@ -10046,6 +10084,13 @@
                 const openObjectEditor = (existingObj = null) => {
                     const obj = existingObj ? MEP.ConditionObjects.normalizeConditionObject(existingObj) : MEP.ConditionObjects.makeDefault();
                     ui._objectEditId = obj.id || "";
+                    if (ui.objectPresetTypeSelect) ui.objectPresetTypeSelect.value = obj.type === "charter" ? "charter" : "streak_lt";
+                    syncPresetInputsByType();
+                    if (ui.objectPresetThresholdInput) ui.objectPresetThresholdInput.value = String(Math.max(1, Math.floor(Number(obj?.params?.threshold) || 3)));
+                    if (ui.objectPresetLabelInput) ui.objectPresetLabelInput.value = obj.label || (obj.type === "charter" ? "Устав" : "Подряд x <");
+                    if (ui.objectPresetGroupIdInput) ui.objectPresetGroupIdInput.value = obj.groupId || "streak_lt";
+                    if (ui.objectPresetGroupModeSelect) ui.objectPresetGroupModeSelect.value = obj.groupMode || "single";
+                    if (ui.objectPresetEnabledInput) ui.objectPresetEnabledInput.checked = !!obj.enabled;
                     if (ui.objectIdInput) ui.objectIdInput.value = obj.id || "";
                     if (ui.objectTypeInput) ui.objectTypeInput.value = obj.type || "";
                     renderObjectSourceOptions(obj.source || "", obj.type || "");
@@ -10066,6 +10111,100 @@
                     const v = JSON.parse(s);
                     if (!v || typeof v !== "object" || Array.isArray(v)) throw new Error("JSON должен быть объектом");
                     return v;
+                };
+
+                const buildPresetObjectDraft = (presetType = "streak_lt", override = {}) => {
+                    const t = (presetType || "").toString().trim().toLowerCase();
+                    if (t === "charter") {
+                        const label = (override.label ?? "Устав").toString().trim() || "Устав";
+                        const enabled = override.enabled !== false;
+                        return MEP.ConditionObjects.normalizeConditionObject({
+                            id: "charter_main",
+                            type: "charter",
+                            source: "charter.allowed",
+                            label,
+                            enabled,
+                            groupId: "",
+                            groupMode: "",
+                            params: {},
+                            ui: { order: 0, visible: true },
+                            runtimeDefaults: {
+                                currentValue: false,
+                                reached: false,
+                                result: false,
+                                resultText: "",
+                            },
+                        });
+                    }
+
+                    const threshold = Math.max(1, Math.floor(Number(override.threshold) || 3));
+                    const label = (override.label ?? "Подряд x <").toString().trim() || "Подряд x <";
+                    const groupId = (override.groupId ?? "streak_lt").toString().trim();
+                    const groupMode = (override.groupMode ?? "single").toString().trim();
+                    const enabled = override.enabled !== false;
+                    return MEP.ConditionObjects.normalizeConditionObject({
+                        id: `streak_lt_${threshold}`,
+                        type: "streak_lt",
+                        source: "lt2_streak",
+                        label,
+                        enabled,
+                        groupId,
+                        groupMode,
+                        params: { threshold },
+                        ui: { order: 0, visible: true },
+                        runtimeDefaults: {
+                            currentValue: 0,
+                            reached: false,
+                            result: false,
+                            resultText: "",
+                        },
+                    });
+                };
+
+                const applyPresetToObjectForm = (presetType = "streak_lt", override = {}) => {
+                    const draft = buildPresetObjectDraft(presetType, override);
+                    if (ui.objectIdInput) ui.objectIdInput.value = draft.id || "";
+                    if (ui.objectTypeInput) ui.objectTypeInput.value = draft.type || "";
+                    renderObjectSourceOptions(draft.source || "", draft.type || "");
+                    if (ui.objectLabelInput) ui.objectLabelInput.value = draft.label || "";
+                    if (ui.objectGroupIdInput) ui.objectGroupIdInput.value = draft.groupId || "";
+                    if (ui.objectGroupModeSelect) ui.objectGroupModeSelect.value = draft.groupMode || "single";
+                    if (ui.objectEnabledInput) ui.objectEnabledInput.checked = !!draft.enabled;
+                    if (ui.objectParamsInput) ui.objectParamsInput.value = JSON.stringify(draft.params || {}, null, 2);
+                    if (ui.objectUiInput) ui.objectUiInput.value = JSON.stringify(draft.ui || {}, null, 2);
+                    if (ui.objectRuntimeInput) ui.objectRuntimeInput.value = JSON.stringify(draft.runtimeDefaults || {}, null, 2);
+                    return draft;
+                };
+
+                const syncPresetInputsByType = () => {
+                    const t = (ui.objectPresetTypeSelect?.value || "streak_lt").trim();
+                    const streak = t === "streak_lt";
+                    if (ui.objectPresetThresholdInput) ui.objectPresetThresholdInput.style.display = streak ? "" : "none";
+                    if (ui.objectPresetGroupIdInput) ui.objectPresetGroupIdInput.style.display = streak ? "" : "none";
+                    if (ui.objectPresetGroupModeSelect) ui.objectPresetGroupModeSelect.style.display = streak ? "" : "none";
+                    if (ui.objectPresetLabelInput && !ui.objectPresetLabelInput.value.trim()) {
+                        ui.objectPresetLabelInput.value = streak ? "Подряд x <" : "Устав";
+                    }
+                };
+
+                const openPresetObjectEditor = (presetType = "streak_lt", override = {}) => {
+                    const draft = buildPresetObjectDraft(presetType, override);
+                    const existing = MEP.ConditionObjects.get(draft.id);
+                    if (existing) {
+                        openObjectEditor(existing);
+                        if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = `Объект ${draft.id} уже существует, открыт режим редактирования`;
+                        return;
+                    }
+                    openObjectEditor(null);
+                    if (ui.objectPresetTypeSelect) ui.objectPresetTypeSelect.value = (presetType || "streak_lt").toString();
+                    syncPresetInputsByType();
+                    if (ui.objectPresetThresholdInput && typeof override.threshold !== "undefined")
+                        ui.objectPresetThresholdInput.value = String(Math.max(1, Math.floor(Number(override.threshold) || 3)));
+                    if (ui.objectPresetLabelInput) ui.objectPresetLabelInput.value = (override.label || (presetType === "charter" ? "Устав" : "Подряд x <")).toString();
+                    if (ui.objectPresetGroupIdInput) ui.objectPresetGroupIdInput.value = (override.groupId || "streak_lt").toString();
+                    if (ui.objectPresetGroupModeSelect) ui.objectPresetGroupModeSelect.value = (override.groupMode || "single").toString();
+                    if (ui.objectPresetEnabledInput) ui.objectPresetEnabledInput.checked = override.enabled !== false;
+                    applyPresetToObjectForm(presetType, override);
                 };
 
                 const refreshObjectsFromDb = async () => {
@@ -10159,6 +10298,11 @@
 
                 ui.objectsRefreshBtn?.addEventListener("click", refreshObjectsFromDb);
                 ui.objectsAddBtn?.addEventListener("click", () => openObjectEditor(null));
+                ui.quickStreak2Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 2 }));
+                ui.quickStreak3Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 3 }));
+                ui.quickStreak4Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 4 }));
+                ui.quickStreak5Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 5 }));
+                ui.quickCharterBtn?.addEventListener("click", () => openPresetObjectEditor("charter", {}));
                 ui.objectsList?.addEventListener("click", (e) => {
                     const btn = e.target?.closest?.("button.mep-object-edit");
                     if (!btn) return;
@@ -10172,6 +10316,25 @@
                 ui.objectCancelBtn?.addEventListener("click", closeObjectEditor);
                 ui.objectOverlay?.addEventListener("click", (e) => {
                     if (e.target === ui.objectOverlay) closeObjectEditor();
+                });
+                ui.objectPresetTypeSelect?.addEventListener("change", syncPresetInputsByType);
+                ui.objectPresetApplyBtn?.addEventListener("click", () => {
+                    const presetType = (ui.objectPresetTypeSelect?.value || "streak_lt").trim().toLowerCase();
+                    const threshold = Math.max(1, Math.floor(Number(ui.objectPresetThresholdInput?.value) || 3));
+                    const override = {
+                        threshold,
+                        label: (ui.objectPresetLabelInput?.value || "").trim(),
+                        groupId: (ui.objectPresetGroupIdInput?.value || "").trim(),
+                        groupMode: (ui.objectPresetGroupModeSelect?.value || "single").trim(),
+                        enabled: !!ui.objectPresetEnabledInput?.checked,
+                    };
+                    const draft = applyPresetToObjectForm(presetType, override);
+                    const existing = MEP.ConditionObjects.get(draft.id);
+                    if (existing) {
+                        if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = `Объект ${draft.id} уже существует: сохранение обновит его`;
+                    } else if (ui.objectEditorMsg) {
+                        ui.objectEditorMsg.textContent = `Preset подставлен: ${draft.id}`;
+                    }
                 });
                 ui.objectTypeInput?.addEventListener("input", () => {
                     const type = (ui.objectTypeInput?.value || "").trim().toLowerCase();
