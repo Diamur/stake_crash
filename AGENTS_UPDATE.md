@@ -243,3 +243,5 @@
 - 2026-04-02: Точечно поправлен UI первой condition-row Strategy1: увеличена первая колонка (`112px`) и убрана длинная подпись `Вкл/Откл`.
 - В зоне участия оставлен компактный вид `checkbox + use`, чтобы элемент включения не терялся визуально.
 - Усилена видимость checkbox в выключенном/включенном состоянии (16x16, accent-color, border, фон, inset-контраст).
+- 2026-04-02: Исправлен bind checkbox первой condition-row Strategy1: при `change` теперь есть guard на пустой `dataset.objectId` + принудительный rerender Strategy1.
+- В `renderStrategy1ConditionBridge()` добавлены честные состояния доступности: нет объекта -> `checked=false`, `disabled=true`, `objectId=""`; есть объект -> `disabled=false`, `checked=enabledInPool`.

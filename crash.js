@@ -7871,7 +7871,11 @@
                 const enabledInPool = !!(obj && pool.includes(obj.id));
 
                 if (!obj) {
-                    if (ui.strategy1CondEnabledInput) ui.strategy1CondEnabledInput.checked = false;
+                    if (ui.strategy1CondEnabledInput) {
+                        ui.strategy1CondEnabledInput.checked = false;
+                        ui.strategy1CondEnabledInput.disabled = true;
+                        ui.strategy1CondEnabledInput.dataset.objectId = "";
+                    }
                     if (ui.strategy1CondTextEl) ui.strategy1CondTextEl.textContent = "Нет streak_lt объекта в реестре";
                     if (ui.strategy1CondCurrentEl) ui.strategy1CondCurrentEl.textContent = "—";
                     if (ui.strategy1CondResultEl) {
@@ -7900,6 +7904,7 @@
 
                 if (ui.strategy1CondEnabledInput) {
                     ui.strategy1CondEnabledInput.dataset.objectId = obj.id;
+                    ui.strategy1CondEnabledInput.disabled = false;
                     if (ui.strategy1CondEnabledInput.checked !== enabledInPool) {
                         ui.strategy1CondEnabledInput.checked = enabledInPool;
                     }
@@ -9221,7 +9226,12 @@
                 if (ui.strategy1CondEnabledInput && s1) {
                     ui.strategy1CondEnabledInput.addEventListener("change", () => {
                         const objectId = (ui.strategy1CondEnabledInput.dataset.objectId || "").trim();
+                        if (!objectId) {
+                            ui.strategy1CondEnabledInput.checked = false;
+                            return;
+                        }
                         MEP.UI.setStrategy1ConditionEnabled(objectId, !!ui.strategy1CondEnabledInput.checked);
+                        MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                     });
                 }
                 if (ui.strategy2RiskAmountEl && s2) {
