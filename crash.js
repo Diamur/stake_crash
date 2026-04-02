@@ -3002,14 +3002,14 @@
         padding:6px 8px;
         }
         .mep-strategy1-condition-row{
-        margin-top:8px;
+        margin-top:0px;
         display:grid;
         grid-template-columns: 112px 1fr 84px 96px;
         align-items:center;
-        gap:6px;
+        gap:0px;
         border:1px dashed rgba(255,255,255,.24);
-        border-radius:8px;
-        padding:6px 8px;
+        border-radius:0px;
+        padding:0px 0px;
         font-size:11px;
         background:rgba(255,255,255,.04);
         }
@@ -3024,13 +3024,43 @@
         min-width:0;
         }
         .mep-strategy1-cond-toggle-wrap input{
-        width:16px;
-        height:16px;
-        accent-color:#00e51f;
-        border:1px solid rgba(255,255,255,.8);
-        border-radius:3px;
-        background:#0c1218;
-        box-shadow:0 0 0 1px rgba(0,0,0,.35) inset;
+        appearance:none;
+        -webkit-appearance:none;
+        width:18px;
+        height:18px;
+        display:inline-grid;
+        place-items:center;
+        border:1px solid rgba(255,255,255,.75);
+        border-radius:4px;
+        background:rgba(255,255,255,.04);
+        box-shadow:0 0 0 1px rgba(0,0,0,.45) inset;
+        cursor:pointer;
+        transition:background-color .12s ease,border-color .12s ease,box-shadow .12s ease,opacity .12s ease;
+        position:relative;
+        }
+        .mep-strategy1-cond-toggle-wrap input::after{
+        content:"";
+        width:6px;
+        height:10px;
+        border-right:2px solid #fff;
+        border-bottom:2px solid #fff;
+        transform:rotate(45deg) scale(0);
+        transform-origin:center;
+        transition:transform .12s ease;
+        }
+        .mep-strategy1-cond-toggle-wrap input:checked{
+        background:#00e51f;
+        border-color:#00e51f;
+        box-shadow:0 0 0 1px rgba(0,0,0,.2) inset,0 0 8px rgba(0,229,31,.28);
+        }
+        .mep-strategy1-cond-toggle-wrap input:checked::after{
+        transform:rotate(45deg) scale(1);
+        }
+        .mep-strategy1-cond-toggle-wrap input:disabled{
+        opacity:.48;
+        border-color:rgba(255,255,255,.55);
+        background:rgba(255,255,255,.03);
+        cursor:not-allowed;
         }
         .mep-strategy1-cond-toggle-txt{
         color:rgba(231,237,246,.92);

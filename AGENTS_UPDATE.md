@@ -262,3 +262,5 @@
 - В Strategy1 mini-pool (`renderStrategy1ConditionBridge`) добавлен trace registry/supported/pool/summary и явная причина `supported.length === 0` (cache empty vs filtered out).
 - Стиль `.mep-form-row` в `crash.css` сжат: `gap:0`, `margin:1px 0`.
 - 2026-04-02: Точечное уплотнение межэлементного интервала в mini-pool Strategy1: `.mep-strategy1-cond-toggle-wrap` переведён на `gap:0px` (без смены логики/верстки остальных колонок).
+- 2026-04-02: Mini-pool Strategy1 — обновлены стили condition-row по точному шаблону (margin/gap/radius/padding = 0, без логических изменений).
+- В checkbox mini-pool внедрён кастомный читаемый вид: `appearance:none`, размер 18x18, явный бордер для off, яркий зелёный `checked`, белая галочка через `:checked::after`, читаемый `:disabled`.
