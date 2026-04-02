@@ -261,3 +261,4 @@
 - В UI (`preset apply`, `openPresetObjectEditor`, `object modal save`, `refreshObjectsFromDb`, `renderObjectsList`) добавлены debug-логи с id/type/source/threshold и этапами рендера.
 - В Strategy1 mini-pool (`renderStrategy1ConditionBridge`) добавлен trace registry/supported/pool/summary и явная причина `supported.length === 0` (cache empty vs filtered out).
 - Стиль `.mep-form-row` в `crash.css` сжат: `gap:0`, `margin:1px 0`.
+- 2026-04-02: Точечное уплотнение межэлементного интервала в mini-pool Strategy1: `.mep-strategy1-cond-toggle-wrap` переведён на `gap:0px` (без смены логики/верстки остальных колонок).

@@ -3016,7 +3016,7 @@
         .mep-strategy1-cond-toggle-wrap{
         display:inline-flex;
         align-items:center;
-        gap:8px;
+        gap:0px;
         color:#e7edf6;
         font-size:11px;
         line-height:1;
