@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.51  ====
+// === crash.js 0.1.5.52  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -406,7 +406,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.51";
+        MEP.ver = "0.1.5.52";
 
         // -------------------------
         // Settings module
@@ -904,12 +904,17 @@
 
                 let result = false;
                 let resultText = "noop";
+                let sourceValue = src.value;
                 if (obj.type === "streak_lt") {
                     const threshold = Number(obj?.params?.threshold);
-                    const v = Number(src.value);
-                    if (Number.isFinite(v) && Number.isFinite(threshold)) {
-                        result = v < threshold;
-                        resultText = `${v} < ${threshold}`;
+                    const v = MEP.Utils.countStreakLT(threshold);
+                    sourceValue = v;
+                    if (Number.isFinite(v) && Number.isFinite(threshold) && threshold > 0) {
+                        result = v >= threshold;
+                        resultText = `${v} / need ${threshold}`;
+                    } else if (Number.isFinite(v) && Number.isFinite(threshold)) {
+                        result = v >= threshold;
+                        resultText = `${v} >= ${threshold}`;
                     }
                 } else if (obj.type === "charter") {
                     result = !!src.value;
@@ -920,7 +925,7 @@
                     result = !!current && current === expected;
                     resultText = `${current} === ${expected}`;
                 }
-                return { ok: true, object: obj, sourceValue: src.value, result, resultText };
+                return { ok: true, object: obj, sourceValue, result, resultText };
             },
 
             list() {
@@ -3415,6 +3420,31 @@
                     const n = MEP.Utils.cleanToNum(MEP.State.list[i]);
                     if (n === null) break;
                     if (n <= t) streak++;
+                    else break;
+                }
+                return streak;
+            },
+
+            // streak: сколько последних ЗАВЕРШЕННЫХ значений подряд < threshold
+            countStreakLT(threshold) {
+                const t = Number.parseFloat(String(threshold).replace(",", "."));
+                if (!Number.isFinite(t)) return 0;
+
+                const toRoundX = (entry) => {
+                    if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+                        if (typeof entry.x === "number" && Number.isFinite(entry.x)) return entry.x;
+                        if (typeof entry.val === "number" && Number.isFinite(entry.val)) return entry.val;
+                        if (typeof entry.raw === "string") return MEP.Utils.cleanToNum(entry.raw);
+                    }
+                    if (typeof entry === "number" && Number.isFinite(entry)) return entry;
+                    return MEP.Utils.cleanToNum(entry);
+                };
+
+                let streak = 0;
+                for (let i = 0; i < MEP.State.list.length; i++) {
+                    const n = toRoundX(MEP.State.list[i]);
+                    if (!Number.isFinite(n)) break;
+                    if (n < t) streak++;
                     else break;
                 }
                 return streak;
@@ -8047,7 +8077,7 @@
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 const currentBalance = MEP.UI.readCurrentBalanceFromDom().amount || 0;
                 return {
-                    lt2_streak: MEP.Utils.countStreakLE(2),
+                    lt2_streak: MEP.Utils.countStreakLT(2),
                     charter: { allowed: s?.charterCheck?.allowed !== false },
                     balance: {
                         start: Number(s?.runtime?.startBalanceSnapshot) || 0,

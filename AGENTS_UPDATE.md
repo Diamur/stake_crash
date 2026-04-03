@@ -276,3 +276,7 @@
 - Для каждой строки объекта добавлена кнопка удаления (`🗑`) рядом с edit; delete удаляет из DB/cache и чистит `conditionPoolIds` соответствующей стратегии.
 - Для Strategy1 mini-pool включена фильтрация только по объектам `strategyId=strategy1`; объекты strategy2 не мешают Strategy1.
 - Версии обновлены: `crash.js 0.1.5.51` (шапка + `MEP.ver`) и `crash.css 0.1.5.28`.
+- 2026-04-03: Исправлена семантика `streak_lt` в evaluator: теперь true при `streak >= threshold` (раньше было неверно `streak < threshold`).
+- Для `streak_lt` текущий streak теперь считается через новый helper `MEP.Utils.countStreakLT(threshold)` по newest-first completed history с обрывом на первом значении `>= threshold`.
+- `lt2_streak` в Strategy1 runtime-context переведён на `countStreakLT(2)` (строго `< 2`, а не `<= 2`).
+- Версии обновлены: `crash.js 0.1.5.52` (шапка + `MEP.ver`) и `crash.css 0.1.5.29`.
