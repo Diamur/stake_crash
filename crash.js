@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.50  ====
+// === crash.js 0.1.5.51  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -396,6 +396,7 @@
             executionLocked: true,
             config: {
                 riskPercent: 5,
+                conditionPoolIds: [],
             },
             timers: {
                 enabledAtTs: 0,
@@ -405,7 +406,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.50";
+        MEP.ver = "0.1.5.51";
 
         // -------------------------
         // Settings module
@@ -744,6 +745,7 @@
                     type: "streak_lt",
                     label: "",
                     enabled: true,
+                    strategyId: "strategy1",
                     source: "lt2_streak",
                     groupId: "",
                     groupMode: "single",
@@ -796,6 +798,7 @@
                 out.id = (out.id ?? "").toString().trim();
                 out.type = (out.type ?? "").toString().trim().toLowerCase();
                 out.label = (out.label ?? "").toString().trim();
+                out.strategyId = (out.strategyId ?? "").toString().trim().toLowerCase();
                 out.source = (out.source ?? "").toString().trim();
                 out.groupId = (out.groupId ?? "").toString().trim();
                 out.groupMode = (out.groupMode ?? "").toString().trim().toLowerCase() || "single";
@@ -808,6 +811,7 @@
                         : {};
 
                 if (!out.label) out.label = out.id || out.type || "Object";
+                if (!out.strategyId || (out.strategyId !== "strategy1" && out.strategyId !== "strategy2")) out.strategyId = "strategy1";
                 if (!out.source) out.source = this.getDefaultSourceForType(out.type) || "";
 
                 const uiOrder = Number(out.ui.order);
@@ -820,6 +824,8 @@
                 const out = this.normalizeConditionObject(obj);
                 if (!out.id) return { ok: false, error: "id is required" };
                 if (!out.type) return { ok: false, error: "type is required" };
+                if (!out.strategyId) return { ok: false, error: "strategyId is required" };
+                if (out.strategyId !== "strategy1" && out.strategyId !== "strategy2") return { ok: false, error: "strategyId must be strategy1/strategy2" };
                 if (!/^[a-z0-9._-]+$/i.test(out.id)) return { ok: false, error: "id has invalid chars" };
 
                 const typeDef = this.typeRegistry[out.type] || null;
@@ -1208,6 +1214,8 @@
                     diffVectorShiftWidth: MEP.State.diffVectorShiftWidth,
                     strategy1Enabled: !!MEP.State?.strategies?.strategy1?.enabled,
                     strategy1Config: { ...(MEP.State?.strategies?.strategy1?.config || {}) },
+                    strategy2Enabled: !!MEP.State?.strategies?.strategy2?.enabled,
+                    strategy2Config: { ...(MEP.State?.strategies?.strategy2?.config || {}) },
                 };
 
                 const str = JSON.stringify(data);
@@ -1313,6 +1321,15 @@
                                 };
                             }
                         }
+                        if (MEP.State?.strategies?.strategy2) {
+                            if (typeof data.strategy2Enabled === "boolean") MEP.State.strategies.strategy2.enabled = data.strategy2Enabled;
+                            if (data.strategy2Config && typeof data.strategy2Config === "object") {
+                                MEP.State.strategies.strategy2.config = {
+                                    ...MEP.State.strategies.strategy2.config,
+                                    ...data.strategy2Config,
+                                };
+                            }
+                        }
 
                         return true;
                     }
@@ -1404,6 +1421,15 @@
                             MEP.State.strategies.strategy1.config = {
                                 ...MEP.State.strategies.strategy1.config,
                                 ...data.strategy1Config,
+                            };
+                        }
+                    }
+                    if (MEP.State?.strategies?.strategy2) {
+                        if (typeof data.strategy2Enabled === "boolean") MEP.State.strategies.strategy2.enabled = data.strategy2Enabled;
+                        if (data.strategy2Config && typeof data.strategy2Config === "object") {
+                            MEP.State.strategies.strategy2.config = {
+                                ...MEP.State.strategies.strategy2.config,
+                                ...data.strategy2Config,
                             };
                         }
                     }
@@ -7926,7 +7952,30 @@
 
             getStrategy1SupportedObjects() {
                 const items = MEP.ConditionObjects.list();
-                return items.filter((it) => (it?.type === "streak_lt" || it?.type === "charter") && it?.enabled !== false);
+                return items.filter(
+                    (it) =>
+                        (it?.strategyId || "strategy1") === "strategy1" &&
+                        (it?.type === "streak_lt" || it?.type === "charter") &&
+                        it?.enabled !== false
+                );
+            },
+
+            getStrategyObjects(strategyId = "strategy1") {
+                const id = (strategyId || "strategy1").toString().trim().toLowerCase();
+                const items = MEP.ConditionObjects.list();
+                return items.filter((it) => (it?.strategyId || "strategy1") === id);
+            },
+
+            removeConditionIdFromStrategyPool(strategyId = "strategy1", objectId = "") {
+                const sid = (strategyId || "strategy1").toString().trim().toLowerCase();
+                const id = (objectId || "").toString().trim();
+                if (!id) return false;
+                const st = MEP.UI.getStrategyState(sid);
+                if (!st || !st.config || typeof st.config !== "object") return false;
+                if (!Array.isArray(st.config.conditionPoolIds)) st.config.conditionPoolIds = [];
+                const prevLen = st.config.conditionPoolIds.length;
+                st.config.conditionPoolIds = st.config.conditionPoolIds.map((x) => (x ?? "").toString().trim()).filter((x) => x && x !== id);
+                return st.config.conditionPoolIds.length !== prevLen;
             },
 
             ensureStrategy1BridgePool(st = null) {
@@ -8871,6 +8920,13 @@
             </div>
         </div>
         <div class="mep-settings-tab-panel mep-settings-tab-panel-objects">
+            <div class="mep-form-row">
+                <div class="mep-label">Контекст стратегии для quick-add</div>
+                <select class="mep-input mep-objects-strategy-context">
+                    <option value="strategy1">Стратегия1</option>
+                    <option value="strategy2">Стратегия2</option>
+                </select>
+            </div>
             <div class="mep-objects-list"></div>
             <div class="mep-modal-actions mep-objects-quick-add">
                 <button class="mep-btn mep-quick-streak2">+ streak&lt;2</button>
@@ -8894,10 +8950,14 @@
         </div>
         <div class="mep-form-row mep-object-preset-wrap">
             <div class="mep-label">Быстрое создание (preset)</div>
-            <select class="mep-input mep-object-preset-type">
-                <option value="streak_lt">streak_lt</option>
-                <option value="charter">charter</option>
-            </select>
+                <select class="mep-input mep-object-preset-type">
+                    <option value="streak_lt">streak_lt</option>
+                    <option value="charter">charter</option>
+                </select>
+                <select class="mep-input mep-object-preset-strategy-id">
+                    <option value="strategy1">Стратегия1</option>
+                    <option value="strategy2">Стратегия2</option>
+                </select>
             <div class="mep-object-preset-grid">
                 <input class="mep-input mep-object-preset-threshold" type="number" min="1" step="1" value="3" placeholder="Threshold" />
                 <input class="mep-input mep-object-preset-label" value="Подряд x <" placeholder="Label" />
@@ -8913,6 +8973,13 @@
         </div>
         <div class="mep-form-row"><div class="mep-label">ID объекта</div><input class="mep-input mep-object-id" /></div>
         <div class="mep-form-row"><div class="mep-label">Type объекта</div><input class="mep-input mep-object-type" placeholder="streak_lt" /></div>
+        <div class="mep-form-row">
+            <div class="mep-label">Стратегия</div>
+            <select class="mep-input mep-object-strategy-id">
+                <option value="strategy1">Стратегия1</option>
+                <option value="strategy2">Стратегия2</option>
+            </select>
+        </div>
         <div class="mep-form-row">
             <div class="mep-label">Source</div>
             <select class="mep-input mep-object-source-select"></select>
@@ -9265,6 +9332,7 @@
                     testEndpointBtn: settingsOverlay?.querySelector(".mep-test-endpoint"),
                     testSoundBtn: settingsOverlay?.querySelector(".mep-test-sound"),
                     objectsList: settingsOverlay?.querySelector(".mep-objects-list"),
+                    objectsStrategyContextSelect: settingsOverlay?.querySelector(".mep-objects-strategy-context"),
                     objectsRefreshBtn: settingsOverlay?.querySelector(".mep-objects-refresh"),
                     objectsAddBtn: settingsOverlay?.querySelector(".mep-objects-add"),
                     quickStreak2Btn: settingsOverlay?.querySelector(".mep-quick-streak2"),
@@ -9283,6 +9351,7 @@
                     objectModalCloseBtn: objectOverlay?.querySelector(".mep-object-modal-close"),
                     objectIdInput: objectOverlay?.querySelector(".mep-object-id"),
                     objectTypeInput: objectOverlay?.querySelector(".mep-object-type"),
+                    objectStrategyIdSelect: objectOverlay?.querySelector(".mep-object-strategy-id"),
                     objectSourceSelect: objectOverlay?.querySelector(".mep-object-source-select"),
                     objectSourceCustomInput: objectOverlay?.querySelector(".mep-object-source-custom"),
                     objectLabelInput: objectOverlay?.querySelector(".mep-object-label"),
@@ -9296,6 +9365,7 @@
                     objectCancelBtn: objectOverlay?.querySelector(".mep-object-cancel"),
                     objectEditorMsg: objectOverlay?.querySelector(".mep-object-editor-msg"),
                     objectPresetTypeSelect: objectOverlay?.querySelector(".mep-object-preset-type"),
+                    objectPresetStrategyIdSelect: objectOverlay?.querySelector(".mep-object-preset-strategy-id"),
                     objectPresetThresholdInput: objectOverlay?.querySelector(".mep-object-preset-threshold"),
                     objectPresetLabelInput: objectOverlay?.querySelector(".mep-object-preset-label"),
                     objectPresetGroupIdInput: objectOverlay?.querySelector(".mep-object-preset-group-id"),
@@ -10186,8 +10256,11 @@
                         count: items.length,
                         items: items.map((it) => ({ id: it?.id || "", type: it?.type || "" })),
                     });
+                    const head = `<div class="mep-object-head-row">
+<span>Название</span><span>Type</span><span>ID</span><span>Стратегия</span><span>Actions</span>
+</div>`;
                     if (!items.length) {
-                        ui.objectsList.innerHTML = `<div class="mep-objects-empty">Пока нет объектов</div>`;
+                        ui.objectsList.innerHTML = `${head}<div class="mep-objects-empty">Пока нет объектов</div>`;
                         return;
                     }
                     const lines = items
@@ -10195,13 +10268,17 @@
                             const label = (it.label || "").replace(/</g, "&lt;");
                             const type = (it.type || "").replace(/</g, "&lt;");
                             const id = (it.id || "").replace(/</g, "&lt;");
+                            const strategyId = (it.strategyId || "strategy1").replace(/</g, "&lt;");
                             return `<div class="mep-object-row">
-<div class="mep-object-meta"><b>${label}</b><span class="mep-object-inline-meta">${type}</span><code>${id}</code></div>
+<div class="mep-object-meta"><span class="mep-object-col-label" title="${label}">${label}</span><span class="mep-object-col-type" title="${type}">${type}</span><code class="mep-object-col-id" title="${id}">${id}</code><span class="mep-object-col-strategy">${strategyId}</span></div>
+<div class="mep-object-actions">
 <button class="mep-btn mep-object-edit" data-object-id="${id}" title="Редактировать" aria-label="Редактировать">✎</button>
+<button class="mep-btn mep-object-delete" data-object-id="${id}" title="Удалить" aria-label="Удалить">🗑</button>
+</div>
 </div>`;
                         })
                         .join("");
-                    ui.objectsList.innerHTML = lines;
+                    ui.objectsList.innerHTML = `${head}${lines}`;
                 };
 
                 const closeObjectEditor = () => {
@@ -10250,6 +10327,7 @@
                     const obj = existingObj ? MEP.ConditionObjects.normalizeConditionObject(existingObj) : MEP.ConditionObjects.makeDefault();
                     ui._objectEditId = obj.id || "";
                     if (ui.objectPresetTypeSelect) ui.objectPresetTypeSelect.value = obj.type === "charter" ? "charter" : "streak_lt";
+                    if (ui.objectPresetStrategyIdSelect) ui.objectPresetStrategyIdSelect.value = obj.strategyId || "strategy1";
                     syncPresetInputsByType();
                     if (ui.objectPresetThresholdInput) ui.objectPresetThresholdInput.value = String(Math.max(1, Math.floor(Number(obj?.params?.threshold) || 3)));
                     if (ui.objectPresetLabelInput) ui.objectPresetLabelInput.value = obj.label || (obj.type === "charter" ? "Устав" : "Подряд x <");
@@ -10258,6 +10336,7 @@
                     if (ui.objectPresetEnabledInput) ui.objectPresetEnabledInput.checked = !!obj.enabled;
                     if (ui.objectIdInput) ui.objectIdInput.value = obj.id || "";
                     if (ui.objectTypeInput) ui.objectTypeInput.value = obj.type || "";
+                    if (ui.objectStrategyIdSelect) ui.objectStrategyIdSelect.value = obj.strategyId || "strategy1";
                     renderObjectSourceOptions(obj.source || "", obj.type || "");
                     if (ui.objectLabelInput) ui.objectLabelInput.value = obj.label || "";
                     if (ui.objectGroupIdInput) ui.objectGroupIdInput.value = obj.groupId || "";
@@ -10280,12 +10359,14 @@
 
                 const buildPresetObjectDraft = (presetType = "streak_lt", override = {}) => {
                     const t = (presetType || "").toString().trim().toLowerCase();
+                    const strategyId = (override.strategyId || ui.objectsStrategyContextSelect?.value || "strategy1").toString().trim().toLowerCase() || "strategy1";
                     if (t === "charter") {
                         const label = (override.label ?? "Устав").toString().trim() || "Устав";
                         const enabled = override.enabled !== false;
                         return MEP.ConditionObjects.normalizeConditionObject({
                             id: "charter_main",
                             type: "charter",
+                            strategyId,
                             source: "charter.allowed",
                             label,
                             enabled,
@@ -10310,6 +10391,7 @@
                     return MEP.ConditionObjects.normalizeConditionObject({
                         id: `streak_lt_${threshold}`,
                         type: "streak_lt",
+                        strategyId,
                         source: "lt2_streak",
                         label,
                         enabled,
@@ -10340,6 +10422,7 @@
                     });
                     if (ui.objectIdInput) ui.objectIdInput.value = draft.id || "";
                     if (ui.objectTypeInput) ui.objectTypeInput.value = draft.type || "";
+                    if (ui.objectStrategyIdSelect) ui.objectStrategyIdSelect.value = draft.strategyId || "strategy1";
                     renderObjectSourceOptions(draft.source || "", draft.type || "");
                     if (ui.objectLabelInput) ui.objectLabelInput.value = draft.label || "";
                     if (ui.objectGroupIdInput) ui.objectGroupIdInput.value = draft.groupId || "";
@@ -10382,6 +10465,7 @@
                     }
                     openObjectEditor(null);
                     if (ui.objectPresetTypeSelect) ui.objectPresetTypeSelect.value = (presetType || "streak_lt").toString();
+                    if (ui.objectPresetStrategyIdSelect) ui.objectPresetStrategyIdSelect.value = draft.strategyId || "strategy1";
                     syncPresetInputsByType();
                     if (ui.objectPresetThresholdInput && typeof override.threshold !== "undefined")
                         ui.objectPresetThresholdInput.value = String(Math.max(1, Math.floor(Number(override.threshold) || 3)));
@@ -10490,20 +10574,42 @@
                 }
 
                 ui.objectsRefreshBtn?.addEventListener("click", refreshObjectsFromDb);
-                ui.objectsAddBtn?.addEventListener("click", () => openObjectEditor(null));
-                ui.quickStreak2Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 2 }));
-                ui.quickStreak3Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 3 }));
-                ui.quickStreak4Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 4 }));
-                ui.quickStreak5Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 5 }));
-                ui.quickCharterBtn?.addEventListener("click", () => openPresetObjectEditor("charter", {}));
+                const getObjectsContextStrategyId = () =>
+                    (ui.objectsStrategyContextSelect?.value || ui.objectPresetStrategyIdSelect?.value || "strategy1").toString().trim().toLowerCase() ||
+                    "strategy1";
+                ui.objectsAddBtn?.addEventListener("click", () => openObjectEditor({ strategyId: getObjectsContextStrategyId() }));
+                ui.quickStreak2Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 2, strategyId: getObjectsContextStrategyId() }));
+                ui.quickStreak3Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 3, strategyId: getObjectsContextStrategyId() }));
+                ui.quickStreak4Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 4, strategyId: getObjectsContextStrategyId() }));
+                ui.quickStreak5Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 5, strategyId: getObjectsContextStrategyId() }));
+                ui.quickCharterBtn?.addEventListener("click", () => openPresetObjectEditor("charter", { strategyId: getObjectsContextStrategyId() }));
                 ui.objectsList?.addEventListener("click", (e) => {
-                    const btn = e.target?.closest?.("button.mep-object-edit");
-                    if (!btn) return;
-                    const id = (btn.getAttribute("data-object-id") || "").trim();
+                    const editBtn = e.target?.closest?.("button.mep-object-edit");
+                    const deleteBtn = e.target?.closest?.("button.mep-object-delete");
+                    const id = (editBtn?.getAttribute("data-object-id") || deleteBtn?.getAttribute("data-object-id") || "").trim();
                     if (!id) return;
                     const obj = MEP.ConditionObjects.get(id);
                     if (!obj) return;
-                    openObjectEditor(obj);
+                    if (editBtn) {
+                        openObjectEditor(obj);
+                        return;
+                    }
+                    if (deleteBtn) {
+                        const ok = window.confirm(`Удалить объект ${id}?`);
+                        if (!ok) return;
+                        MEP.ConditionObjects.remove(id)
+                            .then((deleted) => {
+                                if (!deleted) throw new Error("Удаление не подтверждено backend");
+                                const strategyId = (obj?.strategyId || "strategy1").toString().trim().toLowerCase();
+                                let changed = false;
+                                changed = MEP.UI.removeConditionIdFromStrategyPool(strategyId, id) || changed;
+                                if (changed) MEP.Storage.save();
+                                refreshObjectsFromDb();
+                            })
+                            .catch((err) => {
+                                if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = `Ошибка удаления: ${err?.message || err}`;
+                            });
+                    }
                 });
                 ui.objectModalCloseBtn?.addEventListener("click", closeObjectEditor);
                 ui.objectCancelBtn?.addEventListener("click", closeObjectEditor);
@@ -10511,11 +10617,15 @@
                     if (e.target === ui.objectOverlay) closeObjectEditor();
                 });
                 ui.objectPresetTypeSelect?.addEventListener("change", syncPresetInputsByType);
+                ui.objectsStrategyContextSelect?.addEventListener("change", () => {
+                    if (ui.objectPresetStrategyIdSelect) ui.objectPresetStrategyIdSelect.value = ui.objectsStrategyContextSelect.value || "strategy1";
+                });
                 ui.objectPresetApplyBtn?.addEventListener("click", () => {
                     const presetType = (ui.objectPresetTypeSelect?.value || "streak_lt").trim().toLowerCase();
                     const threshold = Math.max(1, Math.floor(Number(ui.objectPresetThresholdInput?.value) || 3));
                     const override = {
                         threshold,
+                        strategyId: (ui.objectPresetStrategyIdSelect?.value || getObjectsContextStrategyId() || "strategy1").trim(),
                         label: (ui.objectPresetLabelInput?.value || "").trim(),
                         groupId: (ui.objectPresetGroupIdInput?.value || "").trim(),
                         groupMode: (ui.objectPresetGroupModeSelect?.value || "single").trim(),
@@ -10552,6 +10662,7 @@
                         const obj = {
                             id: (ui.objectIdInput?.value || "").trim(),
                             type: (ui.objectTypeInput?.value || "").trim(),
+                            strategyId: (ui.objectStrategyIdSelect?.value || "strategy1").trim(),
                             source: getObjectSourceFromUi(),
                             label: (ui.objectLabelInput?.value || "").trim(),
                             groupId: (ui.objectGroupIdInput?.value || "").trim(),
