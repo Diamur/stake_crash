@@ -291,3 +291,7 @@
 - 2026-04-03: Фикс persistence-reload для `diff_vector_state`: в `normalizeConditionObject()` добавлена мягкая миграция `params.mode` (fallback из id suffix `_lt/_flat`, иначе `gt`) чтобы объект не выпадал на validate после reload.
 - В `loadFromDb()` добавлен явный warn `all items skipped`, если `objects_list` вернул items, но ни один не добавился в cache.
 - Версии обновлены: `crash.js 0.1.5.55` (шапка + `MEP.ver`) и `crash.css 0.1.5.32`.
+- 2026-04-03: Object-editor модалка уплотнена по высоте: `max-height:88vh` + `overflow:auto`, межблочный отступ `1px`.
+- В object-editor строки параметров переведены в формат "название + поле" на одной строке (`.mep-object-editor-row` grid 132px/auto).
+- JSON поля (`params/ui/runtimeDefaults`) сделаны сворачиваемыми через toggle-кнопки (`▸/▾`), по умолчанию скрыты при открытии редактора.
+- Версии обновлены: `crash.js 0.1.5.56` (шапка + `MEP.ver`) и `crash.css 0.1.5.33`.

@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.32 ==*/
+/*== CSS ver 0.1.5.33 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -711,6 +711,42 @@ button.mep-history-load {
   display:grid;
   grid-template-columns: repeat(2,minmax(0,1fr));
   gap:6px;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-modal{
+  max-height:88vh;
+  overflow:auto;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-form-row{
+  margin:1px 0;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-editor-row{
+  display:grid;
+  grid-template-columns: 132px minmax(0,1fr);
+  align-items:center;
+  column-gap:6px;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-editor-row > .mep-label{
+  margin:0;
+  white-space:nowrap;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-source-controls{
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-source-controls .mep-input{
+  margin:0;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-json-toggle-row .mep-btn{
+  justify-content:flex-start;
+  text-align:left;
+  padding:0 10px;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-json-field{
+  margin:1px 0;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-json-field textarea.mep-input{
+  height:86px;
 }
 
 #mep-control-panel button.mep-btn{

@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.55  ====
+// === crash.js 0.1.5.56  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -406,7 +406,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.55";
+        MEP.ver = "0.1.5.56";
 
         // -------------------------
         // Settings module
@@ -9056,22 +9056,24 @@
                 <button class="mep-btn mep-object-preset-apply" type="button">Подставить</button>
             </div>
         </div>
-        <div class="mep-form-row"><div class="mep-label">ID объекта</div><input class="mep-input mep-object-id" /></div>
-        <div class="mep-form-row"><div class="mep-label">Type объекта</div><input class="mep-input mep-object-type" placeholder="streak_lt" /></div>
-        <div class="mep-form-row">
+        <div class="mep-form-row mep-object-editor-row"><div class="mep-label">ID объекта</div><input class="mep-input mep-object-id" /></div>
+        <div class="mep-form-row mep-object-editor-row"><div class="mep-label">Type объекта</div><input class="mep-input mep-object-type" placeholder="streak_lt" /></div>
+        <div class="mep-form-row mep-object-editor-row">
             <div class="mep-label">Стратегия</div>
             <select class="mep-input mep-object-strategy-id">
                 <option value="strategy1">Стратегия1</option>
                 <option value="strategy2">Стратегия2</option>
             </select>
         </div>
-        <div class="mep-form-row">
+        <div class="mep-form-row mep-object-editor-row mep-object-source-row">
             <div class="mep-label">Source</div>
-            <select class="mep-input mep-object-source-select"></select>
-            <input class="mep-input mep-object-source-custom" placeholder="custom.source.key" style="margin-top:6px;" />
+            <div class="mep-object-source-controls">
+                <select class="mep-input mep-object-source-select"></select>
+                <input class="mep-input mep-object-source-custom" placeholder="custom.source.key" />
+            </div>
         </div>
-        <div class="mep-form-row"><div class="mep-label">Label</div><input class="mep-input mep-object-label" /></div>
-        <div class="mep-form-row">
+        <div class="mep-form-row mep-object-editor-row"><div class="mep-label">Label</div><input class="mep-input mep-object-label" /></div>
+        <div class="mep-form-row mep-object-editor-row">
             <div class="mep-label">Condition (diff)</div>
             <select class="mep-input mep-object-diff-mode">
                 <option value="gt">mainEMA &gt; shiftedEMA</option>
@@ -9079,8 +9081,8 @@
                 <option value="flat">false / flat</option>
             </select>
         </div>
-        <div class="mep-form-row"><div class="mep-label">Group ID</div><input class="mep-input mep-object-group-id" /></div>
-        <div class="mep-form-row">
+        <div class="mep-form-row mep-object-editor-row"><div class="mep-label">Group ID</div><input class="mep-input mep-object-group-id" /></div>
+        <div class="mep-form-row mep-object-editor-row">
             <div class="mep-label">Group Mode</div>
             <select class="mep-input mep-object-group-mode">
                 <option value="single">single</option>
@@ -9088,9 +9090,12 @@
             </select>
         </div>
         <div class="mep-form-row"><label class="mep-label"><input class="mep-object-enabled" type="checkbox" checked /> Enabled по умолчанию</label></div>
-        <div class="mep-form-row"><div class="mep-label">JSON params</div><textarea class="mep-input mep-object-params" spellcheck="false">{}</textarea></div>
-        <div class="mep-form-row"><div class="mep-label">JSON ui</div><textarea class="mep-input mep-object-ui" spellcheck="false">{}</textarea></div>
-        <div class="mep-form-row"><div class="mep-label">JSON runtimeDefaults</div><textarea class="mep-input mep-object-runtime" spellcheck="false">{}</textarea></div>
+        <div class="mep-form-row mep-object-json-toggle-row"><button class="mep-btn mep-json-toggle" type="button" data-target="params">▸ JSON params</button></div>
+        <div class="mep-form-row mep-object-json-field mep-object-json-params" style="display:none;"><textarea class="mep-input mep-object-params" spellcheck="false">{}</textarea></div>
+        <div class="mep-form-row mep-object-json-toggle-row"><button class="mep-btn mep-json-toggle" type="button" data-target="ui">▸ JSON ui</button></div>
+        <div class="mep-form-row mep-object-json-field mep-object-json-ui" style="display:none;"><textarea class="mep-input mep-object-ui" spellcheck="false">{}</textarea></div>
+        <div class="mep-form-row mep-object-json-toggle-row"><button class="mep-btn mep-json-toggle" type="button" data-target="runtime">▸ JSON runtimeDefaults</button></div>
+        <div class="mep-form-row mep-object-json-field mep-object-json-runtime" style="display:none;"><textarea class="mep-input mep-object-runtime" spellcheck="false">{}</textarea></div>
         <div class="mep-form-row"><div class="mep-label mep-object-editor-msg"></div></div>
         <div class="mep-modal-actions">
             <button class="mep-btn mep-object-save">Сохранить</button>
@@ -9455,6 +9460,10 @@
                     objectParamsInput: objectOverlay?.querySelector(".mep-object-params"),
                     objectUiInput: objectOverlay?.querySelector(".mep-object-ui"),
                     objectRuntimeInput: objectOverlay?.querySelector(".mep-object-runtime"),
+                    objectJsonToggleBtns: [...(objectOverlay?.querySelectorAll(".mep-json-toggle") || [])],
+                    objectJsonParamsRow: objectOverlay?.querySelector(".mep-object-json-params"),
+                    objectJsonUiRow: objectOverlay?.querySelector(".mep-object-json-ui"),
+                    objectJsonRuntimeRow: objectOverlay?.querySelector(".mep-object-json-runtime"),
                     objectSaveBtn: objectOverlay?.querySelector(".mep-object-save"),
                     objectCancelBtn: objectOverlay?.querySelector(".mep-object-cancel"),
                     objectEditorMsg: objectOverlay?.querySelector(".mep-object-editor-msg"),
@@ -10382,6 +10391,25 @@
                     ui._objectEditId = "";
                 };
 
+                const getObjectJsonRowByKey = (key = "") => {
+                    const k = (key || "").toString().trim().toLowerCase();
+                    if (k === "params") return ui.objectJsonParamsRow;
+                    if (k === "ui") return ui.objectJsonUiRow;
+                    if (k === "runtime") return ui.objectJsonRuntimeRow;
+                    return null;
+                };
+
+                const setObjectJsonRowVisible = (key = "", visible = false) => {
+                    const row = getObjectJsonRowByKey(key);
+                    if (!row) return;
+                    row.style.display = visible ? "" : "none";
+                    for (const btn of ui.objectJsonToggleBtns || []) {
+                        if ((btn.dataset.target || "") !== key) continue;
+                        const text = btn.textContent || "";
+                        btn.textContent = visible ? text.replace(/^▸/, "▾") : text.replace(/^▾/, "▸");
+                    }
+                };
+
                 const renderObjectSourceOptions = (selectedSource = "", currentType = "") => {
                     if (!ui.objectSourceSelect) return;
                     const srcItems = MEP.ConditionObjects.SOURCES || [];
@@ -10442,6 +10470,9 @@
                     if (ui.objectParamsInput) ui.objectParamsInput.value = JSON.stringify(obj.params || {}, null, 2);
                     if (ui.objectUiInput) ui.objectUiInput.value = JSON.stringify(obj.ui || {}, null, 2);
                     if (ui.objectRuntimeInput) ui.objectRuntimeInput.value = JSON.stringify(obj.runtimeDefaults || {}, null, 2);
+                    setObjectJsonRowVisible("params", false);
+                    setObjectJsonRowVisible("ui", false);
+                    setObjectJsonRowVisible("runtime", false);
                     if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = "";
                     if (ui.objectOverlay) ui.objectOverlay.style.display = "flex";
                 };
@@ -10759,6 +10790,15 @@
                 ui.objectOverlay?.addEventListener("click", (e) => {
                     if (e.target === ui.objectOverlay) closeObjectEditor();
                 });
+                for (const btn of ui.objectJsonToggleBtns || []) {
+                    btn.addEventListener("click", () => {
+                        const key = (btn.dataset.target || "").toString().trim().toLowerCase();
+                        const row = getObjectJsonRowByKey(key);
+                        if (!row) return;
+                        const willShow = row.style.display === "none";
+                        setObjectJsonRowVisible(key, willShow);
+                    });
+                }
                 ui.objectPresetTypeSelect?.addEventListener("change", syncPresetInputsByType);
                 ui.objectsStrategyContextSelect?.addEventListener("change", () => {
                     if (ui.objectPresetStrategyIdSelect) ui.objectPresetStrategyIdSelect.value = ui.objectsStrategyContextSelect.value || "strategy1";
