@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.53  ====
+// === crash.js 0.1.5.54  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -406,7 +406,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.53";
+        MEP.ver = "0.1.5.54";
 
         // -------------------------
         // Settings module
@@ -10545,14 +10545,19 @@
 
                 const syncPresetInputsByType = () => {
                     const t = (ui.objectPresetTypeSelect?.value || "streak_lt").trim();
-                    const streak = t === "streak_lt";
-                    const diffMode = t === "diff_vector_state";
-                    if (ui.objectPresetThresholdInput) ui.objectPresetThresholdInput.style.display = streak ? "" : "none";
-                    if (ui.objectPresetGroupIdInput) ui.objectPresetGroupIdInput.style.display = streak ? "" : "none";
-                    if (ui.objectPresetGroupModeSelect) ui.objectPresetGroupModeSelect.style.display = streak ? "" : "none";
-                    if (ui.objectPresetDiffModeSelect) ui.objectPresetDiffModeSelect.style.display = diffMode ? "" : "none";
+                    const isStreak = t === "streak_lt";
+                    const isDiff = t === "diff_vector_state";
+                    const isCharter = t === "charter";
+
+                    if (ui.objectPresetThresholdInput) ui.objectPresetThresholdInput.style.display = isStreak ? "" : "none";
+                    if (ui.objectPresetGroupIdInput) ui.objectPresetGroupIdInput.style.display = isStreak ? "" : "none";
+                    if (ui.objectPresetGroupModeSelect) ui.objectPresetGroupModeSelect.style.display = isStreak ? "" : "none";
+                    if (ui.objectPresetDiffModeSelect) ui.objectPresetDiffModeSelect.style.display = isDiff ? "" : "none";
+
                     if (ui.objectPresetLabelInput && !ui.objectPresetLabelInput.value.trim()) {
-                        ui.objectPresetLabelInput.value = streak ? "Подряд x <" : diffMode ? "Diff MA" : "Устав";
+                        if (isStreak) ui.objectPresetLabelInput.value = "Подряд x <";
+                        else if (isDiff) ui.objectPresetLabelInput.value = "Diff: mainEMA > shiftedEMA";
+                        else if (isCharter) ui.objectPresetLabelInput.value = "Устав";
                     }
                 };
 
@@ -10743,15 +10748,16 @@
                 ui.objectPresetApplyBtn?.addEventListener("click", () => {
                     const presetType = (ui.objectPresetTypeSelect?.value || "streak_lt").trim().toLowerCase();
                     const threshold = Math.max(1, Math.floor(Number(ui.objectPresetThresholdInput?.value) || 3));
+                    const diffMode = (ui.objectPresetDiffModeSelect?.value || "gt").trim();
                     const override = {
                         threshold,
                         strategyId: (ui.objectPresetStrategyIdSelect?.value || getObjectsContextStrategyId() || "strategy1").trim(),
-                        diffMode: (ui.objectPresetDiffModeSelect?.value || "gt").trim(),
                         label: (ui.objectPresetLabelInput?.value || "").trim(),
                         groupId: (ui.objectPresetGroupIdInput?.value || "").trim(),
                         groupMode: (ui.objectPresetGroupModeSelect?.value || "single").trim(),
                         enabled: !!ui.objectPresetEnabledInput?.checked,
                     };
+                    if (presetType === "diff_vector_state") override.diffMode = diffMode;
                     console.debug("[MEP][ConditionObjects][UI] preset apply click", { presetType, override });
                     const draft = applyPresetToObjectForm(presetType, override);
                     console.debug("[MEP][ConditionObjects][UI] preset apply draft result", {

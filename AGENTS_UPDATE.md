@@ -285,3 +285,6 @@
 - В object-editor добавлены UX-поля diff condition: preset `diff (MA compare)` + режимы `mainEMA > shiftedEMA`, `mainEMA < shiftedEMA`, `false / flat`.
 - Strategy1 mini-pool теперь поддерживает объекты `diff_vector_state` (фильтр/текст/toggle), без ломки streak/charter.
 - Версии обновлены: `crash.js 0.1.5.53` (шапка + `MEP.ver`) и `crash.css 0.1.5.30`.
+- 2026-04-03: Подтверждена и зафиксирована явная ветвистая логика `syncPresetInputsByType()` для `streak_lt / charter / diff_vector_state`.
+- В handler `Подставить` `diffMode` теперь передаётся в override только для `presetType=diff_vector_state`.
+- Версии обновлены: `crash.js 0.1.5.54` (шапка + `MEP.ver`) и `crash.css 0.1.5.31`.
