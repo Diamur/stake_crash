@@ -280,3 +280,8 @@
 - Для `streak_lt` текущий streak теперь считается через новый helper `MEP.Utils.countStreakLT(threshold)` по newest-first completed history с обрывом на первом значении `>= threshold`.
 - `lt2_streak` в Strategy1 runtime-context переведён на `countStreakLT(2)` (строго `< 2`, а не `<= 2`).
 - Версии обновлены: `crash.js 0.1.5.52` (шапка + `MEP.ver`) и `crash.css 0.1.5.29`.
+- 2026-04-03: Добавлен новый тип объекта `diff_vector_state` для сравнения diff MA (белая mainEMA vs голубая shiftedEMA) через `MEP.State.diffVectorState`.
+- Поддержаны режимы `params.mode`: `gt` (up), `lt` (down), `flat` (flat) с понятным `resultText` в evaluator.
+- В object-editor добавлены UX-поля diff condition: preset `diff (MA compare)` + режимы `mainEMA > shiftedEMA`, `mainEMA < shiftedEMA`, `false / flat`.
+- Strategy1 mini-pool теперь поддерживает объекты `diff_vector_state` (фильтр/текст/toggle), без ломки streak/charter.
+- Версии обновлены: `crash.js 0.1.5.53` (шапка + `MEP.ver`) и `crash.css 0.1.5.30`.

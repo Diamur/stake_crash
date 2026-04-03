@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.52  ====
+// === crash.js 0.1.5.53  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -406,7 +406,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.52";
+        MEP.ver = "0.1.5.53";
 
         // -------------------------
         // Settings module
@@ -710,6 +710,7 @@
 
             SOURCES: [
                 { key: "lt2_streak", label: "Подряд x < 2", valueType: "number" },
+                { key: "diff.vector.state", label: "Разницы: состояние вектора MA", valueType: "string" },
                 { key: "charter.allowed", label: "Устав: разрешено", valueType: "boolean" },
                 { key: "balance.current", label: "Баланс: текущий", valueType: "number" },
                 { key: "balance.start", label: "Баланс: старт", valueType: "number" },
@@ -736,6 +737,12 @@
                     requiredParams: ["period"],
                     sourceRequired: true,
                     allowedSources: ["ema.diff.state", "ema.frequency.state"],
+                },
+                diff_vector_state: {
+                    requiredParams: ["mode"],
+                    sourceRequired: true,
+                    defaultSource: "diff.vector.state",
+                    allowedSources: ["diff.vector.state", "ema.diff.state"],
                 },
             },
 
@@ -871,6 +878,9 @@
                         diff: { state: (src?.ema?.diff?.state ?? "flat").toString() },
                         frequency: { state: (src?.ema?.frequency?.state ?? "flat").toString() },
                     },
+                    diff: {
+                        vector: { state: (src?.diff?.vector?.state ?? src?.ema?.diff?.state ?? "flat").toString() },
+                    },
                     stake: {
                         players: { state: (src?.stake?.players?.state ?? "flat").toString() },
                         bet: { state: (src?.stake?.bet?.state ?? "flat").toString() },
@@ -924,6 +934,19 @@
                     const current = (src.value ?? "").toString().trim().toLowerCase();
                     result = !!current && current === expected;
                     resultText = `${current} === ${expected}`;
+                } else if (obj.type === "diff_vector_state") {
+                    const mode = (obj?.params?.mode ?? "gt").toString().trim().toLowerCase();
+                    const current = (src.value ?? "").toString().trim().toLowerCase();
+                    if (mode === "gt") {
+                        result = current === "up";
+                        resultText = `mainEMA > shiftedEMA (${current})`;
+                    } else if (mode === "lt") {
+                        result = current === "down";
+                        resultText = `mainEMA < shiftedEMA (${current})`;
+                    } else {
+                        result = current === "flat";
+                        resultText = `mainEMA ? shiftedEMA = flat (${current})`;
+                    }
                 }
                 return { ok: true, object: obj, sourceValue, result, resultText };
             },
@@ -7985,7 +8008,7 @@
                 return items.filter(
                     (it) =>
                         (it?.strategyId || "strategy1") === "strategy1" &&
-                        (it?.type === "streak_lt" || it?.type === "charter") &&
+                        (it?.type === "streak_lt" || it?.type === "charter" || it?.type === "diff_vector_state") &&
                         it?.enabled !== false
                 );
             },
@@ -8045,7 +8068,7 @@
                 if (!id) return;
                 const cfg = st?.config && typeof st.config === "object" ? st.config : (st.config = {});
                 const obj = MEP.ConditionObjects.get(id);
-                if (!obj || (obj.type !== "streak_lt" && obj.type !== "charter")) return;
+                if (!obj || (obj.type !== "streak_lt" && obj.type !== "charter" && obj.type !== "diff_vector_state")) return;
                 const pool = MEP.UI.getStrategy1PoolIds(st);
                 const want = !!enabled;
                 const inPool = pool.includes(id);
@@ -8087,6 +8110,9 @@
                         diff: { state: (MEP.State.diffVectorState || "flat").toString() },
                         frequency: { state: (MEP.State.frequencyVectorState || "flat").toString() },
                     },
+                    diff: {
+                        vector: { state: (MEP.State.diffVectorState || "flat").toString() },
+                    },
                     stake: {
                         players: { state: (MEP.State.stakePlayersVectorState || "flat").toString() },
                         bet: { state: (MEP.State.stakeBetVectorState || "flat").toString() },
@@ -8105,6 +8131,11 @@
                 if (obj.type === "charter") {
                     const label = (obj.label || "Устав").toString().trim();
                     return label || "Устав";
+                }
+                if (obj.type === "diff_vector_state") {
+                    const mode = (obj?.params?.mode || "gt").toString().trim().toLowerCase();
+                    const text = mode === "lt" ? "mainEMA < shiftedEMA" : mode === "flat" ? "false / flat" : "mainEMA > shiftedEMA";
+                    return (obj.label || `Diff: ${text}`).toString().trim();
                 }
                 return (obj.label || obj.type || "—").toString();
             },
@@ -8146,7 +8177,7 @@
                     ui.strategy1CondSummaryEl.textContent = "Пул условий: not use";
                     ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false");
                     ui.strategy1CondSummaryEl.classList.add("is-idle");
-                    ui.strategy1CondListEl.innerHTML = `<div class="mep-strategy1-cond-empty">Нет поддержанных объектов (streak_lt / charter)</div>`;
+                    ui.strategy1CondListEl.innerHTML = `<div class="mep-strategy1-cond-empty">Нет поддержанных объектов (streak_lt / charter / diff)</div>`;
                     return;
                 }
 
@@ -8983,6 +9014,7 @@
                 <select class="mep-input mep-object-preset-type">
                     <option value="streak_lt">streak_lt</option>
                     <option value="charter">charter</option>
+                    <option value="diff_vector_state">diff (MA compare)</option>
                 </select>
                 <select class="mep-input mep-object-preset-strategy-id">
                     <option value="strategy1">Стратегия1</option>
@@ -8996,6 +9028,11 @@
                     <option value="single">single</option>
                     <option value="multi">multi</option>
                     <option value="">none</option>
+                </select>
+                <select class="mep-input mep-object-preset-diff-mode">
+                    <option value="gt">mainEMA &gt; shiftedEMA</option>
+                    <option value="lt">mainEMA &lt; shiftedEMA</option>
+                    <option value="flat">false / flat</option>
                 </select>
                 <label class="mep-label"><input class="mep-object-preset-enabled" type="checkbox" checked /> Enabled</label>
                 <button class="mep-btn mep-object-preset-apply" type="button">Подставить</button>
@@ -9016,6 +9053,14 @@
             <input class="mep-input mep-object-source-custom" placeholder="custom.source.key" style="margin-top:6px;" />
         </div>
         <div class="mep-form-row"><div class="mep-label">Label</div><input class="mep-input mep-object-label" /></div>
+        <div class="mep-form-row">
+            <div class="mep-label">Condition (diff)</div>
+            <select class="mep-input mep-object-diff-mode">
+                <option value="gt">mainEMA &gt; shiftedEMA</option>
+                <option value="lt">mainEMA &lt; shiftedEMA</option>
+                <option value="flat">false / flat</option>
+            </select>
+        </div>
         <div class="mep-form-row"><div class="mep-label">Group ID</div><input class="mep-input mep-object-group-id" /></div>
         <div class="mep-form-row">
             <div class="mep-label">Group Mode</div>
@@ -9385,6 +9430,7 @@
                     objectSourceSelect: objectOverlay?.querySelector(".mep-object-source-select"),
                     objectSourceCustomInput: objectOverlay?.querySelector(".mep-object-source-custom"),
                     objectLabelInput: objectOverlay?.querySelector(".mep-object-label"),
+                    objectDiffModeSelect: objectOverlay?.querySelector(".mep-object-diff-mode"),
                     objectGroupIdInput: objectOverlay?.querySelector(".mep-object-group-id"),
                     objectGroupModeSelect: objectOverlay?.querySelector(".mep-object-group-mode"),
                     objectEnabledInput: objectOverlay?.querySelector(".mep-object-enabled"),
@@ -9400,6 +9446,7 @@
                     objectPresetLabelInput: objectOverlay?.querySelector(".mep-object-preset-label"),
                     objectPresetGroupIdInput: objectOverlay?.querySelector(".mep-object-preset-group-id"),
                     objectPresetGroupModeSelect: objectOverlay?.querySelector(".mep-object-preset-group-mode"),
+                    objectPresetDiffModeSelect: objectOverlay?.querySelector(".mep-object-preset-diff-mode"),
                     objectPresetEnabledInput: objectOverlay?.querySelector(".mep-object-preset-enabled"),
                     objectPresetApplyBtn: objectOverlay?.querySelector(".mep-object-preset-apply"),
                 };
@@ -10357,6 +10404,7 @@
                     const obj = existingObj ? MEP.ConditionObjects.normalizeConditionObject(existingObj) : MEP.ConditionObjects.makeDefault();
                     ui._objectEditId = obj.id || "";
                     if (ui.objectPresetTypeSelect) ui.objectPresetTypeSelect.value = obj.type === "charter" ? "charter" : "streak_lt";
+                    if (ui.objectPresetTypeSelect && obj.type === "diff_vector_state") ui.objectPresetTypeSelect.value = "diff_vector_state";
                     if (ui.objectPresetStrategyIdSelect) ui.objectPresetStrategyIdSelect.value = obj.strategyId || "strategy1";
                     syncPresetInputsByType();
                     if (ui.objectPresetThresholdInput) ui.objectPresetThresholdInput.value = String(Math.max(1, Math.floor(Number(obj?.params?.threshold) || 3)));
@@ -10369,6 +10417,7 @@
                     if (ui.objectStrategyIdSelect) ui.objectStrategyIdSelect.value = obj.strategyId || "strategy1";
                     renderObjectSourceOptions(obj.source || "", obj.type || "");
                     if (ui.objectLabelInput) ui.objectLabelInput.value = obj.label || "";
+                    if (ui.objectDiffModeSelect) ui.objectDiffModeSelect.value = (obj?.params?.mode || "gt").toString();
                     if (ui.objectGroupIdInput) ui.objectGroupIdInput.value = obj.groupId || "";
                     if (ui.objectGroupModeSelect) ui.objectGroupModeSelect.value = obj.groupMode || "single";
                     if (ui.objectEnabledInput) ui.objectEnabledInput.checked = !!obj.enabled;
@@ -10390,6 +10439,35 @@
                 const buildPresetObjectDraft = (presetType = "streak_lt", override = {}) => {
                     const t = (presetType || "").toString().trim().toLowerCase();
                     const strategyId = (override.strategyId || ui.objectsStrategyContextSelect?.value || "strategy1").toString().trim().toLowerCase() || "strategy1";
+                    if (t === "diff_vector_state") {
+                        const mode = (override.diffMode || override.mode || "gt").toString().trim().toLowerCase();
+                        const modeSafe = mode === "lt" || mode === "flat" ? mode : "gt";
+                        const labelByMode = {
+                            gt: "Diff: mainEMA > shiftedEMA",
+                            lt: "Diff: mainEMA < shiftedEMA",
+                            flat: "Diff: false (flat)",
+                        };
+                        const label = (override.label ?? labelByMode[modeSafe]).toString().trim() || labelByMode[modeSafe];
+                        const enabled = override.enabled !== false;
+                        return MEP.ConditionObjects.normalizeConditionObject({
+                            id: `diff_vector_${modeSafe}`,
+                            type: "diff_vector_state",
+                            strategyId,
+                            source: "diff.vector.state",
+                            label,
+                            enabled,
+                            groupId: "diff_vector_state",
+                            groupMode: "single",
+                            params: { mode: modeSafe },
+                            ui: { order: 0, visible: true },
+                            runtimeDefaults: {
+                                currentValue: "flat",
+                                reached: false,
+                                result: false,
+                                resultText: "",
+                            },
+                        });
+                    }
                     if (t === "charter") {
                         const label = (override.label ?? "Устав").toString().trim() || "Устав";
                         const enabled = override.enabled !== false;
@@ -10455,6 +10533,7 @@
                     if (ui.objectStrategyIdSelect) ui.objectStrategyIdSelect.value = draft.strategyId || "strategy1";
                     renderObjectSourceOptions(draft.source || "", draft.type || "");
                     if (ui.objectLabelInput) ui.objectLabelInput.value = draft.label || "";
+                    if (ui.objectDiffModeSelect) ui.objectDiffModeSelect.value = (draft?.params?.mode || "gt").toString();
                     if (ui.objectGroupIdInput) ui.objectGroupIdInput.value = draft.groupId || "";
                     if (ui.objectGroupModeSelect) ui.objectGroupModeSelect.value = draft.groupMode || "single";
                     if (ui.objectEnabledInput) ui.objectEnabledInput.checked = !!draft.enabled;
@@ -10467,11 +10546,13 @@
                 const syncPresetInputsByType = () => {
                     const t = (ui.objectPresetTypeSelect?.value || "streak_lt").trim();
                     const streak = t === "streak_lt";
+                    const diffMode = t === "diff_vector_state";
                     if (ui.objectPresetThresholdInput) ui.objectPresetThresholdInput.style.display = streak ? "" : "none";
                     if (ui.objectPresetGroupIdInput) ui.objectPresetGroupIdInput.style.display = streak ? "" : "none";
                     if (ui.objectPresetGroupModeSelect) ui.objectPresetGroupModeSelect.style.display = streak ? "" : "none";
+                    if (ui.objectPresetDiffModeSelect) ui.objectPresetDiffModeSelect.style.display = diffMode ? "" : "none";
                     if (ui.objectPresetLabelInput && !ui.objectPresetLabelInput.value.trim()) {
-                        ui.objectPresetLabelInput.value = streak ? "Подряд x <" : "Устав";
+                        ui.objectPresetLabelInput.value = streak ? "Подряд x <" : diffMode ? "Diff MA" : "Устав";
                     }
                 };
 
@@ -10499,9 +10580,18 @@
                     syncPresetInputsByType();
                     if (ui.objectPresetThresholdInput && typeof override.threshold !== "undefined")
                         ui.objectPresetThresholdInput.value = String(Math.max(1, Math.floor(Number(override.threshold) || 3)));
-                    if (ui.objectPresetLabelInput) ui.objectPresetLabelInput.value = (override.label || (presetType === "charter" ? "Устав" : "Подряд x <")).toString();
+                    if (ui.objectPresetLabelInput)
+                        ui.objectPresetLabelInput.value = (
+                            override.label ||
+                            (presetType === "charter"
+                                ? "Устав"
+                                : presetType === "diff_vector_state"
+                                  ? "Diff: mainEMA > shiftedEMA"
+                                  : "Подряд x <")
+                        ).toString();
                     if (ui.objectPresetGroupIdInput) ui.objectPresetGroupIdInput.value = (override.groupId || "streak_lt").toString();
                     if (ui.objectPresetGroupModeSelect) ui.objectPresetGroupModeSelect.value = (override.groupMode || "single").toString();
+                    if (ui.objectPresetDiffModeSelect) ui.objectPresetDiffModeSelect.value = (override.diffMode || override.mode || "gt").toString();
                     if (ui.objectPresetEnabledInput) ui.objectPresetEnabledInput.checked = override.enabled !== false;
                     applyPresetToObjectForm(presetType, override);
                 };
@@ -10656,6 +10746,7 @@
                     const override = {
                         threshold,
                         strategyId: (ui.objectPresetStrategyIdSelect?.value || getObjectsContextStrategyId() || "strategy1").trim(),
+                        diffMode: (ui.objectPresetDiffModeSelect?.value || "gt").trim(),
                         label: (ui.objectPresetLabelInput?.value || "").trim(),
                         groupId: (ui.objectPresetGroupIdInput?.value || "").trim(),
                         groupMode: (ui.objectPresetGroupModeSelect?.value || "single").trim(),
@@ -10681,6 +10772,10 @@
                     const currentSource = getObjectSourceFromUi();
                     const nextSource = currentSource || MEP.ConditionObjects.getDefaultSourceForType(type) || "";
                     renderObjectSourceOptions(nextSource, type);
+                    if (type === "diff_vector_state") {
+                        if (ui.objectSourceSelect && !ui.objectSourceSelect.value) ui.objectSourceSelect.value = "diff.vector.state";
+                        if (ui.objectLabelInput && !ui.objectLabelInput.value.trim()) ui.objectLabelInput.value = "Diff: mainEMA > shiftedEMA";
+                    }
                 });
                 ui.objectSourceSelect?.addEventListener("change", () => {
                     if ((ui.objectSourceSelect?.value || "").trim()) {
@@ -10702,6 +10797,10 @@
                             ui: parseJsonField(ui.objectUiInput?.value || "{}", {}),
                             runtimeDefaults: parseJsonField(ui.objectRuntimeInput?.value || "{}", {}),
                         };
+                        if (obj.type === "diff_vector_state") {
+                            const m = (ui.objectDiffModeSelect?.value || obj?.params?.mode || "gt").toString().trim().toLowerCase();
+                            obj.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                        }
                         console.debug("[MEP][ConditionObjects][UI] modal save click: object draft", obj);
                         const vr = MEP.ConditionObjects.validateConditionObject(obj);
                         console.debug("[MEP][ConditionObjects][UI] modal save click: validate result", vr);
