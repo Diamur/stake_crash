@@ -32974,6 +32974,29 @@ INSERT INTO `stake_settings` (`id`, `device_id`, `updated_at`, `settings_json`, 
 (3, 'dev_bd61f27e42d7f8_19d0b58973a', 1774025629144, '{\"endpointUrl\":\"https://tc-ab.ru/scate/\",\"historySteps\":10,\"soundsText\":\"ping1=https://tc-ab.ru/scate/sound/ping1.mp3\\nping2=https://tc-ab.ru/scate/sound/ping2.mp3\\nping3=https://tc-ab.ru/scate/sound/ping3.mp3\\nping4=https://tc-ab.ru/scate/sound/ping4.mp3\\nping5=https://tc-ab.ru/scate/sound/ping5.mp3\\nping6=https://tc-ab.ru/scate/sound/ping6.mp3\\nping7=https://tc-ab.ru/scate/sound/ping7.mp3\\nping8=https://tc-ab.ru/scate/sound/ping8.mp3\\nping9=https://tc-ab.ru/scate/sound/ping9.mp3\\nping10=https://tc-ab.ru/scate/sound/ping10.mp3\\nping11=https://tc-ab.ru/scate/sound/ping11.mp3\\nping12=https://tc-ab.ru/scate/sound/ping12.mp3\\nping13=https://tc-ab.ru/scate/sound/ping13.mp3\\nping14=https://tc-ab.ru/scate/sound/ping14.mp3\\nwrn=https://tc-ab.ru/scate/sound/wrn.mp3\",\"soundDefaultKey\":\"ping1\",\"hitFlashMs\":6000,\"historyNextDelayMs\":1000,\"priorityMode\":\"high\",\"supportedGamesText\":\"crash\",\"deviceId\":\"dev_bd61f27e42d7f8_19d0b58973a\"}', '45.12.133.156', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36');
 
 --
+-- Структура таблицы `stake_condition_objects`
+--
+DROP TABLE IF EXISTS `stake_condition_objects`;
+CREATE TABLE `stake_condition_objects` (
+  `id` bigint UNSIGNED NOT NULL,
+  `device_id` varchar(64) NOT NULL,
+  `object_id` varchar(96) NOT NULL,
+  `type` varchar(64) NOT NULL,
+  `label` varchar(255) NOT NULL DEFAULT '',
+  `enabled_default` tinyint(1) NOT NULL DEFAULT '1',
+  `group_id` varchar(96) NOT NULL DEFAULT '',
+  `group_mode` varchar(32) NOT NULL DEFAULT 'single',
+  `params_json` mediumtext,
+  `ui_json` mediumtext,
+  `runtime_defaults_json` mediumtext,
+  `object_json` mediumtext NOT NULL,
+  `created_at` bigint NOT NULL,
+  `updated_at` bigint NOT NULL,
+  `ip` varchar(64) DEFAULT NULL,
+  `ua` text
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
 -- Индексы сохранённых таблиц
 --
 
@@ -32996,6 +33019,15 @@ ALTER TABLE `stake_settings`
   ADD UNIQUE KEY `ux_device_id` (`device_id`);
 
 --
+-- Индексы таблицы `stake_condition_objects`
+--
+ALTER TABLE `stake_condition_objects`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `ux_device_object` (`device_id`,`object_id`),
+  ADD KEY `idx_device_type` (`device_id`,`type`),
+  ADD KEY `idx_updated_at` (`updated_at`);
+
+--
 -- AUTO_INCREMENT для сохранённых таблиц
 --
 
@@ -33010,6 +33042,12 @@ ALTER TABLE `stake_events`
 --
 ALTER TABLE `stake_settings`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT для таблицы `stake_condition_objects`
+--
+ALTER TABLE `stake_condition_objects`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
