@@ -7933,6 +7933,7 @@
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!s) return [];
                 const pool = MEP.UI.getStrategy1PoolIds(s);
+                const cfg = s?.config && typeof s.config === "object" ? s.config : (s.config = {});
                 const supported = MEP.UI.getStrategy1SupportedObjects();
                 const byId = new Map(supported.map((it) => [it.id, it]));
                 let changed = false;
@@ -7944,11 +7945,13 @@
                     }
                 }
 
-                // bridge default: если streak_lt в пуле нет, подключаем первый enabled streak_lt
+                // bridge default: авто-подхват streak_lt только до первого ручного действия пользователя
                 const streakItems = supported.filter((it) => it.type === "streak_lt");
                 const hasStreakInPool = pool.some((id) => byId.get(id)?.type === "streak_lt");
-                if (!hasStreakInPool && streakItems.length) {
+                const userTouched = cfg.conditionPoolUserTouched === true;
+                if (!userTouched && !hasStreakInPool && streakItems.length) {
                     pool.push(streakItems[0].id);
+                    cfg.conditionPoolAutoSeeded = true;
                     changed = true;
                 }
 
@@ -7961,11 +7964,13 @@
                 if (!st) return;
                 const id = (objectId ?? "").toString().trim();
                 if (!id) return;
+                const cfg = st?.config && typeof st.config === "object" ? st.config : (st.config = {});
                 const obj = MEP.ConditionObjects.get(id);
                 if (!obj || (obj.type !== "streak_lt" && obj.type !== "charter")) return;
                 const pool = MEP.UI.getStrategy1PoolIds(st);
                 const want = !!enabled;
                 const inPool = pool.includes(id);
+                cfg.conditionPoolUserTouched = true;
 
                 if (want && !inPool) {
                     // single-choice group support: при groupMode=single вырубаем все из той же группы
