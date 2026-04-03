@@ -288,3 +288,6 @@
 - 2026-04-03: Подтверждена и зафиксирована явная ветвистая логика `syncPresetInputsByType()` для `streak_lt / charter / diff_vector_state`.
 - В handler `Подставить` `diffMode` теперь передаётся в override только для `presetType=diff_vector_state`.
 - Версии обновлены: `crash.js 0.1.5.54` (шапка + `MEP.ver`) и `crash.css 0.1.5.31`.
+- 2026-04-03: Фикс persistence-reload для `diff_vector_state`: в `normalizeConditionObject()` добавлена мягкая миграция `params.mode` (fallback из id suffix `_lt/_flat`, иначе `gt`) чтобы объект не выпадал на validate после reload.
+- В `loadFromDb()` добавлен явный warn `all items skipped`, если `objects_list` вернул items, но ни один не добавился в cache.
+- Версии обновлены: `crash.js 0.1.5.55` (шапка + `MEP.ver`) и `crash.css 0.1.5.32`.

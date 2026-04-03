@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.54  ====
+// === crash.js 0.1.5.55  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -406,7 +406,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.54";
+        MEP.ver = "0.1.5.55";
 
         // -------------------------
         // Settings module
@@ -820,6 +820,18 @@
                 if (!out.label) out.label = out.id || out.type || "Object";
                 if (!out.strategyId || (out.strategyId !== "strategy1" && out.strategyId !== "strategy2")) out.strategyId = "strategy1";
                 if (!out.source) out.source = this.getDefaultSourceForType(out.type) || "";
+                if (out.type === "diff_vector_state") {
+                    const rawMode = (out?.params?.mode ?? "").toString().trim().toLowerCase();
+                    let mode = rawMode;
+                    if (mode !== "gt" && mode !== "lt" && mode !== "flat") {
+                        const id = (out.id || "").toString().toLowerCase();
+                        if (id.endsWith("_lt")) mode = "lt";
+                        else if (id.endsWith("_flat")) mode = "flat";
+                        else mode = "gt";
+                    }
+                    out.params.mode = mode;
+                    if (!out.source) out.source = "diff.vector.state";
+                }
 
                 const uiOrder = Number(out.ui.order);
                 out.ui.order = Number.isFinite(uiOrder) ? Math.floor(uiOrder) : 0;
@@ -1066,6 +1078,12 @@
                     added,
                     skipped,
                 });
+                if (rootItems.length > 0 && added.length === 0) {
+                    console.warn(`${this.DEBUG_TAG} loadFromDb: all items skipped`, {
+                        itemsCount: rootItems.length,
+                        skipped,
+                    });
+                }
                 return this.list();
             },
 
