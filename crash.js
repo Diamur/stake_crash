@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.49  ====
+// === crash.js 0.1.5.50  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -405,7 +405,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.49";
+        MEP.ver = "0.1.5.50";
 
         // -------------------------
         // Settings module
@@ -10196,8 +10196,8 @@
                             const type = (it.type || "").replace(/</g, "&lt;");
                             const id = (it.id || "").replace(/</g, "&lt;");
                             return `<div class="mep-object-row">
-<div class="mep-object-meta"><b>${label}</b><span>${type}</span><code>${id}</code></div>
-<button class="mep-btn mep-object-edit" data-object-id="${id}">Редактировать</button>
+<div class="mep-object-meta"><b>${label}</b><span class="mep-object-inline-meta">${type}</span><code>${id}</code></div>
+<button class="mep-btn mep-object-edit" data-object-id="${id}" title="Редактировать" aria-label="Редактировать">✎</button>
 </div>`;
                         })
                         .join("");
