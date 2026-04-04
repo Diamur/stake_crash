@@ -346,3 +346,9 @@
 - В `renderStrategy1ConditionBridge` после строки `Freq` добавлена строка `FreqL` с компактной формулой `f > [threshold]`.
 - Добавлены `setStrategy1FrequencyLineThreshold()` и bind для `mep-strategy1-cond-frequency-line-threshold`; guard авто-rerender расширен под новый input.
 - Версии повышены: `crash.js 0.1.5.68` (header + `MEP.ver`) и `crash.css 0.1.5.68`.
+- 2026-04-04: StakeGraph render fix — векторные линии теперь зависят не только от `stake*VectorEnabled`, но и от видимости соответствующей серии.
+- Добавлены флаги `renderPlayersVectors = showPlayers && stakePlayersVectorEnabled` и `renderBetVectors = showBet && stakeBetVectorEnabled`.
+- При выключении `Клиенты` скрываются: линия клиентов + mainEMA + shiftedEMA клиентов.
+- При выключении `Ставка x10` скрываются: линия ставки + mainEMA + shiftedEMA ставки.
+- Расчёт EMA/state не менялся; изменены только условия отображения в `MEP.StakeGraph.render()`.
+- Версии повышены: `crash.js 0.1.5.69` (header + `MEP.ver`) и `crash.css 0.1.5.69`.

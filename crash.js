@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.68";
+		MEP.ver = "0.1.5.69";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -4754,7 +4754,9 @@
 
                 if (showPlayers) makePolyline(playersPts, "rgba(112,206,255,0.95)");
                 if (showBet) makePolyline(betsPts, "rgba(255,170,60,0.95)");
-                if (MEP.State.stakePlayersVectorEnabled) {
+                const renderPlayersVectors = showPlayers && MEP.State.stakePlayersVectorEnabled;
+                const renderBetVectors = showBet && MEP.State.stakeBetVectorEnabled;
+                if (renderPlayersVectors) {
                     makePolyline(
                         playersMainPts,
                         (MEP.State.stakePlayersVectorMainColor || "rgba(255,255,255,0.96)").toString(),
@@ -4772,7 +4774,7 @@
                         svg.appendChild(shiftPl);
                     }
                 }
-                if (MEP.State.stakeBetVectorEnabled) {
+                if (renderBetVectors) {
                     const mainPl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
                     if (betMainPts.length) {
                         mainPl.setAttribute("points", betMainPts.map((p) => `${p.x},${p.y}`).join(" "));
