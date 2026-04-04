@@ -299,3 +299,7 @@
 - В mini-pool Strategy1 оставлен ровно один блок каждого типа: toggle + threshold для `streak_lt` + mode (`gt/lt/flat`) для `diff_vector_state`.
 - UI подписи укорочены: `Diff`, `mEMA > sEMA`, `mEMA < sEMA`, `false`; текущее значение diff в currentValue показывается в этих же short-label.
 - Добавлена локальная оценка `Strategy1.checkConditions()/evaluateConditionBlocks()` по новым жёстким блокам с persistence через `strategy1Config` в `MEP.Storage`.
+- 2026-04-04: Точечный фикс Strategy1 minimal pool: summary `Пул условий` перенесён в DOM после списка строк условий.
+- Убрана конфликтная обёртка `<label>` у строк mini-pool (заменено на `<div>`), чтобы Diff-select работал без ложных кликов по row-wrapper.
+- Для Diff-dropdown улучшены стили (`appearance`, `z-index`, `cursor`, `min-width`) и добавлен guard от авто-rerender во время фокуса на select/input.
+- Версии повышены: `crash.js 0.1.5.58` (header + `MEP.ver`) и `crash.css 0.1.5.58`.

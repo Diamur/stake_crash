@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.56  ====
+// === crash.js 0.1.5.58  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -428,7 +428,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.56";
+        MEP.ver = "0.1.5.58";
 
         // -------------------------
         // Settings module
@@ -3174,10 +3174,18 @@
         }
         .mep-strategy1-cond-diff-mode{
         width:126px;
+        min-width:126px;
         height:24px;
+        padding:0 20px 0 6px;
+        appearance:auto;
+        -webkit-appearance:menulist;
         background:rgba(255,255,255,.16);
         border:1px solid rgba(255,255,255,.42);
         color:#fff;
+        cursor:pointer;
+        position:relative;
+        z-index:3;
+        pointer-events:auto;
         }
         .mep-strategy1-cond-current{color:#ffd98f;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .mep-strategy1-cond-result{text-align:right;font-weight:700;white-space:nowrap;}
@@ -8178,7 +8186,6 @@
                 blocks[type].enabled = !!enabled;
                 MEP.Storage.save();
                 MEP.Strategy1?.checkConditions?.();
-                MEP.UI.renderStrategy1MinimalUi(st);
             },
 
             setStrategy1StreakThreshold(value = 0) {
@@ -8190,7 +8197,6 @@
                 blocks.streak_lt.params.threshold = threshold;
                 MEP.Storage.save();
                 MEP.Strategy1?.checkConditions?.();
-                MEP.UI.renderStrategy1MinimalUi(st);
             },
 
             setStrategy1DiffMode(mode = "gt") {
@@ -8201,13 +8207,18 @@
                 blocks.diff_vector_state.params.mode = m === "lt" || m === "flat" ? m : "gt";
                 MEP.Storage.save();
                 MEP.Strategy1?.checkConditions?.();
-                MEP.UI.renderStrategy1MinimalUi(st);
             },
 
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!ui || !s || !ui.strategy1CondListEl || !ui.strategy1CondSummaryEl) return;
+                const activeEl = document.activeElement;
+                const isEditingConditionControl =
+                    !!activeEl &&
+                    ui.strategy1CondListEl.contains(activeEl) &&
+                    (activeEl.classList.contains("mep-strategy1-cond-diff-mode") || activeEl.classList.contains("mep-strategy1-cond-threshold"));
+                if (isEditingConditionControl) return;
                 const blocks = MEP.UI.getStrategy1ConditionBlocks(s);
                 const evaluated = MEP.Strategy1?.evaluateConditionBlocks?.(s) || [];
                 const byKey = Object.create(null);
@@ -8218,28 +8229,28 @@
                 const threshold = Math.max(0, Math.floor(Number(blocks?.streak_lt?.params?.threshold) || 0));
                 const diffMode = (blocks?.diff_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
                 rows.push(
-                    `<label class="mep-strategy1-condition-row">
+                    `<div class="mep-strategy1-condition-row">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="charter" ${blocks?.charter?.enabled ? "checked" : ""} /></span>
 <span class="mep-strategy1-cond-text">Устав</span>
 <span class="mep-strategy1-cond-current">${byKey?.charter?.currentValue ?? "—"}</span>
 <span class="mep-strategy1-cond-result ${blocks?.charter?.enabled ? (byKey?.charter?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.charter?.enabled ? (byKey?.charter?.result ? "true" : "false") : "not use"}</span>
-</label>`
+</div>`
                 );
                 rows.push(
-                    `<label class="mep-strategy1-condition-row">
+                    `<div class="mep-strategy1-condition-row">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="streak_lt" ${blocks?.streak_lt?.enabled ? "checked" : ""} /></span>
 <span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Подряд</span><span class="mep-strategy1-cond-inline">x &lt;</span><input class="mep-strategy1-cond-threshold" type="number" min="0" step="1" value="${threshold}" /></span>
 <span class="mep-strategy1-cond-current">${byKey?.streak_lt?.currentValue ?? "—"}</span>
 <span class="mep-strategy1-cond-result ${blocks?.streak_lt?.enabled ? (byKey?.streak_lt?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.streak_lt?.enabled ? (byKey?.streak_lt?.result ? "true" : "false") : "not use"}</span>
-</label>`
+</div>`
                 );
                 rows.push(
-                    `<label class="mep-strategy1-condition-row">
+                    `<div class="mep-strategy1-condition-row">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="diff_vector_state" ${blocks?.diff_vector_state?.enabled ? "checked" : ""} /></span>
 <span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Diff</span><select class="mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>false</option></select></span>
 <span class="mep-strategy1-cond-current">${byKey?.diff_vector_state?.currentValue ?? "false"}</span>
 <span class="mep-strategy1-cond-result ${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "true" : "false") : "not use"}</span>
-</label>`
+</div>`
                 );
                 ui.strategy1CondListEl.innerHTML = rows.join("");
 
@@ -9204,8 +9215,8 @@
             <span class="mep-strategy1-risk-percent-sign">%</span>
         </div>
         <div class="mep-strategy1-conditions-wrap">
-            <div class="mep-strategy1-cond-summary is-idle">Пул условий: not use</div>
             <div class="mep-strategy1-cond-list"></div>
+            <div class="mep-strategy1-cond-summary is-idle">Пул условий: not use</div>
         </div>
     </div>
 </div>
