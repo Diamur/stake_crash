@@ -1,214 +1,55 @@
-// === crash.js 0.1.5.56  ====
-// === Хуки ====
-// === WebSocket ====
-
-(() => {
-    if (window.__MEP_WS_HOOKED__) return;
-    window.__MEP_WS_HOOKED__ = true;
-
-    const NativeWS = window.WebSocket;
-
-    // куда складываем "последнее известное"
-    window.MEP = window.MEP || {};
-    window.MEP.WS = window.MEP.WS || {
-        sockets: [],
-        last: {
-            subId: null, // "id" верхнего уровня (обычно постоянный)
-            roundLikeId: null, // crashMultiplier.id (меняется по раундам)
-            multiplier: null,
-            elapsed: null,
-            ts: null,
-        },
-        // быстро включать/выключать лог
-        debug: false,
-    };
-
-    // Склейка roundLikeId так, чтобы в БД улетал ID ЗАВЕРШИВШЕЙСЯ игры,
-    // даже если в момент записи wsLast.roundLikeId уже переключился на следующий.
-    window.MEP.WSLink = window.MEP.WSLink || {
-        curId: null,
-        lastEndedId: null,
-        lastEndedAt: 0,
-
-        noteTick(roundLikeId) {
-            const id = roundLikeId ?? null;
-            const isZero = id === 0 || id === "0";
-
-            // стартовое заполнение
-            if (this.curId == null) {
-                if (!isZero && id) this.curId = id;
-                return;
-            }
-
-            // "0" = граница (сигнал смены ID)
-            if (isZero) {
-                this.lastEndedId = this.curId;
-                this.lastEndedAt = Date.now();
-                this.curId = null;
-                return;
-            }
-
-            // после "0" пришёл новый id => старт следующей игры
-            if (this.curId == null && id) {
-                this.curId = id;
-                return;
-            }
-
-            // на всякий: если смена произошла без "0"
-            if (id && this.curId && id !== this.curId) {
-                this.lastEndedId = this.curId;
-                this.lastEndedAt = Date.now();
-                this.curId = id;
-            }
-        },
-
-        // event_key для записи: если недавно был lastEndedId — используем его (1 раз),
-        // иначе берём текущий wsLast.roundLikeId (если он не 0).
-        pickEventKey(wsLast) {
-            const now = Date.now();
-            const ended = this.lastEndedId;
-            const endedFresh = ended && now - (this.lastEndedAt || 0) < 15000;
-
-            if (endedFresh) {
-                this.lastEndedId = null;
-                this.lastEndedAt = 0;
-                return ended;
-            }
-
-            const id = wsLast ? (wsLast.roundLikeId ?? null) : null;
-            if (id === 0 || id === "0") return null;
-            return id || null;
-        },
-    };
-
-    function tryParseJSON(s) {
-        if (typeof s !== "string") return null;
-        if (!s || (s[0] !== "{" && s[0] !== "[")) return null;
-        try {
-            return JSON.parse(s);
-        } catch {
-            return null;
-        }
-    }
-
-    function handleWSMessage(url, data) {
-        const obj = tryParseJSON(data);
-        if (!obj) return;
-
-        // Фильтр: нам нужен именно поток "next" payload.data...
-        // (оставляем максимально общий, но без шума)
-        const payload = obj && obj.payload && obj.payload.data;
-        if (!payload) return;
-
-        // 1) Crash multiplier stream
-        const cm = payload.crashMultiplier;
-        if (cm && typeof cm === "object") {
-            // ВАЖНО: obj.id часто постоянный (id подписки), а cm.id — меняется по раундам
-            const state = window.MEP.WS.last;
-            state.subId = obj.id ?? state.subId;
-            state.roundLikeId = cm.id ?? state.roundLikeId;
-            state.multiplier = cm.multiplier ?? state.multiplier;
-            state.elapsed = cm.elapsed ?? state.elapsed;
-            state.ts = Date.now();
-            if (window.MEP && window.MEP.WSLink && typeof window.MEP.WSLink.noteTick === "function") {
-                window.MEP.WSLink.noteTick(state.roundLikeId);
-            }
-
-            // Событие наружу (чтобы твой код спокойно подписался)
-            window.dispatchEvent(
-                new CustomEvent("MEP:crashMultiplier", {
-                    detail: {
-                        url,
-                        subId: state.subId,
-                        roundLikeId: state.roundLikeId,
-                        multiplier: state.multiplier,
-                        elapsed: state.elapsed,
-                        raw: obj,
-                    },
-                })
-            );
-
-            if (window.MEP.WS.debug) {
-                console.log("[MEP][WS cm]", {
-                    url,
-                    subId: state.subId,
-                    roundLikeId: state.roundLikeId,
-                    multiplier: state.multiplier,
-                    elapsed: state.elapsed,
-                });
-            }
-            return;
-        }
-
-        // 2) Если вдруг летит crashGame / ended / crashpoint — тоже ловим
-        const cg = payload.crashGame;
-        if (cg && typeof cg === "object") {
-            window.dispatchEvent(
-                new CustomEvent("MEP:crashGame", {
-                    detail: { url, raw: obj, crashGame: cg },
-                })
-            );
-            if (window.MEP.WS.debug) console.log("[MEP][WS crashGame]", cg);
-            return;
-        }
-    }
-
-    // Подмена конструктора WS
-    window.WebSocket = function WebSocketHook(url, protocols) {
-        const ws = protocols ? new NativeWS(url, protocols) : new NativeWS(url);
-
-        try {
-            ws.__mepUrl = url;
-            window.MEP.WS.sockets.push(ws);
-        } catch {}
-
-        // Перехват addEventListener('message', ...)
-        const nativeAdd = ws.addEventListener.bind(ws);
-        ws.addEventListener = function (type, listener, options) {
-            if (type === "message") {
-                const wrapped = function (ev) {
-                    try {
-                        handleWSMessage(ws.__mepUrl || url, ev.data);
-                    } catch {}
-                    return listener.call(this, ev);
-                };
-                return nativeAdd(type, wrapped, options);
-            }
-            return nativeAdd(type, listener, options);
-        };
-
-        // Перехват onmessage =
-        Object.defineProperty(ws, "onmessage", {
-            configurable: true,
-            get() {
-                return ws.__mepOnMessage || null;
-            },
-            set(fn) {
-                ws.__mepOnMessage = fn;
-                return nativeAdd("message", function (ev) {
-                    try {
-                        handleWSMessage(ws.__mepUrl || url, ev.data);
-                    } catch {}
-                    if (typeof fn === "function") fn.call(ws, ev);
-                });
-            },
-        });
-
-        return ws;
-    };
-
-    // сохранить статические поля
-    window.WebSocket.prototype = NativeWS.prototype;
-    Object.setPrototypeOf(window.WebSocket, NativeWS);
-
-    console.log("[MEP] WebSocket hook installed");
-})();
+// === crash.js ====
 
 // === MEP Control Panel + Crash Stats Tracker  ===
-
 (() => {
     try {
         const MEP = (window.MEP = window.MEP || {});
+        
+		MEP.ver = "0.1.5.66";
+        // -------------------------
+        // Static code-priority settings
+        // -------------------------
+        MEP.CodeSettings = {
+            // Если непусто -> приоритет над localStorage/DB/UI
+            endpointUrl: "https://tc-ab.ru/scate/index.php?action=ping",
+            // Формат: key=url (по одному на строку)
+            soundsText: `ping1=https://tc-ab.ru/scate/sound/ping1.mp3
+ping2=https://tc-ab.ru/scate/sound/ping2.mp3
+ping3=https://tc-ab.ru/scate/sound/ping3.mp3
+ping4=https://tc-ab.ru/scate/sound/ping4.mp3
+ping5=https://tc-ab.ru/scate/sound/ping5.mp3
+ping6=https://tc-ab.ru/scate/sound/ping6.mp3
+ping7=https://tc-ab.ru/scate/sound/ping7.mp3
+ping8=https://tc-ab.ru/scate/sound/ping8.mp3
+ping9=https://tc-ab.ru/scate/sound/ping9.mp3
+ping10=https://tc-ab.ru/scate/sound/ping10.mp3
+ping11=https://tc-ab.ru/scate/sound/ping11.mp3
+ping12=https://tc-ab.ru/scate/sound/ping12.mp3
+ping13=https://tc-ab.ru/scate/sound/ping13.mp3
+ping14=https://tc-ab.ru/scate/sound/ping14.mp3
+wrn=https://tc-ab.ru/scate/sound/wrn.mp3`,
+        };
+
+        const buildStrategy1ConditionBlocksDefault = () => ({
+            charter: {
+                type: "charter",
+                enabled: true,
+                label: "Устав",
+                params: {},
+            },
+            streak_lt: {
+                type: "streak_lt",
+                enabled: true,
+                label: "Подряд",
+                params: { threshold: 3 },
+            },
+            diff_vector_state: {
+                type: "diff_vector_state",
+                enabled: false,
+                label: "Diff",
+                params: { mode: "gt" },
+            },
+        });
 
         const buildStrategy1DefaultState = () => ({
             id: "strategy1",
@@ -219,6 +60,7 @@
             config: {
                 riskPercent: 0,
                 conditionPoolIds: [],
+                conditionBlocks: buildStrategy1ConditionBlocksDefault(),
                 startStakeMode: "fixed",
                 startStakeValue: 0,
                 startStakeArrayText: "",
@@ -406,7 +248,8 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.56";
+
+
 
         // -------------------------
         // Settings module
@@ -493,7 +336,17 @@
                 this.save();
             },
 
+            getCodeSoundsText() {
+                return (MEP.CodeSettings?.soundsText ?? "").toString();
+            },
+
+            hasCodeSoundsText() {
+                return !!this.getCodeSoundsText().trim();
+            },
+
             getSoundsText() {
+                const codeValue = this.getCodeSoundsText();
+                if (codeValue.trim()) return codeValue;
                 return (this.state.soundsText ?? "").toString();
             },
 
@@ -695,7 +548,17 @@
                 this.save();
             },
 
+            getCodeEndpoint() {
+                return (MEP.CodeSettings?.endpointUrl ?? "").toString().trim();
+            },
+
+            hasCodeEndpoint() {
+                return !!this.getCodeEndpoint();
+            },
+
             getEndpoint() {
+                const codeValue = this.getCodeEndpoint();
+                if (codeValue) return codeValue;
                 return (this.state.endpointUrl ?? "").toString().trim();
             },
         };
@@ -3061,6 +2924,9 @@
         padding:5px 8px;
         background:rgba(255,255,255,.03);
         color:#a9b2bc;
+        display:flex;
+        justify-content:flex-end;
+        text-align:right;
         }
         .mep-strategy1-cond-summary.is-true{color:#00ff57;}
         .mep-strategy1-cond-summary.is-false{color:#ff6f9f;}
@@ -3076,7 +2942,7 @@
         .mep-strategy1-condition-row{
         margin-top:0px;
         display:grid;
-        grid-template-columns: 112px 1fr 84px 96px;
+        grid-template-columns: 34px 1fr 1fr 0.3fr;
         align-items:center;
         gap:0px;
         border:1px dashed rgba(255,255,255,.24);
@@ -3084,6 +2950,9 @@
         padding:0px 0px;
         font-size:11px;
         background:rgba(255,255,255,.04);
+        }
+        .mep-strategy1-condition-row.is-diff{
+        grid-template-columns:34px 72px 1fr 1fr 0.3fr;
         }
         .mep-strategy1-cond-toggle-wrap{
         display:inline-flex;
@@ -3140,7 +3009,41 @@
         letter-spacing:.15px;
         }
         .mep-strategy1-cond-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f5f8fc;}
-        .mep-strategy1-cond-current{color:#ffd98f;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mep-strategy1-cond-control{
+        display:inline-flex;
+        align-items:center;
+        min-width:0;
+        }
+        .mep-strategy1-cond-title{display:inline-block;min-width:46px;}
+        .mep-strategy1-cond-inline{display:inline-block;margin:0 6px 0 2px;color:#f5f8fc;}
+        .mep-strategy1-cond-threshold{
+        width:56px;
+        height:24px;
+        background:rgba(255,255,255,.16);
+        border:1px solid rgba(255,255,255,.42);
+        color:#fff;
+        text-align:center;
+        }
+        .mep-strategy1-cond-diff-mode{
+        width:150px;
+        min-width:92px;
+        height:24px;
+        padding:0 14px 0 4px;
+        appearance:auto;
+        -webkit-appearance:menulist;
+        background:rgba(255,255,255,.16);
+        border:1px solid rgba(255,255,255,.42);
+        color:#fff;
+        cursor:pointer;
+        position:relative;
+        z-index:3;
+        pointer-events:auto;
+        }
+        .mep-strategy1-cond-diff-mode option{
+        color:#111;
+        background:#fff;
+        }
+        .mep-strategy1-cond-current{color:#ffd98f;text-align:right;justify-self:end;padding-right:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .mep-strategy1-cond-result{text-align:right;font-weight:700;white-space:nowrap;}
         .mep-strategy1-cond-result.is-true{color:#00ff57;}
         .mep-strategy1-cond-result.is-false{color:#ff6f9f;}
@@ -5514,6 +5417,94 @@
                 return MEP.State?.strategies?.strategy1 || null;
             },
 
+            ensureConditionBlocks(st = null) {
+                const state = st || this.getState();
+                if (!state) return buildStrategy1ConditionBlocksDefault();
+                const cfg = state.config && typeof state.config === "object" ? state.config : (state.config = {});
+                const src = cfg.conditionBlocks && typeof cfg.conditionBlocks === "object" ? cfg.conditionBlocks : {};
+                const d = buildStrategy1ConditionBlocksDefault();
+                const toBool = (v, fallback) => (v === undefined ? !!fallback : !!v);
+                const toThreshold = (v) => {
+                    const n = Math.floor(Number(v));
+                    return Number.isFinite(n) ? Math.max(0, n) : 3;
+                };
+                const toMode = (v) => {
+                    const m = (v ?? "gt").toString().trim().toLowerCase();
+                    return m === "lt" || m === "flat" ? m : "gt";
+                };
+                const out = {
+                    charter: {
+                        type: "charter",
+                        enabled: toBool(src?.charter?.enabled, d.charter.enabled),
+                        label: "Устав",
+                        params: {},
+                    },
+                    streak_lt: {
+                        type: "streak_lt",
+                        enabled: toBool(src?.streak_lt?.enabled, d.streak_lt.enabled),
+                        label: "Подряд",
+                        params: { threshold: toThreshold(src?.streak_lt?.params?.threshold ?? d.streak_lt.params.threshold) },
+                    },
+                    diff_vector_state: {
+                        type: "diff_vector_state",
+                        enabled: toBool(src?.diff_vector_state?.enabled, d.diff_vector_state.enabled),
+                        label: "Diff",
+                        params: { mode: toMode(src?.diff_vector_state?.params?.mode ?? d.diff_vector_state.params.mode) },
+                    },
+                };
+                cfg.conditionBlocks = out;
+                return out;
+            },
+
+            getDiffVectorShortLabelByState(state = "") {
+                const s = (state || "").toString().trim().toLowerCase();
+                if (s === "up") return "mEMA > sEMA";
+                if (s === "down") return "mEMA < sEMA";
+                return "flat";
+            },
+
+            getDiffVectorShortLabelByMode(mode = "") {
+                const m = (mode || "").toString().trim().toLowerCase();
+                if (m === "lt") return "mEMA < sEMA";
+                if (m === "flat") return "flat";
+                return "mEMA > sEMA";
+            },
+
+            evaluateConditionBlocks(st = null) {
+                const state = st || this.getState();
+                const blocks = this.ensureConditionBlocks(state);
+                const out = [];
+
+                const charterAllowed = state?.charterCheck?.allowed !== false;
+                out.push({
+                    key: "charter",
+                    enabled: !!blocks.charter.enabled,
+                    currentValue: charterAllowed ? "allowed" : "blocked",
+                    result: !!charterAllowed,
+                });
+
+                const threshold = Math.max(0, Math.floor(Number(blocks?.streak_lt?.params?.threshold) || 0));
+                const streakValue = MEP.Utils.countStreakLT(Math.max(0, threshold || 0));
+                out.push({
+                    key: "streak_lt",
+                    enabled: !!blocks.streak_lt.enabled,
+                    currentValue: Number.isFinite(streakValue) ? streakValue : 0,
+                    result: Number.isFinite(streakValue) ? streakValue >= threshold : false,
+                });
+
+                const mode = (blocks?.diff_vector_state?.params?.mode || "gt").toString();
+                const diffState = (MEP.State?.diffVectorState || "flat").toString().trim().toLowerCase();
+                const diffResult = mode === "lt" ? diffState === "down" : mode === "flat" ? diffState === "flat" : diffState === "up";
+                out.push({
+                    key: "diff_vector_state",
+                    enabled: !!blocks.diff_vector_state.enabled,
+                    currentValue: this.getDiffVectorShortLabelByState(diffState),
+                    result: !!diffResult,
+                });
+
+                return out;
+            },
+
             pushSystemMessage(input = {}) {
                 const st = this.getState();
                 if (!st) return null;
@@ -6311,6 +6302,7 @@
             init() {
                 const st = this.getState();
                 if (!st) return;
+                this.ensureConditionBlocks(st);
                 this.buildStakePlan();
                 this.evaluateDecisionState();
                 this.updateUiCounters();
@@ -7212,7 +7204,20 @@
             checkConditions() {
                 const st = this.getState();
                 if (!st) return { canBet: false, shouldEndCycle: false, reason: "strategy1_not_found" };
-                const result = { ...st.conditions.lastResult };
+                const evaluated = this.evaluateConditionBlocks(st);
+                const active = evaluated.filter((it) => it.enabled);
+                const hasFalse = active.some((it) => !it.result);
+                const result = {
+                    canBet: active.length > 0 ? !hasFalse : false,
+                    shouldEndCycle: false,
+                    reason: active.length ? (hasFalse ? "condition_pool_false" : "") : "condition_pool_not_used",
+                    items: evaluated,
+                };
+                if (st.conditions?.lastResult) {
+                    st.conditions.lastResult.canBet = !!result.canBet;
+                    st.conditions.lastResult.shouldEndCycle = false;
+                    st.conditions.lastResult.reason = (result.reason || "").toString();
+                }
                 st.runtime.lastConditionResult = result;
                 st.runtime.lastCycleAction = "checkConditions";
                 this.updateUiCounters();
@@ -8011,30 +8016,9 @@
                 return n.toFixed(8).replace(/\.?0+$/, "").replace(".", ",");
             },
 
-            getStrategy1PoolIds(st = null) {
+            getStrategy1ConditionBlocks(st = null) {
                 const s = st || MEP.UI.getStrategyState("strategy1");
-                const cfg = s?.config && typeof s.config === "object" ? s.config : (s.config = {});
-                if (!Array.isArray(cfg.conditionPoolIds)) cfg.conditionPoolIds = [];
-                cfg.conditionPoolIds = cfg.conditionPoolIds
-                    .map((id) => (id ?? "").toString().trim())
-                    .filter(Boolean);
-                return cfg.conditionPoolIds;
-            },
-
-            getStrategy1SupportedObjects() {
-                const items = MEP.ConditionObjects.list();
-                return items.filter(
-                    (it) =>
-                        (it?.strategyId || "strategy1") === "strategy1" &&
-                        (it?.type === "streak_lt" || it?.type === "charter" || it?.type === "diff_vector_state") &&
-                        it?.enabled !== false
-                );
-            },
-
-            getStrategyObjects(strategyId = "strategy1") {
-                const id = (strategyId || "strategy1").toString().trim().toLowerCase();
-                const items = MEP.ConditionObjects.list();
-                return items.filter((it) => (it?.strategyId || "strategy1") === id);
+                return MEP.Strategy1?.ensureConditionBlocks?.(s) || buildStrategy1ConditionBlocksDefault();
             },
 
             removeConditionIdFromStrategyPool(strategyId = "strategy1", objectId = "") {
@@ -8049,198 +8033,87 @@
                 return st.config.conditionPoolIds.length !== prevLen;
             },
 
-            ensureStrategy1BridgePool(st = null) {
-                const s = st || MEP.UI.getStrategyState("strategy1");
-                if (!s) return [];
-                const pool = MEP.UI.getStrategy1PoolIds(s);
-                const cfg = s?.config && typeof s.config === "object" ? s.config : (s.config = {});
-                const supported = MEP.UI.getStrategy1SupportedObjects();
-                const byId = new Map(supported.map((it) => [it.id, it]));
-                let changed = false;
-
-                for (let i = pool.length - 1; i >= 0; i--) {
-                    if (!byId.has(pool[i])) {
-                        pool.splice(i, 1);
-                        changed = true;
-                    }
-                }
-
-                // bridge default: авто-подхват streak_lt только до первого ручного действия пользователя
-                const streakItems = supported.filter((it) => it.type === "streak_lt");
-                const hasStreakInPool = pool.some((id) => byId.get(id)?.type === "streak_lt");
-                const userTouched = cfg.conditionPoolUserTouched === true;
-                if (!userTouched && !hasStreakInPool && streakItems.length) {
-                    pool.push(streakItems[0].id);
-                    cfg.conditionPoolAutoSeeded = true;
-                    changed = true;
-                }
-
-                if (changed) MEP.Storage.save();
-                return pool;
-            },
-
-            setStrategy1ConditionEnabled(objectId, enabled) {
+            setStrategy1ConditionEnabled(blockType = "", enabled = false) {
                 const st = MEP.UI.getStrategyState("strategy1");
                 if (!st) return;
-                const id = (objectId ?? "").toString().trim();
-                if (!id) return;
-                const cfg = st?.config && typeof st.config === "object" ? st.config : (st.config = {});
-                const obj = MEP.ConditionObjects.get(id);
-                if (!obj || (obj.type !== "streak_lt" && obj.type !== "charter" && obj.type !== "diff_vector_state")) return;
-                const pool = MEP.UI.getStrategy1PoolIds(st);
-                const want = !!enabled;
-                const inPool = pool.includes(id);
-                cfg.conditionPoolUserTouched = true;
-
-                if (want && !inPool) {
-                    // single-choice group support: при groupMode=single вырубаем все из той же группы
-                    const sameGroupId = (obj.groupId || "").toString().trim();
-                    const sameGroupSingle = (obj.groupMode || "").toString().trim().toLowerCase() === "single" && !!sameGroupId;
-                    if (sameGroupSingle) {
-                        for (let i = pool.length - 1; i >= 0; i--) {
-                            const curObj = MEP.ConditionObjects.get(pool[i]);
-                            if (!curObj) continue;
-                            if ((curObj.groupId || "").toString().trim() === sameGroupId) pool.splice(i, 1);
-                        }
-                    }
-                    pool.push(id);
-                }
-                if (!want && inPool) {
-                    const idx = pool.indexOf(id);
-                    if (idx >= 0) pool.splice(idx, 1);
-                }
-
+                const type = (blockType || "").toString().trim().toLowerCase();
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                if (!blocks[type]) return;
+                blocks[type].enabled = !!enabled;
                 MEP.Storage.save();
-                MEP.UI.renderStrategy1MinimalUi(st);
+                MEP.Strategy1?.checkConditions?.();
             },
 
-            buildStrategy1ObjectContext(st = null) {
-                const s = st || MEP.UI.getStrategyState("strategy1");
-                const currentBalance = MEP.UI.readCurrentBalanceFromDom().amount || 0;
-                return {
-                    lt2_streak: MEP.Utils.countStreakLT(2),
-                    charter: { allowed: s?.charterCheck?.allowed !== false },
-                    balance: {
-                        start: Number(s?.runtime?.startBalanceSnapshot) || 0,
-                        current: Number(currentBalance) || 0,
-                    },
-                    ema: {
-                        diff: { state: (MEP.State.diffVectorState || "flat").toString() },
-                        frequency: { state: (MEP.State.frequencyVectorState || "flat").toString() },
-                    },
-                    diff: {
-                        vector: { state: (MEP.State.diffVectorState || "flat").toString() },
-                    },
-                    stake: {
-                        players: { state: (MEP.State.stakePlayersVectorState || "flat").toString() },
-                        bet: { state: (MEP.State.stakeBetVectorState || "flat").toString() },
-                    },
-                };
+            setStrategy1StreakThreshold(value = 0) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                let threshold = Math.floor(Number(value));
+                if (!Number.isFinite(threshold) || threshold < 0) threshold = 0;
+                blocks.streak_lt.params.threshold = threshold;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
             },
 
-            formatStrategy1ConditionText(obj) {
-                if (!obj) return "—";
-                if (obj.type === "streak_lt") {
-                    const label = (obj.label || "Подряд x <").toString().trim();
-                    const threshold = Number(obj?.params?.threshold);
-                    const thresholdText = Number.isFinite(threshold) ? String(threshold) : "?";
-                    return `${label} ${thresholdText}`;
-                }
-                if (obj.type === "charter") {
-                    const label = (obj.label || "Устав").toString().trim();
-                    return label || "Устав";
-                }
-                if (obj.type === "diff_vector_state") {
-                    const mode = (obj?.params?.mode || "gt").toString().trim().toLowerCase();
-                    const text = mode === "lt" ? "mainEMA < shiftedEMA" : mode === "flat" ? "false / flat" : "mainEMA > shiftedEMA";
-                    return (obj.label || `Diff: ${text}`).toString().trim();
-                }
-                return (obj.label || obj.type || "—").toString();
+            setStrategy1DiffMode(mode = "gt") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                const m = (mode || "").toString().trim().toLowerCase();
+                blocks.diff_vector_state.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
             },
 
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!ui || !s || !ui.strategy1CondListEl || !ui.strategy1CondSummaryEl) return;
-
-                const pool = MEP.UI.ensureStrategy1BridgePool(s);
-                const supported = MEP.UI.getStrategy1SupportedObjects();
-                const allObjects = MEP.ConditionObjects.list();
-                const byId = new Map(supported.map((it) => [it.id, it]));
-                const activePoolIds = pool.filter((id) => byId.has(id));
-                const context = MEP.UI.buildStrategy1ObjectContext(s);
-                console.debug("[MEP][Strategy1][ConditionBridge] render start", {
-                    registryCount: allObjects.length,
-                    registryItems: allObjects.map((it) => ({
-                        id: it?.id || "",
-                        type: it?.type || "",
-                        enabled: it?.enabled !== false,
-                        groupId: it?.groupId || "",
-                    })),
-                    supportedCount: supported.length,
-                    supportedItems: supported.map((it) => ({
-                        id: it?.id || "",
-                        type: it?.type || "",
-                        groupId: it?.groupId || "",
-                    })),
-                    poolIds: pool.slice(),
-                    activePoolIds: activePoolIds.slice(),
-                });
-
-                if (!supported.length) {
-                    console.warn("[MEP][Strategy1][ConditionBridge] no supported objects", {
-                        reason: allObjects.length ? "objects_exist_but_filtered_out" : "registry_cache_empty",
-                        registryCount: allObjects.length,
-                    });
-                    ui.strategy1CondSummaryEl.textContent = "Пул условий: not use";
-                    ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false");
-                    ui.strategy1CondSummaryEl.classList.add("is-idle");
-                    ui.strategy1CondListEl.innerHTML = `<div class="mep-strategy1-cond-empty">Нет поддержанных объектов (streak_lt / charter / diff)</div>`;
-                    return;
-                }
-
-                let activeCount = 0;
-                let hasFalse = false;
+                const activeEl = document.activeElement;
+                const isEditingConditionControl =
+                    !!activeEl &&
+                    ui.strategy1CondListEl.contains(activeEl) &&
+                    (activeEl.classList.contains("mep-strategy1-cond-diff-mode") || activeEl.classList.contains("mep-strategy1-cond-threshold"));
+                if (isEditingConditionControl) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(s);
+                const evaluated = MEP.Strategy1?.evaluateConditionBlocks?.(s) || [];
+                const byKey = Object.create(null);
+                for (const it of evaluated) byKey[it.key] = it;
+                const active = evaluated.filter((it) => it.enabled);
+                const hasFalse = active.some((it) => !it.result);
                 const rows = [];
-                for (const obj of supported) {
-                    const enabledInPool = activePoolIds.includes(obj.id);
-                    const evalResult = enabledInPool
-                        ? MEP.ConditionObjects.evaluateConditionObject(obj, context)
-                        : { ok: true, result: null, sourceValue: null };
-                    const displayText = MEP.UI.formatStrategy1ConditionText(obj);
-                    let currentText = "—";
-                    if (enabledInPool && evalResult?.ok) {
-                        currentText = obj.type === "charter" ? (evalResult.sourceValue ? "allowed" : "blocked") : String(evalResult.sourceValue);
-                    }
-                    let resultText = "not use";
-                    let resultClass = "is-idle";
-                    if (enabledInPool) {
-                        activeCount++;
-                        if (evalResult?.ok) {
-                            const ok = !!evalResult.result;
-                            resultText = ok ? "true" : "false";
-                            resultClass = ok ? "is-true" : "is-false";
-                            if (!ok) hasFalse = true;
-                        } else {
-                            resultText = "error";
-                            resultClass = "is-false";
-                            hasFalse = true;
-                        }
-                    }
-                    rows.push(
-                        `<label class="mep-strategy1-condition-row">
-<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-object-id="${obj.id}" ${enabledInPool ? "checked" : ""} /><span class="mep-strategy1-cond-toggle-txt">use</span></span>
-<span class="mep-strategy1-cond-text">${displayText}</span>
-<span class="mep-strategy1-cond-current">${currentText}</span>
-<span class="mep-strategy1-cond-result ${resultClass}">${resultText}</span>
-</label>`
-                    );
-                }
+                const threshold = Math.max(0, Math.floor(Number(blocks?.streak_lt?.params?.threshold) || 0));
+                const diffMode = (blocks?.diff_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                rows.push(
+                    `<div class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="charter" ${blocks?.charter?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text">Устав</span>
+<span class="mep-strategy1-cond-current">${byKey?.charter?.currentValue ?? "—"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.charter?.enabled ? (byKey?.charter?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.charter?.enabled ? (byKey?.charter?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="streak_lt" ${blocks?.streak_lt?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Подряд</span><span class="mep-strategy1-cond-inline">x &lt;</span><input class="mep-strategy1-cond-threshold" type="number" min="0" step="1" value="${threshold}" /></span>
+<span class="mep-strategy1-cond-current">${byKey?.streak_lt?.currentValue ?? "—"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.streak_lt?.enabled ? (byKey?.streak_lt?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.streak_lt?.enabled ? (byKey?.streak_lt?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-diff">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="diff_vector_state" ${blocks?.diff_vector_state?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Diff</span></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-current">${byKey?.diff_vector_state?.currentValue ?? "flat"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
                 ui.strategy1CondListEl.innerHTML = rows.join("");
 
                 let summaryText = "Пул условий: not use";
                 let summaryClass = "is-idle";
-                if (activeCount > 0) {
+                if (active.length > 0) {
                     if (hasFalse) {
                         summaryText = "Пул условий: false";
                         summaryClass = "is-false";
@@ -8252,12 +8125,6 @@
                 ui.strategy1CondSummaryEl.textContent = summaryText;
                 ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false", "is-idle");
                 ui.strategy1CondSummaryEl.classList.add(summaryClass);
-                console.debug("[MEP][Strategy1][ConditionBridge] render summary", {
-                    summaryText,
-                    summaryClass,
-                    activeCount,
-                    hasFalse,
-                });
             },
 
             renderStrategyBalanceRow(strategyId = "strategy1") {
@@ -9205,8 +9072,8 @@
             <span class="mep-strategy1-risk-percent-sign">%</span>
         </div>
         <div class="mep-strategy1-conditions-wrap">
-            <div class="mep-strategy1-cond-summary is-idle">Пул условий: not use</div>
             <div class="mep-strategy1-cond-list"></div>
+            <div class="mep-strategy1-cond-summary is-idle">Пул условий: not use</div>
         </div>
     </div>
 </div>
@@ -9649,13 +9516,28 @@
                 if (ui.strategy1CondListEl && s1) {
                     ui.strategy1CondListEl.addEventListener("change", (e) => {
                         const inp = e.target?.closest?.("input.mep-strategy1-cond-enabled");
-                        if (!inp) return;
-                        const objectId = (inp.dataset.objectId || "").trim();
-                        if (!objectId) {
-                            inp.checked = false;
+                        if (inp) {
+                            const blockType = (inp.dataset.blockType || "").trim();
+                            if (!blockType) {
+                                inp.checked = false;
+                                return;
+                            }
+                            MEP.UI.setStrategy1ConditionEnabled(blockType, !!inp.checked);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                             return;
                         }
-                        MEP.UI.setStrategy1ConditionEnabled(objectId, !!inp.checked);
+                        const thresholdInput = e.target?.closest?.("input.mep-strategy1-cond-threshold");
+                        if (thresholdInput) {
+                            MEP.UI.setStrategy1StreakThreshold(thresholdInput.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
+                        const modeSelect = e.target?.closest?.("select.mep-strategy1-cond-diff-mode");
+                        if (modeSelect) {
+                            MEP.UI.setStrategy1DiffMode(modeSelect.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
                         MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                     });
                 }
@@ -10668,6 +10550,20 @@
                     }
                 };
 
+                const applyCodePriorityUi = () => {
+                    const endpointForced = !!MEP.Settings.hasCodeEndpoint?.();
+                    const soundsForced = !!MEP.Settings.hasCodeSoundsText?.();
+
+                    if (ui.endpointInput) {
+                        ui.endpointInput.readOnly = endpointForced;
+                        ui.endpointInput.title = endpointForced ? "Значение задано в коде (MEP.CodeSettings.endpointUrl)" : "";
+                    }
+                    if (ui.soundsInput) {
+                        ui.soundsInput.readOnly = soundsForced;
+                        ui.soundsInput.title = soundsForced ? "Значение задано в коде (MEP.CodeSettings.soundsText)" : "";
+                    }
+                };
+
                 const openSettings = async () => {
                     if (!ui.settingsOverlay) return;
 
@@ -10717,6 +10613,7 @@
                     // priority mode
                     if (ui.priorityModeSelect) ui.priorityModeSelect.value = MEP.Settings.getPriorityMode();
                     if (ui.gamesInput) ui.gamesInput.value = MEP.Settings.getSupportedGamesText();
+                    applyCodePriorityUi();
 
                     ui.settingsOverlay.style.display = "flex";
                     setSettingsTab("settings");
@@ -10890,7 +10787,9 @@
                     if (!btn) return;
 
                     const url = (ui.endpointInput?.value || "").trim();
-                    MEP.Settings.setEndpoint(url); // сохраняем url перед запросом
+                    if (!MEP.Settings.hasCodeEndpoint?.()) {
+                        MEP.Settings.setEndpoint(url); // сохраняем url перед запросом
+                    }
 
                     const prevText = btn.textContent || "Загрузить с БД";
                     btn.textContent = "Загрузка...";
@@ -10916,6 +10815,7 @@
                         if (ui.gamesInput) ui.gamesInput.value = MEP.Settings.getSupportedGamesText();
 
                         if (ui.historySteps) ui.historySteps.value = String(MEP.Settings.getHistorySteps());
+                        applyCodePriorityUi();
 
                         // пересоберём звуки, если надо
                         try {
@@ -10937,10 +10837,12 @@
                 // save settings
                 ui.settingsSaveBtn?.addEventListener("click", async () => {
                     const url = (ui.endpointInput?.value || "").trim();
-                    MEP.Settings.setEndpoint(url);
+                    if (!MEP.Settings.hasCodeEndpoint?.()) {
+                        MEP.Settings.setEndpoint(url);
+                    }
 
                     // sounds
-                    if (ui.soundsInput) {
+                    if (ui.soundsInput && !MEP.Settings.hasCodeSoundsText?.()) {
                         MEP.Settings.setSoundsText(ui.soundsInput.value || "");
                     }
                     if (ui.soundDefaultSelect) {
@@ -10994,7 +10896,9 @@
                     const btn = ui.testEndpointBtn;
 
                     const url = (ui.endpointInput?.value || "").trim();
-                    MEP.Settings.setEndpoint(url); // сразу сохраняем
+                    if (!MEP.Settings.hasCodeEndpoint?.()) {
+                        MEP.Settings.setEndpoint(url); // сразу сохраняем
+                    }
 
                     const prevText = btn.textContent || "Тест";
                     btn.textContent = "Тест...";
@@ -12410,8 +12314,40 @@
         // Main module
         // -------------------------
         MEP.Main = {
+            resetStrategiesAfterStorageLoad() {
+                const strategies = MEP.State?.strategies;
+                if (!strategies || typeof strategies !== "object") return;
+
+                const s1 = strategies.strategy1;
+                if (s1 && typeof s1 === "object") {
+                    const d1 = buildStrategy1DefaultState();
+                    s1.enabled = false;
+                    s1.isExecuting = false;
+                    s1.executionLocked = false;
+                    s1.cycle = { ...d1.cycle };
+                    s1.counters = { ...d1.counters };
+                    s1.timers = { ...d1.timers };
+                    s1.runtime = { ...d1.runtime };
+                    s1.conditions = { ...d1.conditions };
+                    s1.stakePlan = { ...d1.stakePlan };
+                }
+
+                const s2 = strategies.strategy2;
+                if (s2 && typeof s2 === "object") {
+                    const d2 = buildStrategy2DefaultState();
+                    s2.enabled = false;
+                    s2.isExecuting = false;
+                    s2.executionLocked = d2.executionLocked;
+                    s2.timers = { ...d2.timers };
+                    s2.runtime = { ...d2.runtime };
+                }
+
+                MEP.State.activeStrategyId = null;
+            },
+
             boot() {
                 MEP.Storage.load();
+                MEP.Main.resetStrategiesAfterStorageLoad();
 
                 //загрузка настроек
                 MEP.Settings.load();
@@ -12528,4 +12464,209 @@
     } catch (err) {
         console.error("[MEP] boot error:", err);
     }
+})();
+
+
+// === WebSocket ====
+
+(() => {
+    if (window.__MEP_WS_HOOKED__) return;
+    window.__MEP_WS_HOOKED__ = true;
+
+    const NativeWS = window.WebSocket;
+
+    // куда складываем "последнее известное"
+    window.MEP = window.MEP || {};
+    window.MEP.WS = window.MEP.WS || {
+        sockets: [],
+        last: {
+            subId: null, // "id" верхнего уровня (обычно постоянный)
+            roundLikeId: null, // crashMultiplier.id (меняется по раундам)
+            multiplier: null,
+            elapsed: null,
+            ts: null,
+        },
+        // быстро включать/выключать лог
+        debug: false,
+    };
+
+    // Склейка roundLikeId так, чтобы в БД улетал ID ЗАВЕРШИВШЕЙСЯ игры,
+    // даже если в момент записи wsLast.roundLikeId уже переключился на следующий.
+    window.MEP.WSLink = window.MEP.WSLink || {
+        curId: null,
+        lastEndedId: null,
+        lastEndedAt: 0,
+
+        noteTick(roundLikeId) {
+            const id = roundLikeId ?? null;
+            const isZero = id === 0 || id === "0";
+
+            // стартовое заполнение
+            if (this.curId == null) {
+                if (!isZero && id) this.curId = id;
+                return;
+            }
+
+            // "0" = граница (сигнал смены ID)
+            if (isZero) {
+                this.lastEndedId = this.curId;
+                this.lastEndedAt = Date.now();
+                this.curId = null;
+                return;
+            }
+
+            // после "0" пришёл новый id => старт следующей игры
+            if (this.curId == null && id) {
+                this.curId = id;
+                return;
+            }
+
+            // на всякий: если смена произошла без "0"
+            if (id && this.curId && id !== this.curId) {
+                this.lastEndedId = this.curId;
+                this.lastEndedAt = Date.now();
+                this.curId = id;
+            }
+        },
+
+        // event_key для записи: если недавно был lastEndedId — используем его (1 раз),
+        // иначе берём текущий wsLast.roundLikeId (если он не 0).
+        pickEventKey(wsLast) {
+            const now = Date.now();
+            const ended = this.lastEndedId;
+            const endedFresh = ended && now - (this.lastEndedAt || 0) < 15000;
+
+            if (endedFresh) {
+                this.lastEndedId = null;
+                this.lastEndedAt = 0;
+                return ended;
+            }
+
+            const id = wsLast ? (wsLast.roundLikeId ?? null) : null;
+            if (id === 0 || id === "0") return null;
+            return id || null;
+        },
+    };
+
+    function tryParseJSON(s) {
+        if (typeof s !== "string") return null;
+        if (!s || (s[0] !== "{" && s[0] !== "[")) return null;
+        try {
+            return JSON.parse(s);
+        } catch {
+            return null;
+        }
+    }
+
+    function handleWSMessage(url, data) {
+        const obj = tryParseJSON(data);
+        if (!obj) return;
+
+        // Фильтр: нам нужен именно поток "next" payload.data...
+        // (оставляем максимально общий, но без шума)
+        const payload = obj && obj.payload && obj.payload.data;
+        if (!payload) return;
+
+        // 1) Crash multiplier stream
+        const cm = payload.crashMultiplier;
+        if (cm && typeof cm === "object") {
+            // ВАЖНО: obj.id часто постоянный (id подписки), а cm.id — меняется по раундам
+            const state = window.MEP.WS.last;
+            state.subId = obj.id ?? state.subId;
+            state.roundLikeId = cm.id ?? state.roundLikeId;
+            state.multiplier = cm.multiplier ?? state.multiplier;
+            state.elapsed = cm.elapsed ?? state.elapsed;
+            state.ts = Date.now();
+            if (window.MEP && window.MEP.WSLink && typeof window.MEP.WSLink.noteTick === "function") {
+                window.MEP.WSLink.noteTick(state.roundLikeId);
+            }
+
+            // Событие наружу (чтобы твой код спокойно подписался)
+            window.dispatchEvent(
+                new CustomEvent("MEP:crashMultiplier", {
+                    detail: {
+                        url,
+                        subId: state.subId,
+                        roundLikeId: state.roundLikeId,
+                        multiplier: state.multiplier,
+                        elapsed: state.elapsed,
+                        raw: obj,
+                    },
+                })
+            );
+
+            if (window.MEP.WS.debug) {
+                console.log("[MEP][WS cm]", {
+                    url,
+                    subId: state.subId,
+                    roundLikeId: state.roundLikeId,
+                    multiplier: state.multiplier,
+                    elapsed: state.elapsed,
+                });
+            }
+            return;
+        }
+
+        // 2) Если вдруг летит crashGame / ended / crashpoint — тоже ловим
+        const cg = payload.crashGame;
+        if (cg && typeof cg === "object") {
+            window.dispatchEvent(
+                new CustomEvent("MEP:crashGame", {
+                    detail: { url, raw: obj, crashGame: cg },
+                })
+            );
+            if (window.MEP.WS.debug) console.log("[MEP][WS crashGame]", cg);
+            return;
+        }
+    }
+
+    // Подмена конструктора WS
+    window.WebSocket = function WebSocketHook(url, protocols) {
+        const ws = protocols ? new NativeWS(url, protocols) : new NativeWS(url);
+
+        try {
+            ws.__mepUrl = url;
+            window.MEP.WS.sockets.push(ws);
+        } catch {}
+
+        // Перехват addEventListener('message', ...)
+        const nativeAdd = ws.addEventListener.bind(ws);
+        ws.addEventListener = function (type, listener, options) {
+            if (type === "message") {
+                const wrapped = function (ev) {
+                    try {
+                        handleWSMessage(ws.__mepUrl || url, ev.data);
+                    } catch {}
+                    return listener.call(this, ev);
+                };
+                return nativeAdd(type, wrapped, options);
+            }
+            return nativeAdd(type, listener, options);
+        };
+
+        // Перехват onmessage =
+        Object.defineProperty(ws, "onmessage", {
+            configurable: true,
+            get() {
+                return ws.__mepOnMessage || null;
+            },
+            set(fn) {
+                ws.__mepOnMessage = fn;
+                return nativeAdd("message", function (ev) {
+                    try {
+                        handleWSMessage(ws.__mepUrl || url, ev.data);
+                    } catch {}
+                    if (typeof fn === "function") fn.call(ws, ev);
+                });
+            },
+        });
+
+        return ws;
+    };
+
+    // сохранить статические поля
+    window.WebSocket.prototype = NativeWS.prototype;
+    Object.setPrototypeOf(window.WebSocket, NativeWS);
+
+    console.log("[MEP] WebSocket hook installed");
 })();
