@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.64  ====
+// === crash.js 0.1.5.65  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -428,7 +428,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.64";
+        MEP.ver = "0.1.5.65";
 
         // -------------------------
         // Settings module
@@ -12451,8 +12451,40 @@
         // Main module
         // -------------------------
         MEP.Main = {
+            resetStrategiesAfterStorageLoad() {
+                const strategies = MEP.State?.strategies;
+                if (!strategies || typeof strategies !== "object") return;
+
+                const s1 = strategies.strategy1;
+                if (s1 && typeof s1 === "object") {
+                    const d1 = buildStrategy1DefaultState();
+                    s1.enabled = false;
+                    s1.isExecuting = false;
+                    s1.executionLocked = false;
+                    s1.cycle = { ...d1.cycle };
+                    s1.counters = { ...d1.counters };
+                    s1.timers = { ...d1.timers };
+                    s1.runtime = { ...d1.runtime };
+                    s1.conditions = { ...d1.conditions };
+                    s1.stakePlan = { ...d1.stakePlan };
+                }
+
+                const s2 = strategies.strategy2;
+                if (s2 && typeof s2 === "object") {
+                    const d2 = buildStrategy2DefaultState();
+                    s2.enabled = false;
+                    s2.isExecuting = false;
+                    s2.executionLocked = d2.executionLocked;
+                    s2.timers = { ...d2.timers };
+                    s2.runtime = { ...d2.runtime };
+                }
+
+                MEP.State.activeStrategyId = null;
+            },
+
             boot() {
                 MEP.Storage.load();
+                MEP.Main.resetStrategiesAfterStorageLoad();
 
                 //загрузка настроек
                 MEP.Settings.load();

@@ -326,3 +326,7 @@
 - В коротких label для diff обновлён flat-state: `getDiffVectorShortLabelByState/Mode` возвращают `flat`.
 - В Diff select label режима `flat` также отображается как `flat`, и fallback currentValue в рендере заменён на `flat`.
 - Версии повышены: `crash.js 0.1.5.64` (header + `MEP.ver`) и `crash.css 0.1.5.64`.
+- 2026-04-04: Добавлен безопасный reset стратегий после `MEP.Storage.load()` в `MEP.Main.resetStrategiesAfterStorageLoad()`.
+- После reload принудительно: `strategy1.enabled=false`, `strategy2.enabled=false`, `activeStrategyId=null` при сохранении всех config-полей.
+- Для Strategy1 дополнительно сбрасываются runtime/execution/cycle/counters/timers/conditions/stakePlan в дефолтное idle-состояние; для Strategy2 — runtime/timers/execution-флаги.
+- Версии повышены: `crash.js 0.1.5.65` (header + `MEP.ver`) и `crash.css 0.1.5.65`.
