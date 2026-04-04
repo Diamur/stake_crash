@@ -382,3 +382,9 @@
 - В `renderStrategy1ConditionBridge` добавлена строка `Bet` после `Clients` с toggle + vector-mode select + currentValue + result.
 - Добавлены `setStrategy1StakeBetMode()` и bind для `select.mep-strategy1-cond-stake-bet-mode`.
 - Версии повышены: `crash.js 0.1.5.74` (header + `MEP.ver`) и `crash.css 0.1.5.74`.
+- 2026-04-04: В Strategy1 local minimal pool добавлены line-условия `stake_players_line_gte` и `stake_bet_line_gte` (без registry/DB).
+- Добавлены runtime helper'ы `getCurrentStakePlayersValue()` и `getCurrentStakeBetValue()` по последним значениям `roundPlayersCountHistory/roundBetSumHistory` (сырые значения).
+- В `evaluateConditionBlocks()` добавлены проверки `currentPlayers >= threshold` и `currentBet >= threshold` с `currentValue`/`resultText`.
+- В `renderStrategy1ConditionBridge` добавлены строки `ClientsL` (`c >=`) и `BetL` (`b >=`) после `Clients`/`Bet`.
+- Добавлены setter'ы `setStrategy1StakePlayersThreshold()` / `setStrategy1StakeBetThreshold()` и bind для новых threshold input.
+- Версии повышены: `crash.js 0.1.5.75` (header + `MEP.ver`) и `crash.css 0.1.5.75`.

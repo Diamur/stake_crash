@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.74";
+		MEP.ver = "0.1.5.75";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -106,6 +106,18 @@
                 enabled: false,
                 label: "Bet",
                 params: { mode: "gt" },
+            },
+            stake_players_line_gte: {
+                type: "stake_players_line_gte",
+                enabled: false,
+                label: "ClientsL",
+                params: { threshold: 300 },
+            },
+            stake_bet_line_gte: {
+                type: "stake_bet_line_gte",
+                enabled: false,
+                label: "BetL",
+                params: { threshold: 300 },
             },
         });
 
@@ -5554,6 +5566,10 @@
                     const n = Math.floor(Number(v));
                     return Number.isFinite(n) ? Math.max(0, n) : 3;
                 };
+                const toStakeLineThreshold = (v) => {
+                    const n = Number(v);
+                    return Number.isFinite(n) ? Math.max(0, n) : 300;
+                };
                 const toMode = (v) => {
                     const m = (v ?? "gt").toString().trim().toLowerCase();
                     return m === "lt" || m === "flat" ? m : "gt";
@@ -5600,6 +5616,18 @@
                         enabled: toBool(src?.stake_bet_vector_state?.enabled, d.stake_bet_vector_state.enabled),
                         label: "Bet",
                         params: { mode: toMode(src?.stake_bet_vector_state?.params?.mode ?? d.stake_bet_vector_state.params.mode) },
+                    },
+                    stake_players_line_gte: {
+                        type: "stake_players_line_gte",
+                        enabled: toBool(src?.stake_players_line_gte?.enabled, d.stake_players_line_gte.enabled),
+                        label: "ClientsL",
+                        params: { threshold: toStakeLineThreshold(src?.stake_players_line_gte?.params?.threshold ?? d.stake_players_line_gte.params.threshold) },
+                    },
+                    stake_bet_line_gte: {
+                        type: "stake_bet_line_gte",
+                        enabled: toBool(src?.stake_bet_line_gte?.enabled, d.stake_bet_line_gte.enabled),
+                        label: "BetL",
+                        params: { threshold: toStakeLineThreshold(src?.stake_bet_line_gte?.params?.threshold ?? d.stake_bet_line_gte.params.threshold) },
                     },
                 };
                 cfg.conditionBlocks = out;
@@ -5671,6 +5699,24 @@
                 const fullSeries = graph._buildSeries(oldestFirst, threshold, period);
                 const last = fullSeries.length ? Number(fullSeries[fullSeries.length - 1]) : 0;
                 return Number.isFinite(last) ? last : 0;
+            },
+
+            getCurrentStakePlayersValue() {
+                const src = Array.isArray(MEP.State?.roundPlayersCountHistory) ? MEP.State.roundPlayersCountHistory : [];
+                for (let i = src.length - 1; i >= 0; i--) {
+                    const n = Number(src[i]);
+                    if (Number.isFinite(n)) return n;
+                }
+                return 0;
+            },
+
+            getCurrentStakeBetValue() {
+                const src = Array.isArray(MEP.State?.roundBetSumHistory) ? MEP.State.roundBetSumHistory : [];
+                for (let i = src.length - 1; i >= 0; i--) {
+                    const n = Number(src[i]);
+                    if (Number.isFinite(n)) return n;
+                }
+                return 0;
             },
 
             evaluateConditionBlocks(st = null) {
@@ -5753,6 +5799,26 @@
                     enabled: !!blocks.stake_bet_vector_state.enabled,
                     currentValue: this.getStakeBetVectorShortLabelByState(stakeBetState),
                     result: !!stakeBetResult,
+                });
+
+                const currentPlayers = this.getCurrentStakePlayersValue();
+                const playersThreshold = Math.max(0, Number(blocks?.stake_players_line_gte?.params?.threshold) || 0);
+                out.push({
+                    key: "stake_players_line_gte",
+                    enabled: !!blocks.stake_players_line_gte.enabled,
+                    currentValue: currentPlayers,
+                    result: currentPlayers >= playersThreshold,
+                    resultText: `${currentPlayers} >= ${playersThreshold}`,
+                });
+
+                const currentBet = this.getCurrentStakeBetValue();
+                const betThreshold = Math.max(0, Number(blocks?.stake_bet_line_gte?.params?.threshold) || 0);
+                out.push({
+                    key: "stake_bet_line_gte",
+                    enabled: !!blocks.stake_bet_line_gte.enabled,
+                    currentValue: currentBet,
+                    result: currentBet >= betThreshold,
+                    resultText: `${currentBet} >= ${betThreshold}`,
                 });
 
                 return out;
@@ -8359,6 +8425,28 @@
                 MEP.Strategy1?.checkConditions?.();
             },
 
+            setStrategy1StakePlayersThreshold(value = 0) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                let threshold = Number(value);
+                if (!Number.isFinite(threshold) || threshold < 0) threshold = 0;
+                blocks.stake_players_line_gte.params.threshold = threshold;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            setStrategy1StakeBetThreshold(value = 0) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                let threshold = Number(value);
+                if (!Number.isFinite(threshold) || threshold < 0) threshold = 0;
+                blocks.stake_bet_line_gte.params.threshold = threshold;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
@@ -8384,6 +8472,8 @@
                 const freqLineThreshold = Math.max(0, Math.floor(Number(blocks?.frequency_line_gt?.params?.threshold) || 0));
                 const stakePlayersMode = (blocks?.stake_players_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
                 const stakeBetMode = (blocks?.stake_bet_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const stakePlayersLineThreshold = Math.max(0, Number(blocks?.stake_players_line_gte?.params?.threshold) || 0);
+                const stakeBetLineThreshold = Math.max(0, Number(blocks?.stake_bet_line_gte?.params?.threshold) || 0);
                 rows.push(
                     `<div class="mep-strategy1-condition-row is-system">
 <span class="mep-strategy1-cond-toggle-wrap is-locked"><span class="mep-strategy1-cond-lock-indicator ${byKey?.strategy_enabled?.result ? "is-on" : "is-off"}"></span></span>
@@ -8450,6 +8540,22 @@
 <span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-stake-bet-mode"><option value="gt" ${stakeBetMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${stakeBetMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${stakeBetMode === "flat" ? "selected" : ""}>flat</option></select></span>
 <span class="mep-strategy1-cond-current">${byKey?.stake_bet_vector_state?.currentValue ?? "flat"}</span>
 <span class="mep-strategy1-cond-result ${blocks?.stake_bet_vector_state?.enabled ? (byKey?.stake_bet_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_bet_vector_state?.enabled ? (byKey?.stake_bet_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="stake_players_line_gte" ${blocks?.stake_players_line_gte?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Clients</span><span class="mep-strategy1-cond-inline">c &gt;=</span><input class="mep-strategy1-cond-threshold mep-strategy1-cond-stake-players-threshold" type="number" min="0" step="1" value="${stakePlayersLineThreshold}" /></span>
+<span class="mep-strategy1-cond-current">${byKey?.stake_players_line_gte?.currentValue ?? 0}</span>
+<span class="mep-strategy1-cond-result ${blocks?.stake_players_line_gte?.enabled ? (byKey?.stake_players_line_gte?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_players_line_gte?.enabled ? (byKey?.stake_players_line_gte?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="stake_bet_line_gte" ${blocks?.stake_bet_line_gte?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Bet</span><span class="mep-strategy1-cond-inline">b &gt;=</span><input class="mep-strategy1-cond-threshold mep-strategy1-cond-stake-bet-threshold" type="number" min="0" step="0.01" value="${stakeBetLineThreshold}" /></span>
+<span class="mep-strategy1-cond-current">${byKey?.stake_bet_line_gte?.currentValue ?? 0}</span>
+<span class="mep-strategy1-cond-result ${blocks?.stake_bet_line_gte?.enabled ? (byKey?.stake_bet_line_gte?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_bet_line_gte?.enabled ? (byKey?.stake_bet_line_gte?.result ? "true" : "false") : "not use"}</span>
 </div>`
                 );
                 ui.strategy1CondListEl.innerHTML = rows.join("");
@@ -9886,6 +9992,16 @@
                         if (thresholdInput) {
                             if (thresholdInput.classList.contains("mep-strategy1-cond-frequency-line-threshold")) {
                                 MEP.UI.setStrategy1FrequencyLineThreshold(thresholdInput.value);
+                                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                                return;
+                            }
+                            if (thresholdInput.classList.contains("mep-strategy1-cond-stake-players-threshold")) {
+                                MEP.UI.setStrategy1StakePlayersThreshold(thresholdInput.value);
+                                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                                return;
+                            }
+                            if (thresholdInput.classList.contains("mep-strategy1-cond-stake-bet-threshold")) {
+                                MEP.UI.setStrategy1StakeBetThreshold(thresholdInput.value);
                                 MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                                 return;
                             }
