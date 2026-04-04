@@ -322,3 +322,7 @@
 - 2026-04-04: Strategy1 mini-pool — строка summary `Пул условий` выровнена по правому краю.
 - Для `.mep-strategy1-cond-summary` добавлены `display:flex`, `justify-content:flex-end`, `text-align:right`.
 - Версии повышены: `crash.js 0.1.5.63` (header + `MEP.ver`) и `crash.css 0.1.5.63`.
+- 2026-04-04: Strategy1 Diff currentValue fix — фактическое состояние теперь показывается как `mEMA > sEMA` / `mEMA < sEMA` / `flat` (без boolean fallback `false`).
+- В коротких label для diff обновлён flat-state: `getDiffVectorShortLabelByState/Mode` возвращают `flat`.
+- В Diff select label режима `flat` также отображается как `flat`, и fallback currentValue в рендере заменён на `flat`.
+- Версии повышены: `crash.js 0.1.5.64` (header + `MEP.ver`) и `crash.css 0.1.5.64`.

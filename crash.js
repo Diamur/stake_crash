@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.63  ====
+// === crash.js 0.1.5.64  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -428,7 +428,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.63";
+        MEP.ver = "0.1.5.64";
 
         // -------------------------
         // Settings module
@@ -5619,13 +5619,13 @@
                 const s = (state || "").toString().trim().toLowerCase();
                 if (s === "up") return "mEMA > sEMA";
                 if (s === "down") return "mEMA < sEMA";
-                return "false";
+                return "flat";
             },
 
             getDiffVectorShortLabelByMode(mode = "") {
                 const m = (mode || "").toString().trim().toLowerCase();
                 if (m === "lt") return "mEMA < sEMA";
-                if (m === "flat") return "false";
+                if (m === "flat") return "flat";
                 return "mEMA > sEMA";
             },
 
@@ -8263,8 +8263,8 @@
                     `<div class="mep-strategy1-condition-row is-diff">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="diff_vector_state" ${blocks?.diff_vector_state?.enabled ? "checked" : ""} /></span>
 <span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Diff</span></span>
-<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>false</option></select></span>
-<span class="mep-strategy1-cond-current">${byKey?.diff_vector_state?.currentValue ?? "false"}</span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-current">${byKey?.diff_vector_state?.currentValue ?? "flat"}</span>
 <span class="mep-strategy1-cond-result ${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "true" : "false") : "not use"}</span>
 </div>`
                 );
