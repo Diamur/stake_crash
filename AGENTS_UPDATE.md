@@ -222,3 +222,76 @@
 - Строка финансового блока ужата под ширину панели: уменьшены gap/размеры, добавлены `overflow:hidden` + `text-overflow:ellipsis` и max-width на критичных числовых полях.
 - Исправлено вылезание значений за правый край в balance-row для Strategy1/2.
 - Версия повышена до `0.1.5.44` в шапке и `MEP.ver`.
+- 2026-04-01: В settings modal добавлены табы `Настройки/Объекты` без демонтажа существующего блока настроек (старый контент перенесён во вкладку `Настройки`).
+- Добавлен foundation-модуль `MEP.ConditionObjects`: normalize/decode/validate по `type`, runtime-cache (`list/get/create/update/remove`) и загрузка/сохранение через текущий endpoint (`objects_list`, `object_save`, `object_delete`).
+- Во вкладке `Объекты` реализован реестр: list (label/type/id), кнопка `Редактировать`, кнопки `Обновить список` и `+ Добавить объект`.
+- Добавлена отдельная модалка `Объект условия` (create/edit): поля id/type/label/group/enabled + JSON textarea для `params/ui/runtimeDefaults`.
+- Backend v0.1.6 расширен actions `objects_list`, `object_get`, `object_save`, `object_delete`; db_core_0.1.3 дополнен helper-функциями для CRUD-lite.
+- В SQL-дамп добавлена новая таблица `stake_condition_objects` с индексами `ux_device_object`, `idx_device_type`, `idx_updated_at`.
+- 2026-04-01: Стандарт condition-object расширен полем `source` + нормализация default source по type (`charter.allowed`, `lt2_streak`).
+- Добавлен registry `MEP.ConditionObjects.SOURCES` (8 базовых source-ключей с label/valueType).
+- В validate добавлены проверки source: обязательность для type, наличие в registry, соответствие allowedSources type-def.
+- В модалку `Объект условия` добавлены `Source` поля (select + custom input), prefill при edit и сохранение в объект.
+- Добавлен foundation evaluator-layer: `makeRuntimeContext()`, `resolveConditionSource()`, `evaluateConditionObject()`.
+- Версия `crash.js` повышена до `0.1.5.46`.
+- 2026-04-02: Strategy1 bridge-step — добавлен runtime pool `strategy1.config.conditionPoolIds` (массив objectId) для подключённых condition objects.
+- Добавлена первая живая строка условия в минимальный UI Strategy1 (toggle | условие | достижение | result) только для `type=streak_lt`.
+- Реализован автоподхват первого enabled `streak_lt` объекта из реестра при пустом пуле + рендер из объекта (не из хардкода).
+- Добавлен live-context bridge для evaluator: `lt2_streak`, `charter.allowed`, `balance.start/current`, `ema.*.state`, `stake.*.state`.
+- Добавлен single-choice behavior для `groupMode=single` внутри одной `groupId` при включении объекта в pool.
+- Версия `crash.js` повышена до `0.1.5.47`.
+- 2026-04-02: Точечно поправлен UI первой condition-row Strategy1: увеличена первая колонка (`112px`) и убрана длинная подпись `Вкл/Откл`.
+- В зоне участия оставлен компактный вид `checkbox + use`, чтобы элемент включения не терялся визуально.
+- Усилена видимость checkbox в выключенном/включенном состоянии (16x16, accent-color, border, фон, inset-контраст).
+- 2026-04-02: Исправлен bind checkbox первой condition-row Strategy1: при `change` теперь есть guard на пустой `dataset.objectId` + принудительный rerender Strategy1.
+- В `renderStrategy1ConditionBridge()` добавлены честные состояния доступности: нет объекта -> `checked=false`, `disabled=true`, `objectId=""`; есть объект -> `disabled=false`, `checked=enabledInPool`.
+- 2026-04-02: Strategy1 bridge расширен до mini-pool: вместо одной condition-row теперь рендерится список строк поддержанных объектов (`streak_lt`, `charter`) + summary `Пул условий`.
+- Добавлен UI-summary статуса пула: `true` (все активные true), `false` (есть active false/error), `not use` (нет активных условий).
+- `streak_lt` сохранён в single-choice режиме внутри `groupId`/`groupMode=single`; `charter` подключается независимо (без конфликта с streak-группой).
+- Участие в пуле по-прежнему управляется только `strategy1.config.conditionPoolIds`, а не глобальным enabled реестра.
+- Версия `crash.js` повышена до `0.1.5.48`.
+- 2026-04-02: В object-editor добавлен preset/quick-add блок (`streak_lt`, `charter`) с кнопкой `Подставить` для автозаполнения валидного объекта.
+- Добавлены quick-add кнопки во вкладке `Объекты`: `+ streak<2/3/4/5` и `+ charter` (открывают модалку уже заполненной).
+- Для streak preset автозаполняются `id/type/source/group/params` (`streak_lt_N`, `lt2_streak`, `groupId=streak_lt`, `groupMode=single`, `params.threshold=N`).
+- Для charter preset автозаполняются `id/type/source/label` (`charter_main`, `charter.allowed`, `Устав`) и дефолтные JSON-блоки.
+- Safe upsert UX: если preset-id уже существует, открывается существующий объект в edit-режиме с поясняющим сообщением.
+- 2026-04-02: Точечный debug-pass цепочки Condition Objects (quick-add/save -> object_save -> objects_list -> cache -> renderObjectsList -> Strategy1 mini-pool) без смены архитектуры.
+- В `MEP.ConditionObjects.loadFromDb()/saveToDb()` добавлен детальный trace: endpoint/payload/response, размеры/состав items, причины skip при decode/validate, факт добавления в cache.
+- Добавлена точечная нормализация `objects_list` item (`item`, `object_json`) перед validate/decode, чтобы не терять объекты при вложенном формате ответа.
+- В UI (`preset apply`, `openPresetObjectEditor`, `object modal save`, `refreshObjectsFromDb`, `renderObjectsList`) добавлены debug-логи с id/type/source/threshold и этапами рендера.
+- В Strategy1 mini-pool (`renderStrategy1ConditionBridge`) добавлен trace registry/supported/pool/summary и явная причина `supported.length === 0` (cache empty vs filtered out).
+- Стиль `.mep-form-row` в `crash.css` сжат: `gap:0`, `margin:1px 0`.
+- 2026-04-02: Точечное уплотнение межэлементного интервала в mini-pool Strategy1: `.mep-strategy1-cond-toggle-wrap` переведён на `gap:0px` (без смены логики/верстки остальных колонок).
+- 2026-04-02: Mini-pool Strategy1 — обновлены стили condition-row по точному шаблону (margin/gap/radius/padding = 0, без логических изменений).
+- В checkbox mini-pool внедрён кастомный читаемый вид: `appearance:none`, размер 18x18, явный бордер для off, яркий зелёный `checked`, белая галочка через `:checked::after`, читаемый `:disabled`.
+- 2026-04-02: Strategy1 mini-pool single-group fix — `groupMode=single` трактуется как "максимум один", но не "обязательно один".
+- В `setStrategy1ConditionEnabled()` при любом ручном toggle ставится `config.conditionPoolUserTouched=true`; при `enabled=false` объект просто удаляется из pool без автоподстановки замены.
+- В `ensureStrategy1BridgePool()` авто-подхват первого `streak_lt` оставлен только до первого ручного действия пользователя; после manual-empty группа `streak_lt` может оставаться полностью пустой.
+- 2026-04-03: Версия `crash.js` повышена `0.1.5.49 -> 0.1.5.50` в двух местах (шапка + `MEP.ver`) по правилу инкремента.
+- В списке объектов (настройки -> вкладка `Объекты`) строка объекта уплотнена в один ряд: label/type/id и кнопка действия на одной линии.
+- Кнопка `Редактировать` заменена на компактный символ-карандаш `✎` (с `title/aria-label` для доступности).
+- 2026-04-03: Condition Objects расширены полем `strategyId` (`strategy1|strategy2`) с backward-compat default=`strategy1` в normalize/validate.
+- В object-editor добавлены селекты стратегии (preset + основное поле), quick-add теперь создаёт объекты в контексте выбранной стратегии.
+- Список `Настройки -> Объекты` переведён в табличный вид с header-строкой (`Название/Type/ID/Стратегия/Actions`).
+- Для каждой строки объекта добавлена кнопка удаления (`🗑`) рядом с edit; delete удаляет из DB/cache и чистит `conditionPoolIds` соответствующей стратегии.
+- Для Strategy1 mini-pool включена фильтрация только по объектам `strategyId=strategy1`; объекты strategy2 не мешают Strategy1.
+- Версии обновлены: `crash.js 0.1.5.51` (шапка + `MEP.ver`) и `crash.css 0.1.5.28`.
+- 2026-04-03: Исправлена семантика `streak_lt` в evaluator: теперь true при `streak >= threshold` (раньше было неверно `streak < threshold`).
+- Для `streak_lt` текущий streak теперь считается через новый helper `MEP.Utils.countStreakLT(threshold)` по newest-first completed history с обрывом на первом значении `>= threshold`.
+- `lt2_streak` в Strategy1 runtime-context переведён на `countStreakLT(2)` (строго `< 2`, а не `<= 2`).
+- Версии обновлены: `crash.js 0.1.5.52` (шапка + `MEP.ver`) и `crash.css 0.1.5.29`.
+- 2026-04-03: Добавлен новый тип объекта `diff_vector_state` для сравнения diff MA (белая mainEMA vs голубая shiftedEMA) через `MEP.State.diffVectorState`.
+- Поддержаны режимы `params.mode`: `gt` (up), `lt` (down), `flat` (flat) с понятным `resultText` в evaluator.
+- В object-editor добавлены UX-поля diff condition: preset `diff (MA compare)` + режимы `mainEMA > shiftedEMA`, `mainEMA < shiftedEMA`, `false / flat`.
+- Strategy1 mini-pool теперь поддерживает объекты `diff_vector_state` (фильтр/текст/toggle), без ломки streak/charter.
+- Версии обновлены: `crash.js 0.1.5.53` (шапка + `MEP.ver`) и `crash.css 0.1.5.30`.
+- 2026-04-03: Подтверждена и зафиксирована явная ветвистая логика `syncPresetInputsByType()` для `streak_lt / charter / diff_vector_state`.
+- В handler `Подставить` `diffMode` теперь передаётся в override только для `presetType=diff_vector_state`.
+- Версии обновлены: `crash.js 0.1.5.54` (шапка + `MEP.ver`) и `crash.css 0.1.5.31`.
+- 2026-04-03: Фикс persistence-reload для `diff_vector_state`: в `normalizeConditionObject()` добавлена мягкая миграция `params.mode` (fallback из id suffix `_lt/_flat`, иначе `gt`) чтобы объект не выпадал на validate после reload.
+- В `loadFromDb()` добавлен явный warn `all items skipped`, если `objects_list` вернул items, но ни один не добавился в cache.
+- Версии обновлены: `crash.js 0.1.5.55` (шапка + `MEP.ver`) и `crash.css 0.1.5.32`.
+- 2026-04-03: Object-editor модалка уплотнена по высоте: `max-height:88vh` + `overflow:auto`, межблочный отступ `1px`.
+- В object-editor строки параметров переведены в формат "название + поле" на одной строке (`.mep-object-editor-row` grid 132px/auto).
+- JSON поля (`params/ui/runtimeDefaults`) сделаны сворачиваемыми через toggle-кнопки (`▸/▾`), по умолчанию скрыты при открытии редактора.
+- Версии обновлены: `crash.js 0.1.5.56` (шапка + `MEP.ver`) и `crash.css 0.1.5.33`.

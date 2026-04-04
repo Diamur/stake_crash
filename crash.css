@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.27 ==*/
+/*== CSS ver 0.1.5.33 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -712,6 +712,42 @@ button.mep-history-load {
   grid-template-columns: repeat(2,minmax(0,1fr));
   gap:6px;
 }
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-modal{
+  max-height:88vh;
+  overflow:auto;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-form-row{
+  margin:1px 0;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-editor-row{
+  display:grid;
+  grid-template-columns: 132px minmax(0,1fr);
+  align-items:center;
+  column-gap:6px;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-editor-row > .mep-label{
+  margin:0;
+  white-space:nowrap;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-source-controls{
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-source-controls .mep-input{
+  margin:0;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-json-toggle-row .mep-btn{
+  justify-content:flex-start;
+  text-align:left;
+  padding:0 10px;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-json-field{
+  margin:1px 0;
+}
+#mep-control-panel .mep-modal-overlay[data-mep-modal="object-editor"] .mep-object-json-field textarea.mep-input{
+  height:86px;
+}
 
 #mep-control-panel button.mep-btn{
   flex: 1 1 auto;
@@ -732,6 +768,19 @@ button.mep-history-load {
   padding: 8px;
   background: rgba(255,255,255,0.03);
 }
+#mep-control-panel .mep-object-head-row{
+  display:grid;
+  grid-template-columns: 1fr 72px 94px 88px 70px;
+  gap:6px;
+  align-items:center;
+  padding:4px 2px 6px;
+  margin-bottom:4px;
+  border-bottom:1px solid rgba(255,255,255,.18);
+  font-size:10px;
+  font-weight:700;
+  opacity:.9;
+  text-transform:uppercase;
+}
 #mep-control-panel .mep-object-row{
   display:flex;
   justify-content:space-between;
@@ -743,7 +792,9 @@ button.mep-history-load {
 #mep-control-panel .mep-object-row:last-child{ border-bottom:none; }
 #mep-control-panel .mep-object-meta{
   min-width:0;
-  display:flex;
+  flex:1 1 auto;
+  display:grid;
+  grid-template-columns: 1fr 72px 94px 88px;
   align-items:center;
   gap:6px;
   font-size:11px;
@@ -757,9 +808,16 @@ button.mep-history-load {
   overflow:hidden;
   text-overflow:ellipsis;
 }
-#mep-control-panel .mep-object-meta b{ flex:1 1 auto; min-width:56px; }
-#mep-control-panel .mep-object-meta .mep-object-inline-meta{ opacity:.8; flex:0 0 auto; }
-#mep-control-panel .mep-object-meta code{ opacity:.7; font-size:10px; flex:0 0 auto; }
+#mep-control-panel .mep-object-meta .mep-object-col-label{ font-weight:600; }
+#mep-control-panel .mep-object-meta .mep-object-col-type{ opacity:.8; }
+#mep-control-panel .mep-object-meta .mep-object-col-id{ opacity:.7; font-size:10px; }
+#mep-control-panel .mep-object-meta .mep-object-col-strategy{ opacity:.85; }
+#mep-control-panel .mep-object-actions{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+}
 #mep-control-panel .mep-object-edit{
   flex:0 0 30px !important;
   width:30px;
@@ -768,6 +826,16 @@ button.mep-history-load {
   padding:0;
   border-radius:8px !important;
   font-size:14px;
+  line-height:1;
+}
+#mep-control-panel .mep-object-delete{
+  flex:0 0 30px !important;
+  width:30px;
+  min-width:30px;
+  height:26px !important;
+  padding:0;
+  border-radius:8px !important;
+  font-size:13px;
   line-height:1;
 }
 #mep-control-panel .mep-objects-empty{ opacity:.7; font-size:12px; padding:4px; }
