@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.73";
+		MEP.ver = "0.1.5.74";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -99,6 +99,12 @@
                 type: "stake_players_vector_state",
                 enabled: false,
                 label: "Clients",
+                params: { mode: "gt" },
+            },
+            stake_bet_vector_state: {
+                type: "stake_bet_vector_state",
+                enabled: false,
+                label: "Bet",
                 params: { mode: "gt" },
             },
         });
@@ -5589,6 +5595,12 @@
                         label: "Clients",
                         params: { mode: toMode(src?.stake_players_vector_state?.params?.mode ?? d.stake_players_vector_state.params.mode) },
                     },
+                    stake_bet_vector_state: {
+                        type: "stake_bet_vector_state",
+                        enabled: toBool(src?.stake_bet_vector_state?.enabled, d.stake_bet_vector_state.enabled),
+                        label: "Bet",
+                        params: { mode: toMode(src?.stake_bet_vector_state?.params?.mode ?? d.stake_bet_vector_state.params.mode) },
+                    },
                 };
                 cfg.conditionBlocks = out;
                 return out;
@@ -5630,6 +5642,20 @@
             },
 
             getStakePlayersVectorShortLabelByMode(mode = "") {
+                const m = (mode || "").toString().trim().toLowerCase();
+                if (m === "lt") return "mEMA < sEMA";
+                if (m === "flat") return "flat";
+                return "mEMA > sEMA";
+            },
+
+            getStakeBetVectorShortLabelByState(state = "") {
+                const s = (state || "").toString().trim().toLowerCase();
+                if (s === "up") return "mEMA > sEMA";
+                if (s === "down") return "mEMA < sEMA";
+                return "flat";
+            },
+
+            getStakeBetVectorShortLabelByMode(mode = "") {
                 const m = (mode || "").toString().trim().toLowerCase();
                 if (m === "lt") return "mEMA < sEMA";
                 if (m === "flat") return "flat";
@@ -5716,6 +5742,17 @@
                     enabled: !!blocks.stake_players_vector_state.enabled,
                     currentValue: this.getStakePlayersVectorShortLabelByState(stakePlayersState),
                     result: !!stakePlayersResult,
+                });
+
+                const stakeBetMode = (blocks?.stake_bet_vector_state?.params?.mode || "gt").toString();
+                const stakeBetState = (MEP.State?.stakeBetVectorState || "flat").toString().trim().toLowerCase();
+                const stakeBetResult =
+                    stakeBetMode === "lt" ? stakeBetState === "down" : stakeBetMode === "flat" ? stakeBetState === "flat" : stakeBetState === "up";
+                out.push({
+                    key: "stake_bet_vector_state",
+                    enabled: !!blocks.stake_bet_vector_state.enabled,
+                    currentValue: this.getStakeBetVectorShortLabelByState(stakeBetState),
+                    result: !!stakeBetResult,
                 });
 
                 return out;
@@ -8312,6 +8349,16 @@
                 MEP.Strategy1?.checkConditions?.();
             },
 
+            setStrategy1StakeBetMode(mode = "gt") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                const m = (mode || "").toString().trim().toLowerCase();
+                blocks.stake_bet_vector_state.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
@@ -8336,6 +8383,7 @@
                 const freqMode = (blocks?.frequency_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
                 const freqLineThreshold = Math.max(0, Math.floor(Number(blocks?.frequency_line_gt?.params?.threshold) || 0));
                 const stakePlayersMode = (blocks?.stake_players_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const stakeBetMode = (blocks?.stake_bet_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
                 rows.push(
                     `<div class="mep-strategy1-condition-row is-system">
 <span class="mep-strategy1-cond-toggle-wrap is-locked"><span class="mep-strategy1-cond-lock-indicator ${byKey?.strategy_enabled?.result ? "is-on" : "is-off"}"></span></span>
@@ -8393,6 +8441,15 @@
 <span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-stake-players-mode"><option value="gt" ${stakePlayersMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${stakePlayersMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${stakePlayersMode === "flat" ? "selected" : ""}>flat</option></select></span>
 <span class="mep-strategy1-cond-current">${byKey?.stake_players_vector_state?.currentValue ?? "flat"}</span>
 <span class="mep-strategy1-cond-result ${blocks?.stake_players_vector_state?.enabled ? (byKey?.stake_players_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_players_vector_state?.enabled ? (byKey?.stake_players_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-diff">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="stake_bet_vector_state" ${blocks?.stake_bet_vector_state?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Bet</span></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-stake-bet-mode"><option value="gt" ${stakeBetMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${stakeBetMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${stakeBetMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-current">${byKey?.stake_bet_vector_state?.currentValue ?? "flat"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.stake_bet_vector_state?.enabled ? (byKey?.stake_bet_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_bet_vector_state?.enabled ? (byKey?.stake_bet_vector_state?.result ? "true" : "false") : "not use"}</span>
 </div>`
                 );
                 ui.strategy1CondListEl.innerHTML = rows.join("");
@@ -9851,6 +9908,12 @@
                         const stakePlayersModeSelect = e.target?.closest?.("select.mep-strategy1-cond-stake-players-mode");
                         if (stakePlayersModeSelect) {
                             MEP.UI.setStrategy1StakePlayersMode(stakePlayersModeSelect.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
+                        const stakeBetModeSelect = e.target?.closest?.("select.mep-strategy1-cond-stake-bet-mode");
+                        if (stakeBetModeSelect) {
+                            MEP.UI.setStrategy1StakeBetMode(stakeBetModeSelect.value);
                             MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                             return;
                         }

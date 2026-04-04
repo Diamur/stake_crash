@@ -376,3 +376,9 @@
 - В `renderStrategy1ConditionBridge` добавлена строка `Clients` после `Freq line` с toggle + vector-mode select + currentValue + result.
 - Добавлены `setStrategy1StakePlayersMode()` и bind для `select.mep-strategy1-cond-stake-players-mode`.
 - Версии повышены: `crash.js 0.1.5.73` (header + `MEP.ver`) и `crash.css 0.1.5.73`.
+- 2026-04-04: В Strategy1 local minimal pool добавлен новый блок `stake_bet_vector_state` (`label: Bet`, `mode: gt/lt/flat`, без registry/DB).
+- Добавлены short-label helper'ы `getStakeBetVectorShortLabelByState/Mode` в формате `mEMA > sEMA | mEMA < sEMA | flat`.
+- В `evaluateConditionBlocks()` добавлена ветка `stake_bet_vector_state` по runtime-источнику `MEP.State.stakeBetVectorState`.
+- В `renderStrategy1ConditionBridge` добавлена строка `Bet` после `Clients` с toggle + vector-mode select + currentValue + result.
+- Добавлены `setStrategy1StakeBetMode()` и bind для `select.mep-strategy1-cond-stake-bet-mode`.
+- Версии повышены: `crash.js 0.1.5.74` (header + `MEP.ver`) и `crash.css 0.1.5.74`.
