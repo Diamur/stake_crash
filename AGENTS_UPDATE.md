@@ -307,3 +307,7 @@
 - В Diff-строке mini-pool select вынесен из `.mep-strategy1-cond-text` (ellipsis-контейнер) в отдельный `.mep-strategy1-cond-control`.
 - Для Diff-строки добавлен отдельный grid-layout `.mep-strategy1-condition-row.is-diff`, чтобы label/select не обрезались.
 - Версии повышены: `crash.js 0.1.5.59` (header + `MEP.ver`) и `crash.css 0.1.5.59`.
+- 2026-04-04: Strategy1 minimal pool layout fix — currentValue колонка сжата и сдвинута ближе к result.
+- Grid обновлён: обычная строка `34px 1fr 84px 96px`, Diff строка `34px 72px 1fr 84px 96px`.
+- Для `.mep-strategy1-cond-current` добавлены `justify-self:end` и `padding-right:4px` для аккуратного выравнивания.
+- Версии повышены: `crash.js 0.1.5.60` (header + `MEP.ver`) и `crash.css 0.1.5.60`.

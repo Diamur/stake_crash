@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.59  ====
+// === crash.js 0.1.5.60  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -428,7 +428,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.59";
+        MEP.ver = "0.1.5.60";
 
         // -------------------------
         // Settings module
@@ -3098,7 +3098,7 @@
         .mep-strategy1-condition-row{
         margin-top:0px;
         display:grid;
-        grid-template-columns: 34px 1fr 120px 96px;
+        grid-template-columns: 34px 1fr 84px 96px;
         align-items:center;
         gap:0px;
         border:1px dashed rgba(255,255,255,.24);
@@ -3108,7 +3108,7 @@
         background:rgba(255,255,255,.04);
         }
         .mep-strategy1-condition-row.is-diff{
-        grid-template-columns:34px 72px 1fr 120px 96px;
+        grid-template-columns:34px 72px 1fr 84px 96px;
         }
         .mep-strategy1-cond-toggle-wrap{
         display:inline-flex;
@@ -3199,7 +3199,7 @@
         color:#111;
         background:#fff;
         }
-        .mep-strategy1-cond-current{color:#ffd98f;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mep-strategy1-cond-current{color:#ffd98f;text-align:right;justify-self:end;padding-right:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .mep-strategy1-cond-result{text-align:right;font-weight:700;white-space:nowrap;}
         .mep-strategy1-cond-result.is-true{color:#00ff57;}
         .mep-strategy1-cond-result.is-false{color:#ff6f9f;}
