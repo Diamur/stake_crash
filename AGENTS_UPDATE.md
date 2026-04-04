@@ -340,3 +340,9 @@
 - Добавлены `setStrategy1FrequencyMode()` и bind `select.mep-strategy1-cond-frequency-mode`; guard автоперерендера расширен на общий класс `mep-strategy1-cond-vector-mode`.
 - Стили vector-mode select унифицированы через `.mep-strategy1-cond-vector-mode` (Diff/Freq используют один стиль).
 - Версии повышены: `crash.js 0.1.5.67` (header + `MEP.ver`) и `crash.css 0.1.5.67`.
+- 2026-04-04: В Strategy1 local minimal pool добавлен новый блок `frequency_line_gt` (`label: FreqL`, `params.threshold`, без registry/DB).
+- В `evaluateConditionBlocks()` добавлена проверка `currentFrequency > threshold` с `currentValue` как числом частотности и `resultText` вида `N > T`.
+- Текущая частотность берётся из runtime-расчёта FrequencyGraph: `_toOldestFirstNumbers()` + `_buildSeries(...)` + последний элемент серии.
+- В `renderStrategy1ConditionBridge` после строки `Freq` добавлена строка `FreqL` с компактной формулой `f > [threshold]`.
+- Добавлены `setStrategy1FrequencyLineThreshold()` и bind для `mep-strategy1-cond-frequency-line-threshold`; guard авто-rerender расширен под новый input.
+- Версии повышены: `crash.js 0.1.5.68` (header + `MEP.ver`) и `crash.css 0.1.5.68`.

@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.67";
+		MEP.ver = "0.1.5.68";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -88,6 +88,12 @@
                 enabled: false,
                 label: "Freq",
                 params: { mode: "gt" },
+            },
+            frequency_line_gt: {
+                type: "frequency_line_gt",
+                enabled: false,
+                label: "FreqL",
+                params: { threshold: 3 },
             },
         });
 
@@ -5468,6 +5474,10 @@
                     const n = Math.floor(Number(v));
                     return Number.isFinite(n) ? Math.max(0, n) : 3;
                 };
+                const toFrequencyLineThreshold = (v) => {
+                    const n = Math.floor(Number(v));
+                    return Number.isFinite(n) ? Math.max(0, n) : 3;
+                };
                 const toMode = (v) => {
                     const m = (v ?? "gt").toString().trim().toLowerCase();
                     return m === "lt" || m === "flat" ? m : "gt";
@@ -5496,6 +5506,12 @@
                         enabled: toBool(src?.frequency_vector_state?.enabled, d.frequency_vector_state.enabled),
                         label: "Freq",
                         params: { mode: toMode(src?.frequency_vector_state?.params?.mode ?? d.frequency_vector_state.params.mode) },
+                    },
+                    frequency_line_gt: {
+                        type: "frequency_line_gt",
+                        enabled: toBool(src?.frequency_line_gt?.enabled, d.frequency_line_gt.enabled),
+                        label: "FreqL",
+                        params: { threshold: toFrequencyLineThreshold(src?.frequency_line_gt?.params?.threshold ?? d.frequency_line_gt.params.threshold) },
                     },
                 };
                 cfg.conditionBlocks = out;
@@ -5528,6 +5544,17 @@
                 if (m === "lt") return "mEMA < sEMA";
                 if (m === "flat") return "flat";
                 return "mEMA > sEMA";
+            },
+
+            getCurrentFrequencyValue() {
+                const graph = MEP.FrequencyGraph;
+                if (!graph || typeof graph._toOldestFirstNumbers !== "function" || typeof graph._buildSeries !== "function") return 0;
+                const threshold = Math.max(0, Number(MEP.State?.frequencyThreshold) || 0);
+                const period = Math.max(1, Math.floor(Number(MEP.State?.frequencyPeriod) || 1));
+                const oldestFirst = graph._toOldestFirstNumbers();
+                const fullSeries = graph._buildSeries(oldestFirst, threshold, period);
+                const last = fullSeries.length ? Number(fullSeries[fullSeries.length - 1]) : 0;
+                return Number.isFinite(last) ? last : 0;
             },
 
             evaluateConditionBlocks(st = null) {
@@ -5570,6 +5597,16 @@
                     enabled: !!blocks.frequency_vector_state.enabled,
                     currentValue: this.getFrequencyVectorShortLabelByState(freqState),
                     result: !!freqResult,
+                });
+
+                const frequencyValue = this.getCurrentFrequencyValue();
+                const frequencyLineThreshold = Math.max(0, Math.floor(Number(blocks?.frequency_line_gt?.params?.threshold) || 0));
+                out.push({
+                    key: "frequency_line_gt",
+                    enabled: !!blocks.frequency_line_gt.enabled,
+                    currentValue: frequencyValue,
+                    result: frequencyValue > frequencyLineThreshold,
+                    resultText: `${frequencyValue} > ${frequencyLineThreshold}`,
                 });
 
                 return out;
@@ -8145,6 +8182,17 @@
                 MEP.Strategy1?.checkConditions?.();
             },
 
+            setStrategy1FrequencyLineThreshold(value = 0) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                let threshold = Math.floor(Number(value));
+                if (!Number.isFinite(threshold) || threshold < 0) threshold = 0;
+                blocks.frequency_line_gt.params.threshold = threshold;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
@@ -8153,7 +8201,9 @@
                 const isEditingConditionControl =
                     !!activeEl &&
                     ui.strategy1CondListEl.contains(activeEl) &&
-                    (activeEl.classList.contains("mep-strategy1-cond-vector-mode") || activeEl.classList.contains("mep-strategy1-cond-threshold"));
+                    (activeEl.classList.contains("mep-strategy1-cond-vector-mode") ||
+                        activeEl.classList.contains("mep-strategy1-cond-threshold") ||
+                        activeEl.classList.contains("mep-strategy1-cond-frequency-line-threshold"));
                 if (isEditingConditionControl) return;
                 const blocks = MEP.UI.getStrategy1ConditionBlocks(s);
                 const evaluated = MEP.Strategy1?.evaluateConditionBlocks?.(s) || [];
@@ -8165,6 +8215,7 @@
                 const threshold = Math.max(0, Math.floor(Number(blocks?.streak_lt?.params?.threshold) || 0));
                 const diffMode = (blocks?.diff_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
                 const freqMode = (blocks?.frequency_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const freqLineThreshold = Math.max(0, Math.floor(Number(blocks?.frequency_line_gt?.params?.threshold) || 0));
                 rows.push(
                     `<div class="mep-strategy1-condition-row">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="charter" ${blocks?.charter?.enabled ? "checked" : ""} /></span>
@@ -8197,6 +8248,14 @@
 <span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-frequency-mode"><option value="gt" ${freqMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${freqMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${freqMode === "flat" ? "selected" : ""}>flat</option></select></span>
 <span class="mep-strategy1-cond-current">${byKey?.frequency_vector_state?.currentValue ?? "flat"}</span>
 <span class="mep-strategy1-cond-result ${blocks?.frequency_vector_state?.enabled ? (byKey?.frequency_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.frequency_vector_state?.enabled ? (byKey?.frequency_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="frequency_line_gt" ${blocks?.frequency_line_gt?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Freq</span><span class="mep-strategy1-cond-inline">f &gt;</span><input class="mep-strategy1-cond-threshold mep-strategy1-cond-frequency-line-threshold" type="number" min="0" step="1" value="${freqLineThreshold}" /></span>
+<span class="mep-strategy1-cond-current">${byKey?.frequency_line_gt?.currentValue ?? 0}</span>
+<span class="mep-strategy1-cond-result ${blocks?.frequency_line_gt?.enabled ? (byKey?.frequency_line_gt?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.frequency_line_gt?.enabled ? (byKey?.frequency_line_gt?.result ? "true" : "false") : "not use"}</span>
 </div>`
                 );
                 ui.strategy1CondListEl.innerHTML = rows.join("");
@@ -9618,6 +9677,11 @@
                         }
                         const thresholdInput = e.target?.closest?.("input.mep-strategy1-cond-threshold");
                         if (thresholdInput) {
+                            if (thresholdInput.classList.contains("mep-strategy1-cond-frequency-line-threshold")) {
+                                MEP.UI.setStrategy1FrequencyLineThreshold(thresholdInput.value);
+                                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                                return;
+                            }
                             MEP.UI.setStrategy1StreakThreshold(thresholdInput.value);
                             MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                             return;
