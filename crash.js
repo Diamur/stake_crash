@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.71";
+		MEP.ver = "0.1.5.72";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -3033,6 +3033,38 @@
         white-space:nowrap;
         min-width:0;
         }
+        .mep-strategy1-cond-toggle-wrap.is-locked{
+        justify-content:center;
+        }
+        .mep-strategy1-cond-lock-indicator{
+        width:18px;
+        height:18px;
+        border-radius:4px;
+        border:1px solid rgba(255,255,255,.6);
+        background:rgba(255,255,255,.08);
+        display:inline-block;
+        position:relative;
+        }
+        .mep-strategy1-cond-lock-indicator.is-on{
+        background:#00e51f;
+        border-color:#00e51f;
+        box-shadow:0 0 8px rgba(0,229,31,.28);
+        }
+        .mep-strategy1-cond-lock-indicator.is-on::after{
+        content:"";
+        position:absolute;
+        left:5px;
+        top:2px;
+        width:6px;
+        height:10px;
+        border-right:2px solid #fff;
+        border-bottom:2px solid #fff;
+        transform:rotate(45deg);
+        }
+        .mep-strategy1-cond-lock-indicator.is-off{
+        background:rgba(255,255,255,.03);
+        border-color:rgba(255,255,255,.55);
+        }
         .mep-strategy1-cond-toggle-wrap input{
         appearance:none;
         -webkit-appearance:none;
@@ -5593,6 +5625,14 @@
                 const state = st || this.getState();
                 const blocks = this.ensureConditionBlocks(state);
                 const out = [];
+
+                const strategyEnabled = !!state?.enabled;
+                out.push({
+                    key: "strategy_enabled",
+                    enabled: true,
+                    currentValue: strategyEnabled ? "on" : "off",
+                    result: strategyEnabled,
+                });
 
                 const charterAllowed = state?.charterCheck?.allowed !== false;
                 out.push({
@@ -8248,6 +8288,14 @@
                 const diffMode = (blocks?.diff_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
                 const freqMode = (blocks?.frequency_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
                 const freqLineThreshold = Math.max(0, Math.floor(Number(blocks?.frequency_line_gt?.params?.threshold) || 0));
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-system">
+<span class="mep-strategy1-cond-toggle-wrap is-locked"><span class="mep-strategy1-cond-lock-indicator ${byKey?.strategy_enabled?.result ? "is-on" : "is-off"}"></span></span>
+<span class="mep-strategy1-cond-text">Вкл/Откл</span>
+<span class="mep-strategy1-cond-current">${byKey?.strategy_enabled?.currentValue ?? "off"}</span>
+<span class="mep-strategy1-cond-result ${byKey?.strategy_enabled?.result ? "is-true" : "is-false"}">${byKey?.strategy_enabled?.result ? "true" : "false"}</span>
+</div>`
+                );
                 rows.push(
                     `<div class="mep-strategy1-condition-row">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="charter" ${blocks?.charter?.enabled ? "checked" : ""} /></span>

@@ -364,3 +364,9 @@
 - Легенда `.mep-stake-legend-players/.mep-stake-legend-bets` теперь синхронизируется с выбранными state-цветами.
 - Новые поля добавлены в `MEP.Storage.save/load` (localStorage + cookie) и в bind handlers с save+rerender.
 - Версии повышены: `crash.js 0.1.5.71` (header + `MEP.ver`) и `crash.css 0.1.5.71`.
+- 2026-04-04: В Strategy1 minimal pool добавлен обязательный системный пункт `strategy_enabled` (первая строка `Вкл/Откл`).
+- Пункт не хранится как редактируемый `conditionBlock`: он подмешивается в `evaluateConditionBlocks()` с `enabled:true` и `currentValue on/off`.
+- При `strategy1.enabled=false` первая строка даёт `false`, и общий `Пул условий` теперь корректно становится `false`.
+- В `renderStrategy1ConditionBridge` строка `strategy_enabled` вставлена первой, перед `Устав`.
+- UI сделан locked/non-disable: вместо интерактивного checkbox используется неинтерактивный индикатор `.mep-strategy1-cond-lock-indicator`.
+- Версии повышены: `crash.js 0.1.5.72` (header + `MEP.ver`) и `crash.css 0.1.5.72`.
