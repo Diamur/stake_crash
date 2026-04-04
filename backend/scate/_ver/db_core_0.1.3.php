@@ -124,3 +124,105 @@ if (!function_exists('insert_track_event')) {
         return $row ? (int)$row['id'] : null;
     }
 }
+
+if (!function_exists('condition_object_save')) {
+    function condition_object_save($deviceId, $object) {
+        global $pdo;
+        $deviceId = trim((string)$deviceId);
+        if ($deviceId === '' || !is_array($object)) return false;
+
+        $objectId = trim((string)($object['id'] ?? ''));
+        $type = trim((string)($object['type'] ?? ''));
+        if ($objectId === '' || $type === '') return false;
+
+        $label = trim((string)($object['label'] ?? ''));
+        $enabled = !empty($object['enabled']) ? 1 : 0;
+        $groupId = trim((string)($object['groupId'] ?? ''));
+        $groupMode = trim((string)($object['groupMode'] ?? 'single'));
+        $params = isset($object['params']) && is_array($object['params']) ? $object['params'] : [];
+        $ui = isset($object['ui']) && is_array($object['ui']) ? $object['ui'] : [];
+        $runtime = isset($object['runtimeDefaults']) && is_array($object['runtimeDefaults']) ? $object['runtimeDefaults'] : [];
+        $objectJson = json_encode($object, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $paramsJson = json_encode($params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $uiJson = json_encode($ui, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $runtimeJson = json_encode($runtime, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        $ts = (int) round(microtime(true) * 1000);
+        $ip = get_client_ip();
+        $ua = isset($_SERVER['HTTP_USER_AGENT']) ? (string)$_SERVER['HTTP_USER_AGENT'] : null;
+
+        $sql = "
+          INSERT INTO stake_condition_objects
+          (device_id, object_id, type, label, enabled_default, group_id, group_mode, params_json, ui_json, runtime_defaults_json, object_json, created_at, updated_at, ip, ua)
+          VALUES
+          (:device_id, :object_id, :type, :label, :enabled_default, :group_id, :group_mode, :params_json, :ui_json, :runtime_defaults_json, :object_json, :created_at, :updated_at, :ip, :ua)
+          ON DUPLICATE KEY UPDATE
+            type = VALUES(type),
+            label = VALUES(label),
+            enabled_default = VALUES(enabled_default),
+            group_id = VALUES(group_id),
+            group_mode = VALUES(group_mode),
+            params_json = VALUES(params_json),
+            ui_json = VALUES(ui_json),
+            runtime_defaults_json = VALUES(runtime_defaults_json),
+            object_json = VALUES(object_json),
+            updated_at = VALUES(updated_at),
+            ip = VALUES(ip),
+            ua = VALUES(ua)
+        ";
+        $st = $pdo->prepare($sql);
+        return $st->execute([
+            ':device_id' => $deviceId,
+            ':object_id' => $objectId,
+            ':type' => $type,
+            ':label' => $label,
+            ':enabled_default' => $enabled,
+            ':group_id' => $groupId,
+            ':group_mode' => $groupMode,
+            ':params_json' => $paramsJson,
+            ':ui_json' => $uiJson,
+            ':runtime_defaults_json' => $runtimeJson,
+            ':object_json' => $objectJson,
+            ':created_at' => $ts,
+            ':updated_at' => $ts,
+            ':ip' => $ip,
+            ':ua' => $ua,
+        ]);
+    }
+}
+
+if (!function_exists('condition_objects_list')) {
+    function condition_objects_list($deviceId) {
+        global $pdo;
+        $st = $pdo->prepare("SELECT object_json FROM stake_condition_objects WHERE device_id = :device_id ORDER BY updated_at DESC, object_id ASC");
+        $st->execute([':device_id' => (string)$deviceId]);
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+        $items = [];
+        foreach ($rows as $row) {
+            $obj = json_decode((string)($row['object_json'] ?? ''), true);
+            if (is_array($obj)) $items[] = $obj;
+        }
+        return $items;
+    }
+}
+
+if (!function_exists('condition_object_get')) {
+    function condition_object_get($deviceId, $objectId) {
+        global $pdo;
+        $st = $pdo->prepare("SELECT object_json FROM stake_condition_objects WHERE device_id = :device_id AND object_id = :object_id LIMIT 1");
+        $st->execute([':device_id' => (string)$deviceId, ':object_id' => (string)$objectId]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return null;
+        $obj = json_decode((string)($row['object_json'] ?? ''), true);
+        return is_array($obj) ? $obj : null;
+    }
+}
+
+if (!function_exists('condition_object_delete')) {
+    function condition_object_delete($deviceId, $objectId) {
+        global $pdo;
+        $st = $pdo->prepare("DELETE FROM stake_condition_objects WHERE device_id = :device_id AND object_id = :object_id");
+        $st->execute([':device_id' => (string)$deviceId, ':object_id' => (string)$objectId]);
+        return $st->rowCount() > 0;
+    }
+}

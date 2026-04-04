@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.44  ====
+// === crash.js 0.1.5.54  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -218,6 +218,7 @@
             executionLocked: false,
             config: {
                 riskPercent: 0,
+                conditionPoolIds: [],
                 startStakeMode: "fixed",
                 startStakeValue: 0,
                 startStakeArrayText: "",
@@ -395,6 +396,7 @@
             executionLocked: true,
             config: {
                 riskPercent: 5,
+                conditionPoolIds: [],
             },
             timers: {
                 enabledAtTs: 0,
@@ -404,7 +406,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.44";
+        MEP.ver = "0.1.5.54";
 
         // -------------------------
         // Settings module
@@ -699,6 +701,445 @@
         };
 
         // -------------------------
+        // Condition Objects registry + storage
+        // -------------------------
+        MEP.ConditionObjects = {
+            cache: new Map(),
+            loadedAtTs: 0,
+            DEBUG_TAG: "[MEP][ConditionObjects]",
+
+            SOURCES: [
+                { key: "lt2_streak", label: "Подряд x < 2", valueType: "number" },
+                { key: "diff.vector.state", label: "Разницы: состояние вектора MA", valueType: "string" },
+                { key: "charter.allowed", label: "Устав: разрешено", valueType: "boolean" },
+                { key: "balance.current", label: "Баланс: текущий", valueType: "number" },
+                { key: "balance.start", label: "Баланс: старт", valueType: "number" },
+                { key: "ema.diff.state", label: "EMA Diff: state", valueType: "string" },
+                { key: "ema.frequency.state", label: "EMA Frequency: state", valueType: "string" },
+                { key: "stake.players.state", label: "Stake Players: state", valueType: "string" },
+                { key: "stake.bet.state", label: "Stake Bet: state", valueType: "string" },
+            ],
+
+            typeRegistry: {
+                charter: {
+                    requiredParams: [],
+                    sourceRequired: true,
+                    defaultSource: "charter.allowed",
+                    allowedSources: ["charter.allowed"],
+                },
+                streak_lt: {
+                    requiredParams: ["threshold"],
+                    sourceRequired: true,
+                    defaultSource: "lt2_streak",
+                    allowedSources: ["lt2_streak"],
+                },
+                ema_above: {
+                    requiredParams: ["period"],
+                    sourceRequired: true,
+                    allowedSources: ["ema.diff.state", "ema.frequency.state"],
+                },
+                diff_vector_state: {
+                    requiredParams: ["mode"],
+                    sourceRequired: true,
+                    defaultSource: "diff.vector.state",
+                    allowedSources: ["diff.vector.state", "ema.diff.state"],
+                },
+            },
+
+            makeDefault() {
+                return {
+                    id: "",
+                    type: "streak_lt",
+                    label: "",
+                    enabled: true,
+                    strategyId: "strategy1",
+                    source: "lt2_streak",
+                    groupId: "",
+                    groupMode: "single",
+                    params: {},
+                    ui: { order: 0, visible: true },
+                    runtimeDefaults: {
+                        currentValue: 0,
+                        reached: false,
+                        result: false,
+                        resultText: "",
+                    },
+                };
+            },
+
+            _clone(v) {
+                return JSON.parse(JSON.stringify(v));
+            },
+
+            getSourceRegistryMap() {
+                const map = Object.create(null);
+                for (const it of this.SOURCES || []) {
+                    const key = (it?.key ?? "").toString().trim();
+                    if (!key) continue;
+                    map[key] = { ...it, key };
+                }
+                return map;
+            },
+
+            getTypeDef(type) {
+                const k = (type ?? "").toString().trim().toLowerCase();
+                return this.typeRegistry[k] || null;
+            },
+
+            getDefaultSourceForType(type) {
+                const def = this.getTypeDef(type);
+                return (def?.defaultSource ?? "").toString().trim();
+            },
+
+            isKnownSource(sourceKey) {
+                const key = (sourceKey ?? "").toString().trim();
+                if (!key) return false;
+                return !!this.getSourceRegistryMap()[key];
+            },
+
+            normalizeConditionObject(obj) {
+                const src = obj && typeof obj === "object" ? obj : {};
+                const base = this.makeDefault();
+                const out = { ...base, ...src };
+
+                out.id = (out.id ?? "").toString().trim();
+                out.type = (out.type ?? "").toString().trim().toLowerCase();
+                out.label = (out.label ?? "").toString().trim();
+                out.strategyId = (out.strategyId ?? "").toString().trim().toLowerCase();
+                out.source = (out.source ?? "").toString().trim();
+                out.groupId = (out.groupId ?? "").toString().trim();
+                out.groupMode = (out.groupMode ?? "").toString().trim().toLowerCase() || "single";
+                out.enabled = !!out.enabled;
+                out.params = out.params && typeof out.params === "object" && !Array.isArray(out.params) ? out.params : {};
+                out.ui = out.ui && typeof out.ui === "object" && !Array.isArray(out.ui) ? out.ui : {};
+                out.runtimeDefaults =
+                    out.runtimeDefaults && typeof out.runtimeDefaults === "object" && !Array.isArray(out.runtimeDefaults)
+                        ? out.runtimeDefaults
+                        : {};
+
+                if (!out.label) out.label = out.id || out.type || "Object";
+                if (!out.strategyId || (out.strategyId !== "strategy1" && out.strategyId !== "strategy2")) out.strategyId = "strategy1";
+                if (!out.source) out.source = this.getDefaultSourceForType(out.type) || "";
+
+                const uiOrder = Number(out.ui.order);
+                out.ui.order = Number.isFinite(uiOrder) ? Math.floor(uiOrder) : 0;
+                out.ui.visible = out.ui.visible !== false;
+                return out;
+            },
+
+            validateConditionObject(obj) {
+                const out = this.normalizeConditionObject(obj);
+                if (!out.id) return { ok: false, error: "id is required" };
+                if (!out.type) return { ok: false, error: "type is required" };
+                if (!out.strategyId) return { ok: false, error: "strategyId is required" };
+                if (out.strategyId !== "strategy1" && out.strategyId !== "strategy2") return { ok: false, error: "strategyId must be strategy1/strategy2" };
+                if (!/^[a-z0-9._-]+$/i.test(out.id)) return { ok: false, error: "id has invalid chars" };
+
+                const typeDef = this.typeRegistry[out.type] || null;
+                if (typeDef?.sourceRequired && !out.source) {
+                    return { ok: false, error: `source is required for type ${out.type}` };
+                }
+                if (out.source) {
+                    if (!this.isKnownSource(out.source)) return { ok: false, error: `unknown source: ${out.source}` };
+                    if (typeDef?.allowedSources?.length && !typeDef.allowedSources.includes(out.source)) {
+                        return { ok: false, error: `source ${out.source} is not allowed for type ${out.type}` };
+                    }
+                }
+                if (typeDef && Array.isArray(typeDef.requiredParams)) {
+                    for (const key of typeDef.requiredParams) {
+                        if (!(key in out.params)) return { ok: false, error: `params.${key} is required for type ${out.type}` };
+                    }
+                }
+                return { ok: true, value: out };
+            },
+
+            decodeConditionObject(obj) {
+                const vr = this.validateConditionObject(obj);
+                if (!vr.ok) return vr;
+                return { ok: true, value: vr.value, typeDef: this.typeRegistry[vr.value.type] || null };
+            },
+
+            makeRuntimeContext(ctx = {}) {
+                const src = ctx && typeof ctx === "object" ? ctx : {};
+                const toNum = (v, fallback = 0) => {
+                    const n = Number(v);
+                    return Number.isFinite(n) ? n : fallback;
+                };
+                return {
+                    lt2_streak: toNum(src?.lt2_streak, 0),
+                    charter: {
+                        allowed: src?.charter?.allowed !== false,
+                    },
+                    balance: {
+                        start: toNum(src?.balance?.start, 0),
+                        current: toNum(src?.balance?.current, 0),
+                    },
+                    ema: {
+                        diff: { state: (src?.ema?.diff?.state ?? "flat").toString() },
+                        frequency: { state: (src?.ema?.frequency?.state ?? "flat").toString() },
+                    },
+                    diff: {
+                        vector: { state: (src?.diff?.vector?.state ?? src?.ema?.diff?.state ?? "flat").toString() },
+                    },
+                    stake: {
+                        players: { state: (src?.stake?.players?.state ?? "flat").toString() },
+                        bet: { state: (src?.stake?.bet?.state ?? "flat").toString() },
+                    },
+                };
+            },
+
+            resolveConditionSource(source, context = {}) {
+                const srcKey = (source ?? "").toString().trim();
+                if (!srcKey) return { ok: false, error: "source is empty", value: undefined };
+                const ctx = this.makeRuntimeContext(context);
+                const parts = srcKey.split(".");
+                let cur = ctx;
+                for (const p of parts) {
+                    if (!p) continue;
+                    if (cur && typeof cur === "object" && p in cur) {
+                        cur = cur[p];
+                    } else {
+                        return { ok: false, error: `source not found in context: ${srcKey}`, value: undefined };
+                    }
+                }
+                return { ok: true, value: cur };
+            },
+
+            evaluateConditionObject(object, context = {}) {
+                const dec = this.decodeConditionObject(object);
+                if (!dec.ok) return { ok: false, error: dec.error || "invalid object" };
+                const obj = dec.value;
+                const src = this.resolveConditionSource(obj.source, context);
+                if (!src.ok) return { ok: false, error: src.error, object: obj };
+
+                let result = false;
+                let resultText = "noop";
+                let sourceValue = src.value;
+                if (obj.type === "streak_lt") {
+                    const threshold = Number(obj?.params?.threshold);
+                    const v = MEP.Utils.countStreakLT(threshold);
+                    sourceValue = v;
+                    if (Number.isFinite(v) && Number.isFinite(threshold) && threshold > 0) {
+                        result = v >= threshold;
+                        resultText = `${v} / need ${threshold}`;
+                    } else if (Number.isFinite(v) && Number.isFinite(threshold)) {
+                        result = v >= threshold;
+                        resultText = `${v} >= ${threshold}`;
+                    }
+                } else if (obj.type === "charter") {
+                    result = !!src.value;
+                    resultText = result ? "allowed" : "blocked";
+                } else if (obj.type === "ema_above") {
+                    const expected = (obj?.params?.state ?? "up").toString().trim().toLowerCase();
+                    const current = (src.value ?? "").toString().trim().toLowerCase();
+                    result = !!current && current === expected;
+                    resultText = `${current} === ${expected}`;
+                } else if (obj.type === "diff_vector_state") {
+                    const mode = (obj?.params?.mode ?? "gt").toString().trim().toLowerCase();
+                    const current = (src.value ?? "").toString().trim().toLowerCase();
+                    if (mode === "gt") {
+                        result = current === "up";
+                        resultText = `mainEMA > shiftedEMA (${current})`;
+                    } else if (mode === "lt") {
+                        result = current === "down";
+                        resultText = `mainEMA < shiftedEMA (${current})`;
+                    } else {
+                        result = current === "flat";
+                        resultText = `mainEMA ? shiftedEMA = flat (${current})`;
+                    }
+                }
+                return { ok: true, object: obj, sourceValue, result, resultText };
+            },
+
+            list() {
+                const arr = Array.from(this.cache.values()).map((v) => this._clone(v));
+                arr.sort((a, b) => {
+                    const ao = Number(a?.ui?.order || 0);
+                    const bo = Number(b?.ui?.order || 0);
+                    if (ao !== bo) return ao - bo;
+                    return String(a.id).localeCompare(String(b.id));
+                });
+                return arr;
+            },
+
+            get(id) {
+                return this.cache.has(id) ? this._clone(this.cache.get(id)) : null;
+            },
+
+            normalizeDbListItem(raw) {
+                if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+                    if (raw.object_json && typeof raw.object_json === "string") {
+                        try {
+                            const parsed = JSON.parse(raw.object_json);
+                            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+                        } catch (e) {
+                            console.warn(`${this.DEBUG_TAG} normalizeDbListItem: object_json parse failed`, {
+                                error: e?.message || e,
+                                raw,
+                            });
+                        }
+                    }
+                    if (raw.item && typeof raw.item === "object" && !Array.isArray(raw.item)) return raw.item;
+                    return raw;
+                }
+                return raw;
+            },
+
+            async loadFromDb(reason = "objects_list") {
+                const url = (MEP.Settings.getEndpoint?.() ?? "").toString().trim();
+                if (!url || !MEP.Net?.postJson) {
+                    console.warn(`${this.DEBUG_TAG} loadFromDb skipped: endpoint or Net.postJson missing`, {
+                        url,
+                        hasPostJson: !!MEP.Net?.postJson,
+                        reason,
+                    });
+                    return [];
+                }
+                const payload = {
+                    action: "objects_list",
+                    ts: Date.now(),
+                    ver: MEP.ver,
+                    reason: (reason ?? "").toString(),
+                    game_slug: (MEP.State?.gameSlug ?? "").toString(),
+                    device_id: MEP.Settings.getDeviceId(),
+                };
+                console.debug(`${this.DEBUG_TAG} loadFromDb start`, { endpoint: url, payload });
+                const resp = await MEP.Net.postJson(url, payload, 9000);
+                console.debug(`${this.DEBUG_TAG} loadFromDb response`, {
+                    ok: !!resp?.ok,
+                    status: resp?.status,
+                    json: resp?.json,
+                    text: resp?.text,
+                    error: resp?.error,
+                });
+                if (!(resp?.ok && resp?.json?.ok === true)) {
+                    console.warn(`${this.DEBUG_TAG} loadFromDb failed`, { response: resp });
+                    return [];
+                }
+                const rootItems = Array.isArray(resp?.json?.items)
+                    ? resp.json.items
+                    : Array.isArray(resp?.json?.data?.items)
+                      ? resp.json.data.items
+                      : [];
+                if (!Array.isArray(resp?.json?.items)) {
+                    console.warn(`${this.DEBUG_TAG} loadFromDb: items are not in json.items`, {
+                        hasDataItems: Array.isArray(resp?.json?.data?.items),
+                        jsonKeys: Object.keys(resp?.json || {}),
+                    });
+                }
+                console.debug(`${this.DEBUG_TAG} loadFromDb items received`, {
+                    count: rootItems.length,
+                    ids: rootItems.map((it) => (it?.id ?? it?.object_id ?? "")).filter(Boolean),
+                    types: rootItems.map((it) => (it?.type ?? "")).filter(Boolean),
+                });
+                this.cache.clear();
+                const skipped = [];
+                const added = [];
+                for (const raw of rootItems) {
+                    const normalizedRaw = this.normalizeDbListItem(raw);
+                    const preVr = this.validateConditionObject(normalizedRaw);
+                    console.debug(`${this.DEBUG_TAG} loadFromDb item trace`, {
+                        raw,
+                        normalizedRaw,
+                        rawId: raw?.id ?? raw?.object_id ?? "",
+                        rawType: raw?.type ?? "",
+                        validateOk: preVr?.ok === true,
+                        validateError: preVr?.error || "",
+                    });
+                    const dec = this.decodeConditionObject(normalizedRaw);
+                    if (!dec.ok) {
+                        skipped.push({
+                            id: normalizedRaw?.id ?? raw?.id ?? raw?.object_id ?? "",
+                            type: normalizedRaw?.type ?? raw?.type ?? "",
+                            error: dec.error || preVr?.error || "decode failed",
+                        });
+                        console.warn(`${this.DEBUG_TAG} loadFromDb item skipped`, skipped[skipped.length - 1]);
+                        continue;
+                    }
+                    this.cache.set(dec.value.id, dec.value);
+                    added.push({ id: dec.value.id, type: dec.value.type });
+                    console.debug(`${this.DEBUG_TAG} loadFromDb item added to cache`, added[added.length - 1]);
+                }
+                this.loadedAtTs = Date.now();
+                console.debug(`${this.DEBUG_TAG} loadFromDb completed`, {
+                    cacheSize: this.cache.size,
+                    added,
+                    skipped,
+                });
+                return this.list();
+            },
+
+            async saveToDb(obj, reason = "object_save") {
+                console.debug(`${this.DEBUG_TAG} saveToDb start`, { reason, objectBeforeDecode: obj });
+                const dec = this.decodeConditionObject(obj);
+                if (!dec.ok) throw new Error(dec.error || "invalid object");
+                const url = (MEP.Settings.getEndpoint?.() ?? "").toString().trim();
+                if (!url || !MEP.Net?.postJson) throw new Error("endpoint or Net.postJson is not available");
+                const payload = {
+                    action: "object_save",
+                    ts: Date.now(),
+                    ver: MEP.ver,
+                    reason: (reason ?? "").toString(),
+                    game_slug: (MEP.State?.gameSlug ?? "").toString(),
+                    device_id: MEP.Settings.getDeviceId(),
+                    object: dec.value,
+                };
+                console.debug(`${this.DEBUG_TAG} saveToDb payload`, {
+                    endpoint: url,
+                    decodeResult: dec,
+                    payload,
+                });
+                const resp = await MEP.Net.postJson(url, payload, 9000);
+                console.debug(`${this.DEBUG_TAG} saveToDb response`, {
+                    ok: !!resp?.ok,
+                    status: resp?.status,
+                    json: resp?.json,
+                    text: resp?.text,
+                    error: resp?.error,
+                });
+                if (!(resp?.ok && resp?.json?.ok === true)) throw new Error(resp?.json?.error || "save failed");
+                this.cache.set(dec.value.id, dec.value);
+                console.debug(`${this.DEBUG_TAG} saveToDb cache updated`, {
+                    id: dec.value.id,
+                    inCache: this.cache.has(dec.value.id),
+                    cacheSize: this.cache.size,
+                });
+                return this.get(dec.value.id);
+            },
+
+            async create(obj) {
+                return this.saveToDb(obj, "object_create");
+            },
+
+            async update(obj) {
+                return this.saveToDb(obj, "object_update");
+            },
+
+            async remove(id) {
+                const objectId = (id ?? "").toString().trim();
+                if (!objectId) return false;
+                const url = (MEP.Settings.getEndpoint?.() ?? "").toString().trim();
+                if (!url || !MEP.Net?.postJson) return false;
+                const resp = await MEP.Net.postJson(
+                    url,
+                    {
+                        action: "object_delete",
+                        ts: Date.now(),
+                        ver: MEP.ver,
+                        device_id: MEP.Settings.getDeviceId(),
+                        object_id: objectId,
+                    },
+                    9000
+                );
+                if (resp?.ok && resp?.json?.ok === true) {
+                    this.cache.delete(objectId);
+                    return true;
+                }
+                return false;
+            },
+        };
+
+        // -------------------------
         // Storage module (cookies)
         // -------------------------
         MEP.Storage = {
@@ -801,6 +1242,8 @@
                     diffVectorShiftWidth: MEP.State.diffVectorShiftWidth,
                     strategy1Enabled: !!MEP.State?.strategies?.strategy1?.enabled,
                     strategy1Config: { ...(MEP.State?.strategies?.strategy1?.config || {}) },
+                    strategy2Enabled: !!MEP.State?.strategies?.strategy2?.enabled,
+                    strategy2Config: { ...(MEP.State?.strategies?.strategy2?.config || {}) },
                 };
 
                 const str = JSON.stringify(data);
@@ -906,6 +1349,15 @@
                                 };
                             }
                         }
+                        if (MEP.State?.strategies?.strategy2) {
+                            if (typeof data.strategy2Enabled === "boolean") MEP.State.strategies.strategy2.enabled = data.strategy2Enabled;
+                            if (data.strategy2Config && typeof data.strategy2Config === "object") {
+                                MEP.State.strategies.strategy2.config = {
+                                    ...MEP.State.strategies.strategy2.config,
+                                    ...data.strategy2Config,
+                                };
+                            }
+                        }
 
                         return true;
                     }
@@ -997,6 +1449,15 @@
                             MEP.State.strategies.strategy1.config = {
                                 ...MEP.State.strategies.strategy1.config,
                                 ...data.strategy1Config,
+                            };
+                        }
+                    }
+                    if (MEP.State?.strategies?.strategy2) {
+                        if (typeof data.strategy2Enabled === "boolean") MEP.State.strategies.strategy2.enabled = data.strategy2Enabled;
+                        if (data.strategy2Config && typeof data.strategy2Config === "object") {
+                            MEP.State.strategies.strategy2.config = {
+                                ...MEP.State.strategies.strategy2.config,
+                                ...data.strategy2Config,
                             };
                         }
                     }
@@ -2544,7 +3005,7 @@
         .mep-strategy1-work-timer.is-active{color:#00ff57;}
         .mep-strategy1-work-timer.is-inactive{color:#8f9aa8;}
         .mep-strategy1-balance-row{
-        margin-top:8px;
+        margin-top:0;
         display:flex;
         align-items:center;
         gap:6px;
@@ -2568,6 +3029,104 @@
         .mep-strategy1-risk-amount{color:#d7dde5;cursor:pointer;max-width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .mep-strategy1-risk-percent{width:36px;height:24px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;text-align:center;}
         .mep-strategy1-risk-percent-sign{font-size:48px;transform:scale(.26);transform-origin:left center;color:#fff;}
+        .mep-strategy1-conditions-wrap{
+        margin-top:8px;
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        }
+        .mep-strategy1-cond-summary{
+        font-size:11px;
+        line-height:1.1;
+        border:1px dashed rgba(255,255,255,.2);
+        border-radius:8px;
+        padding:5px 8px;
+        background:rgba(255,255,255,.03);
+        color:#a9b2bc;
+        }
+        .mep-strategy1-cond-summary.is-true{color:#00ff57;}
+        .mep-strategy1-cond-summary.is-false{color:#ff6f9f;}
+        .mep-strategy1-cond-summary.is-idle{color:#a9b2bc;}
+        .mep-strategy1-cond-list{display:flex;flex-direction:column;gap:5px;}
+        .mep-strategy1-cond-empty{
+        font-size:11px;
+        opacity:.75;
+        border:1px dashed rgba(255,255,255,.14);
+        border-radius:8px;
+        padding:6px 8px;
+        }
+        .mep-strategy1-condition-row{
+        margin-top:0px;
+        display:grid;
+        grid-template-columns: 112px 1fr 84px 96px;
+        align-items:center;
+        gap:0px;
+        border:1px dashed rgba(255,255,255,.24);
+        border-radius:0px;
+        padding:0px 0px;
+        font-size:11px;
+        background:rgba(255,255,255,.04);
+        }
+        .mep-strategy1-cond-toggle-wrap{
+        display:inline-flex;
+        align-items:center;
+        gap:0px;
+        color:#e7edf6;
+        font-size:11px;
+        line-height:1;
+        white-space:nowrap;
+        min-width:0;
+        }
+        .mep-strategy1-cond-toggle-wrap input{
+        appearance:none;
+        -webkit-appearance:none;
+        width:18px;
+        height:18px;
+        display:inline-grid;
+        place-items:center;
+        border:1px solid rgba(255,255,255,.75);
+        border-radius:4px;
+        background:rgba(255,255,255,.04);
+        box-shadow:0 0 0 1px rgba(0,0,0,.45) inset;
+        cursor:pointer;
+        transition:background-color .12s ease,border-color .12s ease,box-shadow .12s ease,opacity .12s ease;
+        position:relative;
+        }
+        .mep-strategy1-cond-toggle-wrap input::after{
+        content:"";
+        width:6px;
+        height:10px;
+        border-right:2px solid #fff;
+        border-bottom:2px solid #fff;
+        transform:rotate(45deg) scale(0);
+        transform-origin:center;
+        transition:transform .12s ease;
+        }
+        .mep-strategy1-cond-toggle-wrap input:checked{
+        background:#00e51f;
+        border-color:#00e51f;
+        box-shadow:0 0 0 1px rgba(0,0,0,.2) inset,0 0 8px rgba(0,229,31,.28);
+        }
+        .mep-strategy1-cond-toggle-wrap input:checked::after{
+        transform:rotate(45deg) scale(1);
+        }
+        .mep-strategy1-cond-toggle-wrap input:disabled{
+        opacity:.48;
+        border-color:rgba(255,255,255,.55);
+        background:rgba(255,255,255,.03);
+        cursor:not-allowed;
+        }
+        .mep-strategy1-cond-toggle-txt{
+        color:rgba(231,237,246,.92);
+        font-size:11px;
+        letter-spacing:.15px;
+        }
+        .mep-strategy1-cond-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f5f8fc;}
+        .mep-strategy1-cond-current{color:#ffd98f;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mep-strategy1-cond-result{text-align:right;font-weight:700;white-space:nowrap;}
+        .mep-strategy1-cond-result.is-true{color:#00ff57;}
+        .mep-strategy1-cond-result.is-false{color:#ff6f9f;}
+        .mep-strategy1-cond-result.is-idle{color:#a9b2bc;}
         .mep-strategy1-toggle{
         position:relative;
         width:44px;
@@ -2884,6 +3443,31 @@
                     const n = MEP.Utils.cleanToNum(MEP.State.list[i]);
                     if (n === null) break;
                     if (n <= t) streak++;
+                    else break;
+                }
+                return streak;
+            },
+
+            // streak: сколько последних ЗАВЕРШЕННЫХ значений подряд < threshold
+            countStreakLT(threshold) {
+                const t = Number.parseFloat(String(threshold).replace(",", "."));
+                if (!Number.isFinite(t)) return 0;
+
+                const toRoundX = (entry) => {
+                    if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+                        if (typeof entry.x === "number" && Number.isFinite(entry.x)) return entry.x;
+                        if (typeof entry.val === "number" && Number.isFinite(entry.val)) return entry.val;
+                        if (typeof entry.raw === "string") return MEP.Utils.cleanToNum(entry.raw);
+                    }
+                    if (typeof entry === "number" && Number.isFinite(entry)) return entry;
+                    return MEP.Utils.cleanToNum(entry);
+                };
+
+                let streak = 0;
+                for (let i = 0; i < MEP.State.list.length; i++) {
+                    const n = toRoundX(MEP.State.list[i]);
+                    if (!Number.isFinite(n)) break;
+                    if (n < t) streak++;
                     else break;
                 }
                 return streak;
@@ -7409,6 +7993,255 @@
                 return n.toFixed(8).replace(/\.?0+$/, "").replace(".", ",");
             },
 
+            getStrategy1PoolIds(st = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                const cfg = s?.config && typeof s.config === "object" ? s.config : (s.config = {});
+                if (!Array.isArray(cfg.conditionPoolIds)) cfg.conditionPoolIds = [];
+                cfg.conditionPoolIds = cfg.conditionPoolIds
+                    .map((id) => (id ?? "").toString().trim())
+                    .filter(Boolean);
+                return cfg.conditionPoolIds;
+            },
+
+            getStrategy1SupportedObjects() {
+                const items = MEP.ConditionObjects.list();
+                return items.filter(
+                    (it) =>
+                        (it?.strategyId || "strategy1") === "strategy1" &&
+                        (it?.type === "streak_lt" || it?.type === "charter" || it?.type === "diff_vector_state") &&
+                        it?.enabled !== false
+                );
+            },
+
+            getStrategyObjects(strategyId = "strategy1") {
+                const id = (strategyId || "strategy1").toString().trim().toLowerCase();
+                const items = MEP.ConditionObjects.list();
+                return items.filter((it) => (it?.strategyId || "strategy1") === id);
+            },
+
+            removeConditionIdFromStrategyPool(strategyId = "strategy1", objectId = "") {
+                const sid = (strategyId || "strategy1").toString().trim().toLowerCase();
+                const id = (objectId || "").toString().trim();
+                if (!id) return false;
+                const st = MEP.UI.getStrategyState(sid);
+                if (!st || !st.config || typeof st.config !== "object") return false;
+                if (!Array.isArray(st.config.conditionPoolIds)) st.config.conditionPoolIds = [];
+                const prevLen = st.config.conditionPoolIds.length;
+                st.config.conditionPoolIds = st.config.conditionPoolIds.map((x) => (x ?? "").toString().trim()).filter((x) => x && x !== id);
+                return st.config.conditionPoolIds.length !== prevLen;
+            },
+
+            ensureStrategy1BridgePool(st = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!s) return [];
+                const pool = MEP.UI.getStrategy1PoolIds(s);
+                const cfg = s?.config && typeof s.config === "object" ? s.config : (s.config = {});
+                const supported = MEP.UI.getStrategy1SupportedObjects();
+                const byId = new Map(supported.map((it) => [it.id, it]));
+                let changed = false;
+
+                for (let i = pool.length - 1; i >= 0; i--) {
+                    if (!byId.has(pool[i])) {
+                        pool.splice(i, 1);
+                        changed = true;
+                    }
+                }
+
+                // bridge default: авто-подхват streak_lt только до первого ручного действия пользователя
+                const streakItems = supported.filter((it) => it.type === "streak_lt");
+                const hasStreakInPool = pool.some((id) => byId.get(id)?.type === "streak_lt");
+                const userTouched = cfg.conditionPoolUserTouched === true;
+                if (!userTouched && !hasStreakInPool && streakItems.length) {
+                    pool.push(streakItems[0].id);
+                    cfg.conditionPoolAutoSeeded = true;
+                    changed = true;
+                }
+
+                if (changed) MEP.Storage.save();
+                return pool;
+            },
+
+            setStrategy1ConditionEnabled(objectId, enabled) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const id = (objectId ?? "").toString().trim();
+                if (!id) return;
+                const cfg = st?.config && typeof st.config === "object" ? st.config : (st.config = {});
+                const obj = MEP.ConditionObjects.get(id);
+                if (!obj || (obj.type !== "streak_lt" && obj.type !== "charter" && obj.type !== "diff_vector_state")) return;
+                const pool = MEP.UI.getStrategy1PoolIds(st);
+                const want = !!enabled;
+                const inPool = pool.includes(id);
+                cfg.conditionPoolUserTouched = true;
+
+                if (want && !inPool) {
+                    // single-choice group support: при groupMode=single вырубаем все из той же группы
+                    const sameGroupId = (obj.groupId || "").toString().trim();
+                    const sameGroupSingle = (obj.groupMode || "").toString().trim().toLowerCase() === "single" && !!sameGroupId;
+                    if (sameGroupSingle) {
+                        for (let i = pool.length - 1; i >= 0; i--) {
+                            const curObj = MEP.ConditionObjects.get(pool[i]);
+                            if (!curObj) continue;
+                            if ((curObj.groupId || "").toString().trim() === sameGroupId) pool.splice(i, 1);
+                        }
+                    }
+                    pool.push(id);
+                }
+                if (!want && inPool) {
+                    const idx = pool.indexOf(id);
+                    if (idx >= 0) pool.splice(idx, 1);
+                }
+
+                MEP.Storage.save();
+                MEP.UI.renderStrategy1MinimalUi(st);
+            },
+
+            buildStrategy1ObjectContext(st = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                const currentBalance = MEP.UI.readCurrentBalanceFromDom().amount || 0;
+                return {
+                    lt2_streak: MEP.Utils.countStreakLT(2),
+                    charter: { allowed: s?.charterCheck?.allowed !== false },
+                    balance: {
+                        start: Number(s?.runtime?.startBalanceSnapshot) || 0,
+                        current: Number(currentBalance) || 0,
+                    },
+                    ema: {
+                        diff: { state: (MEP.State.diffVectorState || "flat").toString() },
+                        frequency: { state: (MEP.State.frequencyVectorState || "flat").toString() },
+                    },
+                    diff: {
+                        vector: { state: (MEP.State.diffVectorState || "flat").toString() },
+                    },
+                    stake: {
+                        players: { state: (MEP.State.stakePlayersVectorState || "flat").toString() },
+                        bet: { state: (MEP.State.stakeBetVectorState || "flat").toString() },
+                    },
+                };
+            },
+
+            formatStrategy1ConditionText(obj) {
+                if (!obj) return "—";
+                if (obj.type === "streak_lt") {
+                    const label = (obj.label || "Подряд x <").toString().trim();
+                    const threshold = Number(obj?.params?.threshold);
+                    const thresholdText = Number.isFinite(threshold) ? String(threshold) : "?";
+                    return `${label} ${thresholdText}`;
+                }
+                if (obj.type === "charter") {
+                    const label = (obj.label || "Устав").toString().trim();
+                    return label || "Устав";
+                }
+                if (obj.type === "diff_vector_state") {
+                    const mode = (obj?.params?.mode || "gt").toString().trim().toLowerCase();
+                    const text = mode === "lt" ? "mainEMA < shiftedEMA" : mode === "flat" ? "false / flat" : "mainEMA > shiftedEMA";
+                    return (obj.label || `Diff: ${text}`).toString().trim();
+                }
+                return (obj.label || obj.type || "—").toString();
+            },
+
+            renderStrategy1ConditionBridge(st = null) {
+                const ui = MEP.UI.ui;
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!ui || !s || !ui.strategy1CondListEl || !ui.strategy1CondSummaryEl) return;
+
+                const pool = MEP.UI.ensureStrategy1BridgePool(s);
+                const supported = MEP.UI.getStrategy1SupportedObjects();
+                const allObjects = MEP.ConditionObjects.list();
+                const byId = new Map(supported.map((it) => [it.id, it]));
+                const activePoolIds = pool.filter((id) => byId.has(id));
+                const context = MEP.UI.buildStrategy1ObjectContext(s);
+                console.debug("[MEP][Strategy1][ConditionBridge] render start", {
+                    registryCount: allObjects.length,
+                    registryItems: allObjects.map((it) => ({
+                        id: it?.id || "",
+                        type: it?.type || "",
+                        enabled: it?.enabled !== false,
+                        groupId: it?.groupId || "",
+                    })),
+                    supportedCount: supported.length,
+                    supportedItems: supported.map((it) => ({
+                        id: it?.id || "",
+                        type: it?.type || "",
+                        groupId: it?.groupId || "",
+                    })),
+                    poolIds: pool.slice(),
+                    activePoolIds: activePoolIds.slice(),
+                });
+
+                if (!supported.length) {
+                    console.warn("[MEP][Strategy1][ConditionBridge] no supported objects", {
+                        reason: allObjects.length ? "objects_exist_but_filtered_out" : "registry_cache_empty",
+                        registryCount: allObjects.length,
+                    });
+                    ui.strategy1CondSummaryEl.textContent = "Пул условий: not use";
+                    ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false");
+                    ui.strategy1CondSummaryEl.classList.add("is-idle");
+                    ui.strategy1CondListEl.innerHTML = `<div class="mep-strategy1-cond-empty">Нет поддержанных объектов (streak_lt / charter / diff)</div>`;
+                    return;
+                }
+
+                let activeCount = 0;
+                let hasFalse = false;
+                const rows = [];
+                for (const obj of supported) {
+                    const enabledInPool = activePoolIds.includes(obj.id);
+                    const evalResult = enabledInPool
+                        ? MEP.ConditionObjects.evaluateConditionObject(obj, context)
+                        : { ok: true, result: null, sourceValue: null };
+                    const displayText = MEP.UI.formatStrategy1ConditionText(obj);
+                    let currentText = "—";
+                    if (enabledInPool && evalResult?.ok) {
+                        currentText = obj.type === "charter" ? (evalResult.sourceValue ? "allowed" : "blocked") : String(evalResult.sourceValue);
+                    }
+                    let resultText = "not use";
+                    let resultClass = "is-idle";
+                    if (enabledInPool) {
+                        activeCount++;
+                        if (evalResult?.ok) {
+                            const ok = !!evalResult.result;
+                            resultText = ok ? "true" : "false";
+                            resultClass = ok ? "is-true" : "is-false";
+                            if (!ok) hasFalse = true;
+                        } else {
+                            resultText = "error";
+                            resultClass = "is-false";
+                            hasFalse = true;
+                        }
+                    }
+                    rows.push(
+                        `<label class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-object-id="${obj.id}" ${enabledInPool ? "checked" : ""} /><span class="mep-strategy1-cond-toggle-txt">use</span></span>
+<span class="mep-strategy1-cond-text">${displayText}</span>
+<span class="mep-strategy1-cond-current">${currentText}</span>
+<span class="mep-strategy1-cond-result ${resultClass}">${resultText}</span>
+</label>`
+                    );
+                }
+                ui.strategy1CondListEl.innerHTML = rows.join("");
+
+                let summaryText = "Пул условий: not use";
+                let summaryClass = "is-idle";
+                if (activeCount > 0) {
+                    if (hasFalse) {
+                        summaryText = "Пул условий: false";
+                        summaryClass = "is-false";
+                    } else {
+                        summaryText = "Пул условий: true";
+                        summaryClass = "is-true";
+                    }
+                }
+                ui.strategy1CondSummaryEl.textContent = summaryText;
+                ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false", "is-idle");
+                ui.strategy1CondSummaryEl.classList.add(summaryClass);
+                console.debug("[MEP][Strategy1][ConditionBridge] render summary", {
+                    summaryText,
+                    summaryClass,
+                    activeCount,
+                    hasFalse,
+                });
+            },
+
             renderStrategyBalanceRow(strategyId = "strategy1") {
                 const ui = MEP.UI.ui;
                 const st = MEP.UI.getStrategyState(strategyId);
@@ -7547,6 +8380,7 @@
                 const blocked = !enabled && !MEP.UI.canEnableStrategy("strategy1");
                 if (ui.strategy1EnabledToggle) ui.strategy1EnabledToggle.disabled = blocked;
                 MEP.UI.renderStrategyBalanceRow("strategy1");
+                MEP.UI.renderStrategy1ConditionBridge(st);
             },
 
             renderStrategy2MinimalUi(st) {
@@ -8100,45 +8934,149 @@
             <div class="mep-modal-title">Настройки</div>
             <button class="mep-modal-close" aria-label="Закрыть">×</button>
         </div>
-        <div class="mep-form-row">
-            <div class="mep-label">POST URL (PHP endpoint)</div>
-            <input class="mep-input mep-endpoint" placeholder="https://site.com/track.php" />
+        <div class="mep-settings-tabs">
+            <button class="mep-settings-tab-btn is-active" type="button" data-tab="settings">Настройки</button>
+            <button class="mep-settings-tab-btn" type="button" data-tab="objects">Объекты</button>
         </div>
-        <div class="mep-form-row">
-            <div class="mep-label">Звуки (key=url, по одному в строке)</div>
-            <textarea class="mep-input mep-sounds" style="height: 90px; resize: none"></textarea>
+        <div class="mep-settings-tab-panel mep-settings-tab-panel-settings is-active">
+            <div class="mep-form-row">
+                <div class="mep-label">POST URL (PHP endpoint)</div>
+                <input class="mep-input mep-endpoint" placeholder="https://site.com/track.php" />
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Звуки (key=url, по одному в строке)</div>
+                <textarea class="mep-input mep-sounds" style="height: 90px; resize: none"></textarea>
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Звук по умолчанию</div>
+                <select class="mep-input mep-sound-default"></select>
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Подсветка при срабатывании (мс)</div>
+                <input class="mep-input mep-hit-ms" type="number" min="500" step="100" />
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Пауза между “Далее” при загрузке истории (мс)</div>
+                <input class="mep-input mep-history-next-ms" type="number" min="0" step="100" />
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Приоритет звука при одновременном срабатывании</div>
+                <select class="mep-input mep-priority-mode">
+                    <option value="high">Высокий X (большее значение)</option>
+                    <option value="low">Низкий X (меньшее значение)</option>
+                </select>
+            </div>
+            <div class="mep-form-row">
+                <div class="mep-label">Реестр игр (slug, по одному в строке)</div>
+                <textarea class="mep-input mep-games" spellcheck="false" placeholder="crash&#10;spribe-aviator"></textarea>
+            </div>
+            <div class="mep-modal-actions">
+                <button class="mep-btn mep-test-endpoint">Тест</button>
+                <button class="mep-btn mep-test-sound">Тест звука</button>
+            </div>
+            <div class="mep-modal-actions">
+                <button class="mep-btn mep-load-settings">Загрузить с БД</button>
+                <button class="mep-btn mep-save-settings">Сохранить</button>
+                <button class="mep-btn mep-cancel-settings">Отмена</button>
+            </div>
         </div>
-        <div class="mep-form-row">
-            <div class="mep-label">Звук по умолчанию</div>
-            <select class="mep-input mep-sound-default"></select>
+        <div class="mep-settings-tab-panel mep-settings-tab-panel-objects">
+            <div class="mep-form-row">
+                <div class="mep-label">Контекст стратегии для quick-add</div>
+                <select class="mep-input mep-objects-strategy-context">
+                    <option value="strategy1">Стратегия1</option>
+                    <option value="strategy2">Стратегия2</option>
+                </select>
+            </div>
+            <div class="mep-objects-list"></div>
+            <div class="mep-modal-actions mep-objects-quick-add">
+                <button class="mep-btn mep-quick-streak2">+ streak&lt;2</button>
+                <button class="mep-btn mep-quick-streak3">+ streak&lt;3</button>
+                <button class="mep-btn mep-quick-streak4">+ streak&lt;4</button>
+                <button class="mep-btn mep-quick-streak5">+ streak&lt;5</button>
+                <button class="mep-btn mep-quick-charter">+ charter</button>
+            </div>
+            <div class="mep-modal-actions">
+                <button class="mep-btn mep-objects-refresh">Обновить список</button>
+                <button class="mep-btn mep-objects-add">+ Добавить объект</button>
+            </div>
         </div>
-        <div class="mep-form-row">
-            <div class="mep-label">Подсветка при срабатывании (мс)</div>
-            <input class="mep-input mep-hit-ms" type="number" min="500" step="100" />
+    </div>
+</div>
+<div class="mep-modal-overlay" data-mep-modal="object-editor" style="display: none">
+    <div class="mep-modal" role="dialog" aria-modal="true" aria-label="Объект условия">
+        <div class="mep-modal-head">
+            <div class="mep-modal-title">Объект условия</div>
+            <button class="mep-modal-close mep-object-modal-close" aria-label="Закрыть">×</button>
         </div>
-        <div class="mep-form-row">
-            <div class="mep-label">Пауза между “Далее” при загрузке истории (мс)</div>
-            <input class="mep-input mep-history-next-ms" type="number" min="0" step="100" />
+        <div class="mep-form-row mep-object-preset-wrap">
+            <div class="mep-label">Быстрое создание (preset)</div>
+                <select class="mep-input mep-object-preset-type">
+                    <option value="streak_lt">streak_lt</option>
+                    <option value="charter">charter</option>
+                    <option value="diff_vector_state">diff (MA compare)</option>
+                </select>
+                <select class="mep-input mep-object-preset-strategy-id">
+                    <option value="strategy1">Стратегия1</option>
+                    <option value="strategy2">Стратегия2</option>
+                </select>
+            <div class="mep-object-preset-grid">
+                <input class="mep-input mep-object-preset-threshold" type="number" min="1" step="1" value="3" placeholder="Threshold" />
+                <input class="mep-input mep-object-preset-label" value="Подряд x <" placeholder="Label" />
+                <input class="mep-input mep-object-preset-group-id" value="streak_lt" placeholder="Group ID" />
+                <select class="mep-input mep-object-preset-group-mode">
+                    <option value="single">single</option>
+                    <option value="multi">multi</option>
+                    <option value="">none</option>
+                </select>
+                <select class="mep-input mep-object-preset-diff-mode">
+                    <option value="gt">mainEMA &gt; shiftedEMA</option>
+                    <option value="lt">mainEMA &lt; shiftedEMA</option>
+                    <option value="flat">false / flat</option>
+                </select>
+                <label class="mep-label"><input class="mep-object-preset-enabled" type="checkbox" checked /> Enabled</label>
+                <button class="mep-btn mep-object-preset-apply" type="button">Подставить</button>
+            </div>
         </div>
+        <div class="mep-form-row"><div class="mep-label">ID объекта</div><input class="mep-input mep-object-id" /></div>
+        <div class="mep-form-row"><div class="mep-label">Type объекта</div><input class="mep-input mep-object-type" placeholder="streak_lt" /></div>
         <div class="mep-form-row">
-            <div class="mep-label">Приоритет звука при одновременном срабатывании</div>
-            <select class="mep-input mep-priority-mode">
-                <option value="high">Высокий X (большее значение)</option>
-                <option value="low">Низкий X (меньшее значение)</option>
+            <div class="mep-label">Стратегия</div>
+            <select class="mep-input mep-object-strategy-id">
+                <option value="strategy1">Стратегия1</option>
+                <option value="strategy2">Стратегия2</option>
             </select>
         </div>
         <div class="mep-form-row">
-            <div class="mep-label">Реестр игр (slug, по одному в строке)</div>
-            <textarea class="mep-input mep-games" spellcheck="false" placeholder="crash&#10;spribe-aviator"></textarea>
+            <div class="mep-label">Source</div>
+            <select class="mep-input mep-object-source-select"></select>
+            <input class="mep-input mep-object-source-custom" placeholder="custom.source.key" style="margin-top:6px;" />
         </div>
-        <div class="mep-modal-actions">
-            <button class="mep-btn mep-test-endpoint">Тест</button>
-            <button class="mep-btn mep-test-sound">Тест звука</button>
+        <div class="mep-form-row"><div class="mep-label">Label</div><input class="mep-input mep-object-label" /></div>
+        <div class="mep-form-row">
+            <div class="mep-label">Condition (diff)</div>
+            <select class="mep-input mep-object-diff-mode">
+                <option value="gt">mainEMA &gt; shiftedEMA</option>
+                <option value="lt">mainEMA &lt; shiftedEMA</option>
+                <option value="flat">false / flat</option>
+            </select>
         </div>
+        <div class="mep-form-row"><div class="mep-label">Group ID</div><input class="mep-input mep-object-group-id" /></div>
+        <div class="mep-form-row">
+            <div class="mep-label">Group Mode</div>
+            <select class="mep-input mep-object-group-mode">
+                <option value="single">single</option>
+                <option value="multi">multi</option>
+            </select>
+        </div>
+        <div class="mep-form-row"><label class="mep-label"><input class="mep-object-enabled" type="checkbox" checked /> Enabled по умолчанию</label></div>
+        <div class="mep-form-row"><div class="mep-label">JSON params</div><textarea class="mep-input mep-object-params" spellcheck="false">{}</textarea></div>
+        <div class="mep-form-row"><div class="mep-label">JSON ui</div><textarea class="mep-input mep-object-ui" spellcheck="false">{}</textarea></div>
+        <div class="mep-form-row"><div class="mep-label">JSON runtimeDefaults</div><textarea class="mep-input mep-object-runtime" spellcheck="false">{}</textarea></div>
+        <div class="mep-form-row"><div class="mep-label mep-object-editor-msg"></div></div>
         <div class="mep-modal-actions">
-            <button class="mep-btn mep-load-settings">Загрузить с БД</button>
-            <button class="mep-btn mep-save-settings">Сохранить</button>
-            <button class="mep-btn mep-cancel-settings">Отмена</button>
+            <button class="mep-btn mep-object-save">Сохранить</button>
+            <button class="mep-btn mep-object-cancel">Отмена</button>
         </div>
     </div>
 </div>
@@ -8243,6 +9181,10 @@
             <input class="mep-strategy1-risk-percent" type="number" min="0" step="0.1" value="5" />
             <span class="mep-strategy1-risk-percent-sign">%</span>
         </div>
+        <div class="mep-strategy1-conditions-wrap">
+            <div class="mep-strategy1-cond-summary is-idle">Пул условий: not use</div>
+            <div class="mep-strategy1-cond-list"></div>
+        </div>
     </div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-strategy2">
@@ -8294,6 +9236,7 @@
                 document.body.classList.add("mep-panel-open");
 
                 const settingsOverlay = panel.querySelector('.mep-modal-overlay[data-mep-modal="settings"]');
+                const objectOverlay = panel.querySelector('.mep-modal-overlay[data-mep-modal="object-editor"]');
 
                 MEP.UI.ui = {
                     panel,
@@ -8328,6 +9271,9 @@
                     strategy1PnlEl: panel.querySelector(".mep-strategy1-pnl"),
                     strategy1RiskAmountEl: panel.querySelector(".mep-strategy1-risk-amount"),
                     strategy1RiskPercentInput: panel.querySelector(".mep-strategy1-risk-percent"),
+                    strategy1CondWrapEl: panel.querySelector(".mep-strategy1-conditions-wrap"),
+                    strategy1CondSummaryEl: panel.querySelector(".mep-strategy1-cond-summary"),
+                    strategy1CondListEl: panel.querySelector(".mep-strategy1-cond-list"),
                     strategy1TabBtn: panel.querySelector('button.mep-game-tab-btn[data-tab="strategy1"]'),
                     strategy2EnabledToggle: panel.querySelector("input.mep-strategy2-enabled"),
                     strategy2InfoBar: panel.querySelector(".mep-strategy2-info-bar"),
@@ -8449,13 +9395,26 @@
 
                     // settings
                     settingsOverlay,
+                    objectOverlay,
                     settingsCloseBtn: settingsOverlay?.querySelector(".mep-modal-close"),
                     settingsSaveBtn: settingsOverlay?.querySelector(".mep-save-settings"),
                     settingsCancelBtn: settingsOverlay?.querySelector(".mep-cancel-settings"),
                     settingsLoadBtn: settingsOverlay?.querySelector(".mep-load-settings"),
+                    settingsTabButtons: [...(settingsOverlay?.querySelectorAll(".mep-settings-tab-btn") || [])],
+                    settingsTabPanelSettings: settingsOverlay?.querySelector(".mep-settings-tab-panel-settings"),
+                    settingsTabPanelObjects: settingsOverlay?.querySelector(".mep-settings-tab-panel-objects"),
                     endpointInput: settingsOverlay?.querySelector("input.mep-endpoint"),
                     testEndpointBtn: settingsOverlay?.querySelector(".mep-test-endpoint"),
                     testSoundBtn: settingsOverlay?.querySelector(".mep-test-sound"),
+                    objectsList: settingsOverlay?.querySelector(".mep-objects-list"),
+                    objectsStrategyContextSelect: settingsOverlay?.querySelector(".mep-objects-strategy-context"),
+                    objectsRefreshBtn: settingsOverlay?.querySelector(".mep-objects-refresh"),
+                    objectsAddBtn: settingsOverlay?.querySelector(".mep-objects-add"),
+                    quickStreak2Btn: settingsOverlay?.querySelector(".mep-quick-streak2"),
+                    quickStreak3Btn: settingsOverlay?.querySelector(".mep-quick-streak3"),
+                    quickStreak4Btn: settingsOverlay?.querySelector(".mep-quick-streak4"),
+                    quickStreak5Btn: settingsOverlay?.querySelector(".mep-quick-streak5"),
+                    quickCharterBtn: settingsOverlay?.querySelector(".mep-quick-charter"),
 
                     soundsInput: settingsOverlay?.querySelector("textarea.mep-sounds"),
                     soundDefaultSelect: settingsOverlay?.querySelector("select.mep-sound-default"),
@@ -8463,6 +9422,33 @@
                     historyNextMsInput: settingsOverlay?.querySelector("input.mep-history-next-ms"),
                     priorityModeSelect: settingsOverlay?.querySelector("select.mep-priority-mode"),
                     gamesInput: settingsOverlay?.querySelector("textarea.mep-games"),
+
+                    objectModalCloseBtn: objectOverlay?.querySelector(".mep-object-modal-close"),
+                    objectIdInput: objectOverlay?.querySelector(".mep-object-id"),
+                    objectTypeInput: objectOverlay?.querySelector(".mep-object-type"),
+                    objectStrategyIdSelect: objectOverlay?.querySelector(".mep-object-strategy-id"),
+                    objectSourceSelect: objectOverlay?.querySelector(".mep-object-source-select"),
+                    objectSourceCustomInput: objectOverlay?.querySelector(".mep-object-source-custom"),
+                    objectLabelInput: objectOverlay?.querySelector(".mep-object-label"),
+                    objectDiffModeSelect: objectOverlay?.querySelector(".mep-object-diff-mode"),
+                    objectGroupIdInput: objectOverlay?.querySelector(".mep-object-group-id"),
+                    objectGroupModeSelect: objectOverlay?.querySelector(".mep-object-group-mode"),
+                    objectEnabledInput: objectOverlay?.querySelector(".mep-object-enabled"),
+                    objectParamsInput: objectOverlay?.querySelector(".mep-object-params"),
+                    objectUiInput: objectOverlay?.querySelector(".mep-object-ui"),
+                    objectRuntimeInput: objectOverlay?.querySelector(".mep-object-runtime"),
+                    objectSaveBtn: objectOverlay?.querySelector(".mep-object-save"),
+                    objectCancelBtn: objectOverlay?.querySelector(".mep-object-cancel"),
+                    objectEditorMsg: objectOverlay?.querySelector(".mep-object-editor-msg"),
+                    objectPresetTypeSelect: objectOverlay?.querySelector(".mep-object-preset-type"),
+                    objectPresetStrategyIdSelect: objectOverlay?.querySelector(".mep-object-preset-strategy-id"),
+                    objectPresetThresholdInput: objectOverlay?.querySelector(".mep-object-preset-threshold"),
+                    objectPresetLabelInput: objectOverlay?.querySelector(".mep-object-preset-label"),
+                    objectPresetGroupIdInput: objectOverlay?.querySelector(".mep-object-preset-group-id"),
+                    objectPresetGroupModeSelect: objectOverlay?.querySelector(".mep-object-preset-group-mode"),
+                    objectPresetDiffModeSelect: objectOverlay?.querySelector(".mep-object-preset-diff-mode"),
+                    objectPresetEnabledInput: objectOverlay?.querySelector(".mep-object-preset-enabled"),
+                    objectPresetApplyBtn: objectOverlay?.querySelector(".mep-object-preset-apply"),
                 };
 
                 // применяем настройки к UI
@@ -8631,6 +9617,19 @@
                         s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
                         s1.runtime.copiedRiskAmount = val;
                         MEP.UI.setStrategy1InfoMessage("Сумма риска скопирована в стартовую позицию");
+                    });
+                }
+                if (ui.strategy1CondListEl && s1) {
+                    ui.strategy1CondListEl.addEventListener("change", (e) => {
+                        const inp = e.target?.closest?.("input.mep-strategy1-cond-enabled");
+                        if (!inp) return;
+                        const objectId = (inp.dataset.objectId || "").trim();
+                        if (!objectId) {
+                            inp.checked = false;
+                            return;
+                        }
+                        MEP.UI.setStrategy1ConditionEnabled(objectId, !!inp.checked);
+                        MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                     });
                 }
                 if (ui.strategy2RiskAmountEl && s2) {
@@ -9317,6 +10316,309 @@
                 // -------------------------
                 // Settings modal helpers
                 // -------------------------
+                const setSettingsTab = (tab = "settings") => {
+                    ui._settingsTab = tab === "objects" ? "objects" : "settings";
+                    for (const btn of ui.settingsTabButtons || []) {
+                        const is = (btn.dataset.tab || "") === ui._settingsTab;
+                        btn.classList.toggle("is-active", is);
+                    }
+                    ui.settingsTabPanelSettings?.classList.toggle("is-active", ui._settingsTab === "settings");
+                    ui.settingsTabPanelObjects?.classList.toggle("is-active", ui._settingsTab === "objects");
+                };
+
+                const renderObjectsList = () => {
+                    if (!ui.objectsList) return;
+                    const items = MEP.ConditionObjects.list();
+                    console.debug("[MEP][ConditionObjects][UI] renderObjectsList", {
+                        count: items.length,
+                        items: items.map((it) => ({ id: it?.id || "", type: it?.type || "" })),
+                    });
+                    const head = `<div class="mep-object-head-row">
+<span>Название</span><span>Type</span><span>ID</span><span>Стратегия</span><span>Actions</span>
+</div>`;
+                    if (!items.length) {
+                        ui.objectsList.innerHTML = `${head}<div class="mep-objects-empty">Пока нет объектов</div>`;
+                        return;
+                    }
+                    const lines = items
+                        .map((it) => {
+                            const label = (it.label || "").replace(/</g, "&lt;");
+                            const type = (it.type || "").replace(/</g, "&lt;");
+                            const id = (it.id || "").replace(/</g, "&lt;");
+                            const strategyId = (it.strategyId || "strategy1").replace(/</g, "&lt;");
+                            return `<div class="mep-object-row">
+<div class="mep-object-meta"><span class="mep-object-col-label" title="${label}">${label}</span><span class="mep-object-col-type" title="${type}">${type}</span><code class="mep-object-col-id" title="${id}">${id}</code><span class="mep-object-col-strategy">${strategyId}</span></div>
+<div class="mep-object-actions">
+<button class="mep-btn mep-object-edit" data-object-id="${id}" title="Редактировать" aria-label="Редактировать">✎</button>
+<button class="mep-btn mep-object-delete" data-object-id="${id}" title="Удалить" aria-label="Удалить">🗑</button>
+</div>
+</div>`;
+                        })
+                        .join("");
+                    ui.objectsList.innerHTML = `${head}${lines}`;
+                };
+
+                const closeObjectEditor = () => {
+                    if (ui.objectOverlay) ui.objectOverlay.style.display = "none";
+                    if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = "";
+                    ui._objectEditId = "";
+                };
+
+                const renderObjectSourceOptions = (selectedSource = "", currentType = "") => {
+                    if (!ui.objectSourceSelect) return;
+                    const srcItems = MEP.ConditionObjects.SOURCES || [];
+                    const typeDef = MEP.ConditionObjects.getTypeDef(currentType);
+                    const allowedSet = new Set((typeDef?.allowedSources || []).map((v) => (v || "").toString().trim()));
+                    const mustRestrict = allowedSet.size > 0;
+                    ui.objectSourceSelect.innerHTML = "";
+                    const emptyOpt = document.createElement("option");
+                    emptyOpt.value = "";
+                    emptyOpt.textContent = "(выберите source)";
+                    ui.objectSourceSelect.appendChild(emptyOpt);
+
+                    for (const srcDef of srcItems) {
+                        const key = (srcDef?.key || "").toString().trim();
+                        if (!key) continue;
+                        if (mustRestrict && !allowedSet.has(key)) continue;
+                        const opt = document.createElement("option");
+                        opt.value = key;
+                        opt.textContent = `${srcDef.label || key} (${key})`;
+                        ui.objectSourceSelect.appendChild(opt);
+                    }
+
+                    const normalizedSelected = (selectedSource || "").toString().trim();
+                    const hasSelected = normalizedSelected && Array.from(ui.objectSourceSelect.options).some((o) => o.value === normalizedSelected);
+                    ui.objectSourceSelect.value = hasSelected ? normalizedSelected : "";
+                    if (ui.objectSourceCustomInput) {
+                        ui.objectSourceCustomInput.value = hasSelected ? "" : normalizedSelected;
+                    }
+                };
+
+                const getObjectSourceFromUi = () => {
+                    const selectVal = (ui.objectSourceSelect?.value || "").trim();
+                    const customVal = (ui.objectSourceCustomInput?.value || "").trim();
+                    return customVal || selectVal;
+                };
+
+                const openObjectEditor = (existingObj = null) => {
+                    const obj = existingObj ? MEP.ConditionObjects.normalizeConditionObject(existingObj) : MEP.ConditionObjects.makeDefault();
+                    ui._objectEditId = obj.id || "";
+                    if (ui.objectPresetTypeSelect) ui.objectPresetTypeSelect.value = obj.type === "charter" ? "charter" : "streak_lt";
+                    if (ui.objectPresetTypeSelect && obj.type === "diff_vector_state") ui.objectPresetTypeSelect.value = "diff_vector_state";
+                    if (ui.objectPresetStrategyIdSelect) ui.objectPresetStrategyIdSelect.value = obj.strategyId || "strategy1";
+                    syncPresetInputsByType();
+                    if (ui.objectPresetThresholdInput) ui.objectPresetThresholdInput.value = String(Math.max(1, Math.floor(Number(obj?.params?.threshold) || 3)));
+                    if (ui.objectPresetLabelInput) ui.objectPresetLabelInput.value = obj.label || (obj.type === "charter" ? "Устав" : "Подряд x <");
+                    if (ui.objectPresetGroupIdInput) ui.objectPresetGroupIdInput.value = obj.groupId || "streak_lt";
+                    if (ui.objectPresetGroupModeSelect) ui.objectPresetGroupModeSelect.value = obj.groupMode || "single";
+                    if (ui.objectPresetEnabledInput) ui.objectPresetEnabledInput.checked = !!obj.enabled;
+                    if (ui.objectIdInput) ui.objectIdInput.value = obj.id || "";
+                    if (ui.objectTypeInput) ui.objectTypeInput.value = obj.type || "";
+                    if (ui.objectStrategyIdSelect) ui.objectStrategyIdSelect.value = obj.strategyId || "strategy1";
+                    renderObjectSourceOptions(obj.source || "", obj.type || "");
+                    if (ui.objectLabelInput) ui.objectLabelInput.value = obj.label || "";
+                    if (ui.objectDiffModeSelect) ui.objectDiffModeSelect.value = (obj?.params?.mode || "gt").toString();
+                    if (ui.objectGroupIdInput) ui.objectGroupIdInput.value = obj.groupId || "";
+                    if (ui.objectGroupModeSelect) ui.objectGroupModeSelect.value = obj.groupMode || "single";
+                    if (ui.objectEnabledInput) ui.objectEnabledInput.checked = !!obj.enabled;
+                    if (ui.objectParamsInput) ui.objectParamsInput.value = JSON.stringify(obj.params || {}, null, 2);
+                    if (ui.objectUiInput) ui.objectUiInput.value = JSON.stringify(obj.ui || {}, null, 2);
+                    if (ui.objectRuntimeInput) ui.objectRuntimeInput.value = JSON.stringify(obj.runtimeDefaults || {}, null, 2);
+                    if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = "";
+                    if (ui.objectOverlay) ui.objectOverlay.style.display = "flex";
+                };
+
+                const parseJsonField = (txt, fallback = {}) => {
+                    const s = (txt ?? "").toString().trim();
+                    if (!s) return fallback;
+                    const v = JSON.parse(s);
+                    if (!v || typeof v !== "object" || Array.isArray(v)) throw new Error("JSON должен быть объектом");
+                    return v;
+                };
+
+                const buildPresetObjectDraft = (presetType = "streak_lt", override = {}) => {
+                    const t = (presetType || "").toString().trim().toLowerCase();
+                    const strategyId = (override.strategyId || ui.objectsStrategyContextSelect?.value || "strategy1").toString().trim().toLowerCase() || "strategy1";
+                    if (t === "diff_vector_state") {
+                        const mode = (override.diffMode || override.mode || "gt").toString().trim().toLowerCase();
+                        const modeSafe = mode === "lt" || mode === "flat" ? mode : "gt";
+                        const labelByMode = {
+                            gt: "Diff: mainEMA > shiftedEMA",
+                            lt: "Diff: mainEMA < shiftedEMA",
+                            flat: "Diff: false (flat)",
+                        };
+                        const label = (override.label ?? labelByMode[modeSafe]).toString().trim() || labelByMode[modeSafe];
+                        const enabled = override.enabled !== false;
+                        return MEP.ConditionObjects.normalizeConditionObject({
+                            id: `diff_vector_${modeSafe}`,
+                            type: "diff_vector_state",
+                            strategyId,
+                            source: "diff.vector.state",
+                            label,
+                            enabled,
+                            groupId: "diff_vector_state",
+                            groupMode: "single",
+                            params: { mode: modeSafe },
+                            ui: { order: 0, visible: true },
+                            runtimeDefaults: {
+                                currentValue: "flat",
+                                reached: false,
+                                result: false,
+                                resultText: "",
+                            },
+                        });
+                    }
+                    if (t === "charter") {
+                        const label = (override.label ?? "Устав").toString().trim() || "Устав";
+                        const enabled = override.enabled !== false;
+                        return MEP.ConditionObjects.normalizeConditionObject({
+                            id: "charter_main",
+                            type: "charter",
+                            strategyId,
+                            source: "charter.allowed",
+                            label,
+                            enabled,
+                            groupId: "",
+                            groupMode: "",
+                            params: {},
+                            ui: { order: 0, visible: true },
+                            runtimeDefaults: {
+                                currentValue: false,
+                                reached: false,
+                                result: false,
+                                resultText: "",
+                            },
+                        });
+                    }
+
+                    const threshold = Math.max(1, Math.floor(Number(override.threshold) || 3));
+                    const label = (override.label ?? "Подряд x <").toString().trim() || "Подряд x <";
+                    const groupId = (override.groupId ?? "streak_lt").toString().trim();
+                    const groupMode = (override.groupMode ?? "single").toString().trim();
+                    const enabled = override.enabled !== false;
+                    return MEP.ConditionObjects.normalizeConditionObject({
+                        id: `streak_lt_${threshold}`,
+                        type: "streak_lt",
+                        strategyId,
+                        source: "lt2_streak",
+                        label,
+                        enabled,
+                        groupId,
+                        groupMode,
+                        params: { threshold },
+                        ui: { order: 0, visible: true },
+                        runtimeDefaults: {
+                            currentValue: 0,
+                            reached: false,
+                            result: false,
+                            resultText: "",
+                        },
+                    });
+                };
+
+                const applyPresetToObjectForm = (presetType = "streak_lt", override = {}) => {
+                    const draft = buildPresetObjectDraft(presetType, override);
+                    console.debug("[MEP][ConditionObjects][UI] applyPresetToObjectForm", {
+                        presetType,
+                        override,
+                        draft: {
+                            id: draft?.id || "",
+                            type: draft?.type || "",
+                            source: draft?.source || "",
+                            threshold: draft?.params?.threshold,
+                        },
+                    });
+                    if (ui.objectIdInput) ui.objectIdInput.value = draft.id || "";
+                    if (ui.objectTypeInput) ui.objectTypeInput.value = draft.type || "";
+                    if (ui.objectStrategyIdSelect) ui.objectStrategyIdSelect.value = draft.strategyId || "strategy1";
+                    renderObjectSourceOptions(draft.source || "", draft.type || "");
+                    if (ui.objectLabelInput) ui.objectLabelInput.value = draft.label || "";
+                    if (ui.objectDiffModeSelect) ui.objectDiffModeSelect.value = (draft?.params?.mode || "gt").toString();
+                    if (ui.objectGroupIdInput) ui.objectGroupIdInput.value = draft.groupId || "";
+                    if (ui.objectGroupModeSelect) ui.objectGroupModeSelect.value = draft.groupMode || "single";
+                    if (ui.objectEnabledInput) ui.objectEnabledInput.checked = !!draft.enabled;
+                    if (ui.objectParamsInput) ui.objectParamsInput.value = JSON.stringify(draft.params || {}, null, 2);
+                    if (ui.objectUiInput) ui.objectUiInput.value = JSON.stringify(draft.ui || {}, null, 2);
+                    if (ui.objectRuntimeInput) ui.objectRuntimeInput.value = JSON.stringify(draft.runtimeDefaults || {}, null, 2);
+                    return draft;
+                };
+
+                const syncPresetInputsByType = () => {
+                    const t = (ui.objectPresetTypeSelect?.value || "streak_lt").trim();
+                    const isStreak = t === "streak_lt";
+                    const isDiff = t === "diff_vector_state";
+                    const isCharter = t === "charter";
+
+                    if (ui.objectPresetThresholdInput) ui.objectPresetThresholdInput.style.display = isStreak ? "" : "none";
+                    if (ui.objectPresetGroupIdInput) ui.objectPresetGroupIdInput.style.display = isStreak ? "" : "none";
+                    if (ui.objectPresetGroupModeSelect) ui.objectPresetGroupModeSelect.style.display = isStreak ? "" : "none";
+                    if (ui.objectPresetDiffModeSelect) ui.objectPresetDiffModeSelect.style.display = isDiff ? "" : "none";
+
+                    if (ui.objectPresetLabelInput && !ui.objectPresetLabelInput.value.trim()) {
+                        if (isStreak) ui.objectPresetLabelInput.value = "Подряд x <";
+                        else if (isDiff) ui.objectPresetLabelInput.value = "Diff: mainEMA > shiftedEMA";
+                        else if (isCharter) ui.objectPresetLabelInput.value = "Устав";
+                    }
+                };
+
+                const openPresetObjectEditor = (presetType = "streak_lt", override = {}) => {
+                    const draft = buildPresetObjectDraft(presetType, override);
+                    console.debug("[MEP][ConditionObjects][UI] openPresetObjectEditor", {
+                        presetType,
+                        override,
+                        draft: {
+                            id: draft?.id || "",
+                            type: draft?.type || "",
+                            source: draft?.source || "",
+                            threshold: draft?.params?.threshold,
+                        },
+                    });
+                    const existing = MEP.ConditionObjects.get(draft.id);
+                    if (existing) {
+                        openObjectEditor(existing);
+                        if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = `Объект ${draft.id} уже существует, открыт режим редактирования`;
+                        return;
+                    }
+                    openObjectEditor(null);
+                    if (ui.objectPresetTypeSelect) ui.objectPresetTypeSelect.value = (presetType || "streak_lt").toString();
+                    if (ui.objectPresetStrategyIdSelect) ui.objectPresetStrategyIdSelect.value = draft.strategyId || "strategy1";
+                    syncPresetInputsByType();
+                    if (ui.objectPresetThresholdInput && typeof override.threshold !== "undefined")
+                        ui.objectPresetThresholdInput.value = String(Math.max(1, Math.floor(Number(override.threshold) || 3)));
+                    if (ui.objectPresetLabelInput)
+                        ui.objectPresetLabelInput.value = (
+                            override.label ||
+                            (presetType === "charter"
+                                ? "Устав"
+                                : presetType === "diff_vector_state"
+                                  ? "Diff: mainEMA > shiftedEMA"
+                                  : "Подряд x <")
+                        ).toString();
+                    if (ui.objectPresetGroupIdInput) ui.objectPresetGroupIdInput.value = (override.groupId || "streak_lt").toString();
+                    if (ui.objectPresetGroupModeSelect) ui.objectPresetGroupModeSelect.value = (override.groupMode || "single").toString();
+                    if (ui.objectPresetDiffModeSelect) ui.objectPresetDiffModeSelect.value = (override.diffMode || override.mode || "gt").toString();
+                    if (ui.objectPresetEnabledInput) ui.objectPresetEnabledInput.checked = override.enabled !== false;
+                    applyPresetToObjectForm(presetType, override);
+                };
+
+                const refreshObjectsFromDb = async () => {
+                    try {
+                        console.debug("[MEP][ConditionObjects][UI] refreshObjectsFromDb start");
+                        const loaded = await MEP.ConditionObjects.loadFromDb("settings_tab_objects");
+                        console.debug("[MEP][ConditionObjects][UI] refreshObjectsFromDb loaded", {
+                            count: Array.isArray(loaded) ? loaded.length : 0,
+                            items: (loaded || []).map((it) => ({ id: it?.id || "", type: it?.type || "" })),
+                        });
+                        console.debug("[MEP][ConditionObjects][UI] refreshObjectsFromDb renderObjectsList call");
+                        renderObjectsList();
+                        console.debug("[MEP][ConditionObjects][UI] refreshObjectsFromDb renderStrategy1MinimalUi trigger");
+                        MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                    } catch (e) {
+                        console.warn("[MEP][ConditionObjects][UI] refreshObjectsFromDb failed", e);
+                        if (ui.objectsList) ui.objectsList.innerHTML = `<div class="mep-objects-empty">Ошибка загрузки объектов</div>`;
+                    }
+                };
+
                 const openSettings = async () => {
                     if (!ui.settingsOverlay) return;
 
@@ -9368,11 +10670,13 @@
                     if (ui.gamesInput) ui.gamesInput.value = MEP.Settings.getSupportedGamesText();
 
                     ui.settingsOverlay.style.display = "flex";
+                    setSettingsTab("settings");
                 };
 
                 const closeSettings = () => {
                     if (!ui.settingsOverlay) return;
                     ui.settingsOverlay.style.display = "none";
+                    closeObjectEditor();
                 };
 
                 // open
@@ -9385,6 +10689,140 @@
                 // click outside modal
                 ui.settingsOverlay?.addEventListener("click", (e) => {
                     if (e.target === ui.settingsOverlay) closeSettings();
+                });
+                for (const btn of ui.settingsTabButtons || []) {
+                    btn.addEventListener("click", async () => {
+                        const tab = btn.dataset.tab || "settings";
+                        setSettingsTab(tab);
+                        if (tab === "objects") await refreshObjectsFromDb();
+                    });
+                }
+
+                ui.objectsRefreshBtn?.addEventListener("click", refreshObjectsFromDb);
+                const getObjectsContextStrategyId = () =>
+                    (ui.objectsStrategyContextSelect?.value || ui.objectPresetStrategyIdSelect?.value || "strategy1").toString().trim().toLowerCase() ||
+                    "strategy1";
+                ui.objectsAddBtn?.addEventListener("click", () => openObjectEditor({ strategyId: getObjectsContextStrategyId() }));
+                ui.quickStreak2Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 2, strategyId: getObjectsContextStrategyId() }));
+                ui.quickStreak3Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 3, strategyId: getObjectsContextStrategyId() }));
+                ui.quickStreak4Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 4, strategyId: getObjectsContextStrategyId() }));
+                ui.quickStreak5Btn?.addEventListener("click", () => openPresetObjectEditor("streak_lt", { threshold: 5, strategyId: getObjectsContextStrategyId() }));
+                ui.quickCharterBtn?.addEventListener("click", () => openPresetObjectEditor("charter", { strategyId: getObjectsContextStrategyId() }));
+                ui.objectsList?.addEventListener("click", (e) => {
+                    const editBtn = e.target?.closest?.("button.mep-object-edit");
+                    const deleteBtn = e.target?.closest?.("button.mep-object-delete");
+                    const id = (editBtn?.getAttribute("data-object-id") || deleteBtn?.getAttribute("data-object-id") || "").trim();
+                    if (!id) return;
+                    const obj = MEP.ConditionObjects.get(id);
+                    if (!obj) return;
+                    if (editBtn) {
+                        openObjectEditor(obj);
+                        return;
+                    }
+                    if (deleteBtn) {
+                        const ok = window.confirm(`Удалить объект ${id}?`);
+                        if (!ok) return;
+                        MEP.ConditionObjects.remove(id)
+                            .then((deleted) => {
+                                if (!deleted) throw new Error("Удаление не подтверждено backend");
+                                const strategyId = (obj?.strategyId || "strategy1").toString().trim().toLowerCase();
+                                let changed = false;
+                                changed = MEP.UI.removeConditionIdFromStrategyPool(strategyId, id) || changed;
+                                if (changed) MEP.Storage.save();
+                                refreshObjectsFromDb();
+                            })
+                            .catch((err) => {
+                                if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = `Ошибка удаления: ${err?.message || err}`;
+                            });
+                    }
+                });
+                ui.objectModalCloseBtn?.addEventListener("click", closeObjectEditor);
+                ui.objectCancelBtn?.addEventListener("click", closeObjectEditor);
+                ui.objectOverlay?.addEventListener("click", (e) => {
+                    if (e.target === ui.objectOverlay) closeObjectEditor();
+                });
+                ui.objectPresetTypeSelect?.addEventListener("change", syncPresetInputsByType);
+                ui.objectsStrategyContextSelect?.addEventListener("change", () => {
+                    if (ui.objectPresetStrategyIdSelect) ui.objectPresetStrategyIdSelect.value = ui.objectsStrategyContextSelect.value || "strategy1";
+                });
+                ui.objectPresetApplyBtn?.addEventListener("click", () => {
+                    const presetType = (ui.objectPresetTypeSelect?.value || "streak_lt").trim().toLowerCase();
+                    const threshold = Math.max(1, Math.floor(Number(ui.objectPresetThresholdInput?.value) || 3));
+                    const diffMode = (ui.objectPresetDiffModeSelect?.value || "gt").trim();
+                    const override = {
+                        threshold,
+                        strategyId: (ui.objectPresetStrategyIdSelect?.value || getObjectsContextStrategyId() || "strategy1").trim(),
+                        label: (ui.objectPresetLabelInput?.value || "").trim(),
+                        groupId: (ui.objectPresetGroupIdInput?.value || "").trim(),
+                        groupMode: (ui.objectPresetGroupModeSelect?.value || "single").trim(),
+                        enabled: !!ui.objectPresetEnabledInput?.checked,
+                    };
+                    if (presetType === "diff_vector_state") override.diffMode = diffMode;
+                    console.debug("[MEP][ConditionObjects][UI] preset apply click", { presetType, override });
+                    const draft = applyPresetToObjectForm(presetType, override);
+                    console.debug("[MEP][ConditionObjects][UI] preset apply draft result", {
+                        id: draft?.id || "",
+                        type: draft?.type || "",
+                        source: draft?.source || "",
+                        threshold: draft?.params?.threshold,
+                    });
+                    const existing = MEP.ConditionObjects.get(draft.id);
+                    if (existing) {
+                        if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = `Объект ${draft.id} уже существует: сохранение обновит его`;
+                    } else if (ui.objectEditorMsg) {
+                        ui.objectEditorMsg.textContent = `Preset подставлен: ${draft.id}`;
+                    }
+                });
+                ui.objectTypeInput?.addEventListener("input", () => {
+                    const type = (ui.objectTypeInput?.value || "").trim().toLowerCase();
+                    const currentSource = getObjectSourceFromUi();
+                    const nextSource = currentSource || MEP.ConditionObjects.getDefaultSourceForType(type) || "";
+                    renderObjectSourceOptions(nextSource, type);
+                    if (type === "diff_vector_state") {
+                        if (ui.objectSourceSelect && !ui.objectSourceSelect.value) ui.objectSourceSelect.value = "diff.vector.state";
+                        if (ui.objectLabelInput && !ui.objectLabelInput.value.trim()) ui.objectLabelInput.value = "Diff: mainEMA > shiftedEMA";
+                    }
+                });
+                ui.objectSourceSelect?.addEventListener("change", () => {
+                    if ((ui.objectSourceSelect?.value || "").trim()) {
+                        if (ui.objectSourceCustomInput) ui.objectSourceCustomInput.value = "";
+                    }
+                });
+                ui.objectSaveBtn?.addEventListener("click", async () => {
+                    try {
+                        const obj = {
+                            id: (ui.objectIdInput?.value || "").trim(),
+                            type: (ui.objectTypeInput?.value || "").trim(),
+                            strategyId: (ui.objectStrategyIdSelect?.value || "strategy1").trim(),
+                            source: getObjectSourceFromUi(),
+                            label: (ui.objectLabelInput?.value || "").trim(),
+                            groupId: (ui.objectGroupIdInput?.value || "").trim(),
+                            groupMode: (ui.objectGroupModeSelect?.value || "single").trim(),
+                            enabled: !!ui.objectEnabledInput?.checked,
+                            params: parseJsonField(ui.objectParamsInput?.value || "{}", {}),
+                            ui: parseJsonField(ui.objectUiInput?.value || "{}", {}),
+                            runtimeDefaults: parseJsonField(ui.objectRuntimeInput?.value || "{}", {}),
+                        };
+                        if (obj.type === "diff_vector_state") {
+                            const m = (ui.objectDiffModeSelect?.value || obj?.params?.mode || "gt").toString().trim().toLowerCase();
+                            obj.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                        }
+                        console.debug("[MEP][ConditionObjects][UI] modal save click: object draft", obj);
+                        const vr = MEP.ConditionObjects.validateConditionObject(obj);
+                        console.debug("[MEP][ConditionObjects][UI] modal save click: validate result", vr);
+                        if (!vr.ok) throw new Error(vr.error || "validation failed");
+                        console.debug("[MEP][ConditionObjects][UI] modal save click: saveToDb call", {
+                            endpoint: (MEP.Settings.getEndpoint?.() ?? "").toString().trim(),
+                            reason: ui._objectEditId ? "object_update_modal" : "object_create_modal",
+                            payloadObject: vr.value,
+                        });
+                        await MEP.ConditionObjects.saveToDb(vr.value, ui._objectEditId ? "object_update_modal" : "object_create_modal");
+                        await refreshObjectsFromDb();
+                        closeObjectEditor();
+                    } catch (e) {
+                        console.warn("[MEP][ConditionObjects][UI] modal save click failed", e);
+                        if (ui.objectEditorMsg) ui.objectEditorMsg.textContent = `Ошибка: ${e?.message || e}`;
+                    }
                 });
 
                 // save settings
@@ -10981,6 +12419,13 @@
                 // звуки из настроек (сразу при старте)
                 try {
                     MEP.Sound?.loadFromSettings?.();
+                } catch (e) {}
+
+                // bridge-step: подгрузим реестр объектов для первой живой строки Strategy1
+                try {
+                    MEP.ConditionObjects?.loadFromDb?.("strategy1_bridge_boot")
+                        ?.then(() => MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1")))
+                        ?.catch(() => {});
                 } catch (e) {}
 
                 MEP.UI.rebuildTrackingTable();

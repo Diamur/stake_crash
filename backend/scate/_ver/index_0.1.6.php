@@ -201,6 +201,79 @@ if ($action === 'settings_get') {
     ]);
 }
 
+// --- objects_list ---
+// action=objects_list
+// device_id: string
+if ($action === 'objects_list') {
+    $deviceId = trim((string)($input['device_id'] ?? ''));
+    if ($deviceId === '') {
+        json_response(['ok' => false, 'error' => 'device_id required'], 400);
+    }
+    $items = condition_objects_list($deviceId);
+    json_response([
+        'ok' => true,
+        'device_id' => $deviceId,
+        'items' => $items,
+    ]);
+}
+
+// --- object_get ---
+// action=object_get
+// device_id: string
+// object_id: string
+if ($action === 'object_get') {
+    $deviceId = trim((string)($input['device_id'] ?? ''));
+    $objectId = trim((string)($input['object_id'] ?? ''));
+    if ($deviceId === '' || $objectId === '') {
+        json_response(['ok' => false, 'error' => 'device_id + object_id required'], 400);
+    }
+    $obj = condition_object_get($deviceId, $objectId);
+    json_response([
+        'ok' => true,
+        'found' => is_array($obj),
+        'item' => $obj,
+    ]);
+}
+
+// --- object_save ---
+// action=object_save
+// device_id: string
+// object: object
+if ($action === 'object_save') {
+    $deviceId = trim((string)($input['device_id'] ?? ''));
+    $object = $input['object'] ?? null;
+    if ($deviceId === '' || !is_array($object)) {
+        json_response(['ok' => false, 'error' => 'device_id + object required'], 400);
+    }
+    if (!condition_object_save($deviceId, $object)) {
+        json_response(['ok' => false, 'error' => 'object_save failed'], 400);
+    }
+    json_response([
+        'ok' => true,
+        'device_id' => $deviceId,
+        'object_id' => (string)($object['id'] ?? ''),
+    ]);
+}
+
+// --- object_delete ---
+// action=object_delete
+// device_id: string
+// object_id: string
+if ($action === 'object_delete') {
+    $deviceId = trim((string)($input['device_id'] ?? ''));
+    $objectId = trim((string)($input['object_id'] ?? ''));
+    if ($deviceId === '' || $objectId === '') {
+        json_response(['ok' => false, 'error' => 'device_id + object_id required'], 400);
+    }
+    $deleted = condition_object_delete($deviceId, $objectId);
+    json_response([
+        'ok' => true,
+        'deleted' => $deleted,
+        'device_id' => $deviceId,
+        'object_id' => $objectId,
+    ]);
+}
+
 // --- неизвестное действие ---
 json_response([
     'ok' => false,
