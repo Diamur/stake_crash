@@ -370,3 +370,9 @@
 - В `renderStrategy1ConditionBridge` строка `strategy_enabled` вставлена первой, перед `Устав`.
 - UI сделан locked/non-disable: вместо интерактивного checkbox используется неинтерактивный индикатор `.mep-strategy1-cond-lock-indicator`.
 - Версии повышены: `crash.js 0.1.5.72` (header + `MEP.ver`) и `crash.css 0.1.5.72`.
+- 2026-04-04: В Strategy1 local minimal pool добавлен новый блок `stake_players_vector_state` (`label: Clients`, `mode: gt/lt/flat`, без registry/DB).
+- Добавлены short-label helper'ы `getStakePlayersVectorShortLabelByState/Mode` в формате `mEMA > sEMA | mEMA < sEMA | flat`.
+- В `evaluateConditionBlocks()` добавлена ветка `stake_players_vector_state` по runtime-источнику `MEP.State.stakePlayersVectorState`.
+- В `renderStrategy1ConditionBridge` добавлена строка `Clients` после `Freq line` с toggle + vector-mode select + currentValue + result.
+- Добавлены `setStrategy1StakePlayersMode()` и bind для `select.mep-strategy1-cond-stake-players-mode`.
+- Версии повышены: `crash.js 0.1.5.73` (header + `MEP.ver`) и `crash.css 0.1.5.73`.
