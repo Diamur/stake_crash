@@ -358,3 +358,9 @@
 - В bind добавлен `applyTrackingCollapse()` и click-handler кнопки с сохранением состояния.
 - В collapsed скрываются `.mep-track-wrap` и `.mep-track-count`, header и кнопка остаются видимыми.
 - Версии повышены: `crash.js 0.1.5.70` (header + `MEP.ver`) и `crash.css 0.1.5.70`.
+- 2026-04-04: Для `График ставок` добавлены ручные цвета основных линий: `stakeGraphPlayersColor` и `stakeGraphBetColor`.
+- В stake-params добавлены color-контролы: `mep-stake-color-players` и `mep-stake-color-bet`.
+- Рендер основныйх series в `MEP.StakeGraph.render()` переведён с hardcoded цветов на state-цвета.
+- Легенда `.mep-stake-legend-players/.mep-stake-legend-bets` теперь синхронизируется с выбранными state-цветами.
+- Новые поля добавлены в `MEP.Storage.save/load` (localStorage + cookie) и в bind handlers с save+rerender.
+- Версии повышены: `crash.js 0.1.5.71` (header + `MEP.ver`) и `crash.css 0.1.5.71`.

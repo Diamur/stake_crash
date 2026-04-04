@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.70";
+		MEP.ver = "0.1.5.71";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -1103,6 +1103,8 @@
                     stakeGraphAutoHeight: MEP.State.stakeGraphAutoHeight,
                     stakeGraphPlayersScale: MEP.State.stakeGraphPlayersScale,
                     stakeGraphBetScale: MEP.State.stakeGraphBetScale,
+                    stakeGraphPlayersColor: MEP.State.stakeGraphPlayersColor,
+                    stakeGraphBetColor: MEP.State.stakeGraphBetColor,
                     stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
                     stakeGraphShowBet: MEP.State.stakeGraphShowBet,
                     stakePlayersVectorEnabled: MEP.State.stakePlayersVectorEnabled,
@@ -1204,6 +1206,8 @@
                         if (typeof data.stakeGraphAutoHeight === "boolean") MEP.State.stakeGraphAutoHeight = data.stakeGraphAutoHeight;
                         if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
                         if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
+                        if (typeof data.stakeGraphPlayersColor === "string") MEP.State.stakeGraphPlayersColor = data.stakeGraphPlayersColor;
+                        if (typeof data.stakeGraphBetColor === "string") MEP.State.stakeGraphBetColor = data.stakeGraphBetColor;
                         if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                         if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                         if (typeof data.stakePlayersVectorEnabled === "boolean") MEP.State.stakePlayersVectorEnabled = data.stakePlayersVectorEnabled;
@@ -1308,6 +1312,8 @@
                     if (typeof data.stakeGraphAutoHeight === "boolean") MEP.State.stakeGraphAutoHeight = data.stakeGraphAutoHeight;
                     if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
                     if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
+                    if (typeof data.stakeGraphPlayersColor === "string") MEP.State.stakeGraphPlayersColor = data.stakeGraphPlayersColor;
+                    if (typeof data.stakeGraphBetColor === "string") MEP.State.stakeGraphBetColor = data.stakeGraphBetColor;
                     if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                     if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                     if (typeof data.stakePlayersVectorEnabled === "boolean") MEP.State.stakePlayersVectorEnabled = data.stakePlayersVectorEnabled;
@@ -2576,7 +2582,9 @@
 				outline:none;
 				}
 				#${PANEL_ID} input.mep-stake-scale-players,
-				#${PANEL_ID} input.mep-stake-scale-bet{
+				#${PANEL_ID} input.mep-stake-scale-bet,
+				#${PANEL_ID} input.mep-stake-color-players,
+				#${PANEL_ID} input.mep-stake-color-bet{
 				width:58px;
 				border-radius:8px;
 				border: 1px solid rgba(255,255,255,0.10);
@@ -2585,6 +2593,12 @@
 				padding: 0 8px;
 				font-size:12px;
 				outline:none;
+				}
+				#${PANEL_ID} input.mep-stake-color-players,
+				#${PANEL_ID} input.mep-stake-color-bet{
+				padding: 0;
+				height: 24px;
+				width: 36px;
 				}
 				#${PANEL_ID} .mep-stake-sync-label{
 				display:inline-flex;
@@ -3275,6 +3289,8 @@
             stakeGraphAutoHeight: !!MEP.stakeGraphAutoHeight,
             stakeGraphPlayersScale: typeof MEP.stakeGraphPlayersScale === "number" ? MEP.stakeGraphPlayersScale : 1,
             stakeGraphBetScale: typeof MEP.stakeGraphBetScale === "number" ? MEP.stakeGraphBetScale : 10,
+            stakeGraphPlayersColor: typeof MEP.stakeGraphPlayersColor === "string" ? MEP.stakeGraphPlayersColor : "#52d56a",
+            stakeGraphBetColor: typeof MEP.stakeGraphBetColor === "string" ? MEP.stakeGraphBetColor : "#ffad3c",
             stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
             stakeGraphShowBet: ("stakeGraphShowBet" in MEP) ? !!MEP.stakeGraphShowBet : true,
             stakePlayersVectorEnabled: ("stakePlayersVectorEnabled" in MEP) ? !!MEP.stakePlayersVectorEnabled : true,
@@ -4675,6 +4691,10 @@
                 const betsScaledView = betsRealView.map((v) => v * betScale); // только для рендера
                 const showPlayers = MEP.State.stakeGraphShowPlayers !== false;
                 const showBet = MEP.State.stakeGraphShowBet !== false;
+                const playersLineColor = (MEP.State.stakeGraphPlayersColor || "#52d56a").toString();
+                const betLineColor = (MEP.State.stakeGraphBetColor || "#ffad3c").toString();
+                if (ui.stakeLegendPlayersLine) ui.stakeLegendPlayersLine.style.background = playersLineColor;
+                if (ui.stakeLegendBetLine) ui.stakeLegendBetLine.style.background = betLineColor;
                 const autoHeight = !!MEP.State.stakeGraphAutoHeight;
                 const vbW = 100;
                 const vbH = 60;
@@ -4762,8 +4782,8 @@
                     svg.appendChild(pl);
                 };
 
-                if (showPlayers) makePolyline(playersPts, "rgba(112,206,255,0.95)");
-                if (showBet) makePolyline(betsPts, "rgba(255,170,60,0.95)");
+                if (showPlayers) makePolyline(playersPts, playersLineColor);
+                if (showBet) makePolyline(betsPts, betLineColor);
                 const renderPlayersVectors = showPlayers && MEP.State.stakePlayersVectorEnabled;
                 const renderBetVectors = showBet && MEP.State.stakeBetVectorEnabled;
                 if (renderPlayersVectors) {
@@ -8900,6 +8920,8 @@
             <label class="mep-stake-sync-label"><input class="mep-stake-auto-height" type="checkbox" /><span>Автовысота</span></label>
             <label class="mep-stake-density-label">Клиенты масштаб<input class="mep-stake-scale-players" type="number" min="0" step="0.1" value="1" /></label>
             <label class="mep-stake-density-label">Ставки масштаб<input class="mep-stake-scale-bet" type="number" min="0" step="0.1" value="10" /></label>
+            <label class="mep-stake-density-label">Клиенты цвет<input class="mep-stake-color-players" type="color" value="#52d56a" /></label>
+            <label class="mep-stake-density-label">Ставка цвет<input class="mep-stake-color-bet" type="color" value="#ffad3c" /></label>
         </div>
         <div class="mep-stake-vector-row">
             <label class="mep-stake-vector-label"><input class="mep-stake-players-vector-enabled" type="checkbox" checked /><span>Клиенты вектор</span></label>
@@ -9419,8 +9441,12 @@
                     stakeAutoHeightInput: panel.querySelector("input.mep-stake-auto-height"),
                     stakePlayersScaleInput: panel.querySelector("input.mep-stake-scale-players"),
                     stakeBetScaleInput: panel.querySelector("input.mep-stake-scale-bet"),
+                    stakePlayersColorInput: panel.querySelector("input.mep-stake-color-players"),
+                    stakeBetColorInput: panel.querySelector("input.mep-stake-color-bet"),
                     stakeShowPlayersInput: panel.querySelector("input.mep-stake-show-players"),
                     stakeShowBetInput: panel.querySelector("input.mep-stake-show-bet"),
+                    stakeLegendPlayersLine: panel.querySelector(".mep-stake-legend-line.mep-stake-legend-players"),
+                    stakeLegendBetLine: panel.querySelector(".mep-stake-legend-line.mep-stake-legend-bets"),
                     stakePlayersVectorEnabledInput: panel.querySelector("input.mep-stake-players-vector-enabled"),
                     stakePlayersVectorPeriodInput: panel.querySelector("input.mep-stake-players-vector-period"),
                     stakePlayersVectorShiftInput: panel.querySelector("input.mep-stake-players-vector-shift"),
@@ -9999,6 +10025,35 @@
                         if (!Number.isFinite(n) || n < 0) n = 10;
                         ui.stakeBetScaleInput.value = String(n);
                         MEP.State.stakeGraphBetScale = n;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
+                const normalizeStakeColor = (value, fallback) => {
+                    const raw = (value || "").toString().trim();
+                    return /^#[0-9a-fA-F]{6}$/.test(raw) ? raw : fallback;
+                };
+                if (ui.stakePlayersColorInput) {
+                    const current = normalizeStakeColor(MEP.State.stakeGraphPlayersColor, "#52d56a");
+                    MEP.State.stakeGraphPlayersColor = current;
+                    ui.stakePlayersColorInput.value = current;
+                    ui.stakePlayersColorInput.addEventListener("input", () => {
+                        const v = normalizeStakeColor(ui.stakePlayersColorInput.value, "#52d56a");
+                        MEP.State.stakeGraphPlayersColor = v;
+                        ui.stakePlayersColorInput.value = v;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakeBetColorInput) {
+                    const current = normalizeStakeColor(MEP.State.stakeGraphBetColor, "#ffad3c");
+                    MEP.State.stakeGraphBetColor = current;
+                    ui.stakeBetColorInput.value = current;
+                    ui.stakeBetColorInput.addEventListener("input", () => {
+                        const v = normalizeStakeColor(ui.stakeBetColorInput.value, "#ffad3c");
+                        MEP.State.stakeGraphBetColor = v;
+                        ui.stakeBetColorInput.value = v;
                         MEP.Storage.save();
                         MEP.StakeGraph?.render?.();
                     });
