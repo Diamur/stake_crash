@@ -295,3 +295,7 @@
 - В object-editor строки параметров переведены в формат "название + поле" на одной строке (`.mep-object-editor-row` grid 132px/auto).
 - JSON поля (`params/ui/runtimeDefaults`) сделаны сворачиваемыми через toggle-кнопки (`▸/▾`), по умолчанию скрыты при открытии редактора.
 - Версии обновлены: `crash.js 0.1.5.56` (шапка + `MEP.ver`) и `crash.css 0.1.5.33`.
+- 2026-04-04: Strategy1 condition pool переведён на встроенные `config.conditionBlocks` (charter/streak_lt/diff_vector_state) без зависимости от ConditionObjects registry.
+- В mini-pool Strategy1 оставлен ровно один блок каждого типа: toggle + threshold для `streak_lt` + mode (`gt/lt/flat`) для `diff_vector_state`.
+- UI подписи укорочены: `Diff`, `mEMA > sEMA`, `mEMA < sEMA`, `false`; текущее значение diff в currentValue показывается в этих же short-label.
+- Добавлена локальная оценка `Strategy1.checkConditions()/evaluateConditionBlocks()` по новым жёстким блокам с persistence через `strategy1Config` в `MEP.Storage`.

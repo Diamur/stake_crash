@@ -210,6 +210,27 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
 
+        const buildStrategy1ConditionBlocksDefault = () => ({
+            charter: {
+                type: "charter",
+                enabled: true,
+                label: "Устав",
+                params: {},
+            },
+            streak_lt: {
+                type: "streak_lt",
+                enabled: true,
+                label: "Подряд",
+                params: { threshold: 3 },
+            },
+            diff_vector_state: {
+                type: "diff_vector_state",
+                enabled: false,
+                label: "Diff",
+                params: { mode: "gt" },
+            },
+        });
+
         const buildStrategy1DefaultState = () => ({
             id: "strategy1",
             name: "Стратегия1",
@@ -219,6 +240,7 @@
             config: {
                 riskPercent: 0,
                 conditionPoolIds: [],
+                conditionBlocks: buildStrategy1ConditionBlocksDefault(),
                 startStakeMode: "fixed",
                 startStakeValue: 0,
                 startStakeArrayText: "",
@@ -3076,7 +3098,7 @@
         .mep-strategy1-condition-row{
         margin-top:0px;
         display:grid;
-        grid-template-columns: 112px 1fr 84px 96px;
+        grid-template-columns: 34px 1fr 120px 96px;
         align-items:center;
         gap:0px;
         border:1px dashed rgba(255,255,255,.24);
@@ -3140,6 +3162,23 @@
         letter-spacing:.15px;
         }
         .mep-strategy1-cond-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f5f8fc;}
+        .mep-strategy1-cond-title{display:inline-block;min-width:46px;}
+        .mep-strategy1-cond-inline{display:inline-block;margin:0 6px 0 2px;color:#f5f8fc;}
+        .mep-strategy1-cond-threshold{
+        width:56px;
+        height:24px;
+        background:rgba(255,255,255,.16);
+        border:1px solid rgba(255,255,255,.42);
+        color:#fff;
+        text-align:center;
+        }
+        .mep-strategy1-cond-diff-mode{
+        width:126px;
+        height:24px;
+        background:rgba(255,255,255,.16);
+        border:1px solid rgba(255,255,255,.42);
+        color:#fff;
+        }
         .mep-strategy1-cond-current{color:#ffd98f;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .mep-strategy1-cond-result{text-align:right;font-weight:700;white-space:nowrap;}
         .mep-strategy1-cond-result.is-true{color:#00ff57;}
@@ -5514,6 +5553,94 @@
                 return MEP.State?.strategies?.strategy1 || null;
             },
 
+            ensureConditionBlocks(st = null) {
+                const state = st || this.getState();
+                if (!state) return buildStrategy1ConditionBlocksDefault();
+                const cfg = state.config && typeof state.config === "object" ? state.config : (state.config = {});
+                const src = cfg.conditionBlocks && typeof cfg.conditionBlocks === "object" ? cfg.conditionBlocks : {};
+                const d = buildStrategy1ConditionBlocksDefault();
+                const toBool = (v, fallback) => (v === undefined ? !!fallback : !!v);
+                const toThreshold = (v) => {
+                    const n = Math.floor(Number(v));
+                    return Number.isFinite(n) ? Math.max(0, n) : 3;
+                };
+                const toMode = (v) => {
+                    const m = (v ?? "gt").toString().trim().toLowerCase();
+                    return m === "lt" || m === "flat" ? m : "gt";
+                };
+                const out = {
+                    charter: {
+                        type: "charter",
+                        enabled: toBool(src?.charter?.enabled, d.charter.enabled),
+                        label: "Устав",
+                        params: {},
+                    },
+                    streak_lt: {
+                        type: "streak_lt",
+                        enabled: toBool(src?.streak_lt?.enabled, d.streak_lt.enabled),
+                        label: "Подряд",
+                        params: { threshold: toThreshold(src?.streak_lt?.params?.threshold ?? d.streak_lt.params.threshold) },
+                    },
+                    diff_vector_state: {
+                        type: "diff_vector_state",
+                        enabled: toBool(src?.diff_vector_state?.enabled, d.diff_vector_state.enabled),
+                        label: "Diff",
+                        params: { mode: toMode(src?.diff_vector_state?.params?.mode ?? d.diff_vector_state.params.mode) },
+                    },
+                };
+                cfg.conditionBlocks = out;
+                return out;
+            },
+
+            getDiffVectorShortLabelByState(state = "") {
+                const s = (state || "").toString().trim().toLowerCase();
+                if (s === "up") return "mEMA > sEMA";
+                if (s === "down") return "mEMA < sEMA";
+                return "false";
+            },
+
+            getDiffVectorShortLabelByMode(mode = "") {
+                const m = (mode || "").toString().trim().toLowerCase();
+                if (m === "lt") return "mEMA < sEMA";
+                if (m === "flat") return "false";
+                return "mEMA > sEMA";
+            },
+
+            evaluateConditionBlocks(st = null) {
+                const state = st || this.getState();
+                const blocks = this.ensureConditionBlocks(state);
+                const out = [];
+
+                const charterAllowed = state?.charterCheck?.allowed !== false;
+                out.push({
+                    key: "charter",
+                    enabled: !!blocks.charter.enabled,
+                    currentValue: charterAllowed ? "allowed" : "blocked",
+                    result: !!charterAllowed,
+                });
+
+                const threshold = Math.max(0, Math.floor(Number(blocks?.streak_lt?.params?.threshold) || 0));
+                const streakValue = MEP.Utils.countStreakLT(Math.max(0, threshold || 0));
+                out.push({
+                    key: "streak_lt",
+                    enabled: !!blocks.streak_lt.enabled,
+                    currentValue: Number.isFinite(streakValue) ? streakValue : 0,
+                    result: Number.isFinite(streakValue) ? streakValue >= threshold : false,
+                });
+
+                const mode = (blocks?.diff_vector_state?.params?.mode || "gt").toString();
+                const diffState = (MEP.State?.diffVectorState || "flat").toString().trim().toLowerCase();
+                const diffResult = mode === "lt" ? diffState === "down" : mode === "flat" ? diffState === "flat" : diffState === "up";
+                out.push({
+                    key: "diff_vector_state",
+                    enabled: !!blocks.diff_vector_state.enabled,
+                    currentValue: this.getDiffVectorShortLabelByState(diffState),
+                    result: !!diffResult,
+                });
+
+                return out;
+            },
+
             pushSystemMessage(input = {}) {
                 const st = this.getState();
                 if (!st) return null;
@@ -6311,6 +6438,7 @@
             init() {
                 const st = this.getState();
                 if (!st) return;
+                this.ensureConditionBlocks(st);
                 this.buildStakePlan();
                 this.evaluateDecisionState();
                 this.updateUiCounters();
@@ -7212,7 +7340,20 @@
             checkConditions() {
                 const st = this.getState();
                 if (!st) return { canBet: false, shouldEndCycle: false, reason: "strategy1_not_found" };
-                const result = { ...st.conditions.lastResult };
+                const evaluated = this.evaluateConditionBlocks(st);
+                const active = evaluated.filter((it) => it.enabled);
+                const hasFalse = active.some((it) => !it.result);
+                const result = {
+                    canBet: active.length > 0 ? !hasFalse : false,
+                    shouldEndCycle: false,
+                    reason: active.length ? (hasFalse ? "condition_pool_false" : "") : "condition_pool_not_used",
+                    items: evaluated,
+                };
+                if (st.conditions?.lastResult) {
+                    st.conditions.lastResult.canBet = !!result.canBet;
+                    st.conditions.lastResult.shouldEndCycle = false;
+                    st.conditions.lastResult.reason = (result.reason || "").toString();
+                }
                 st.runtime.lastConditionResult = result;
                 st.runtime.lastCycleAction = "checkConditions";
                 this.updateUiCounters();
@@ -8011,30 +8152,9 @@
                 return n.toFixed(8).replace(/\.?0+$/, "").replace(".", ",");
             },
 
-            getStrategy1PoolIds(st = null) {
+            getStrategy1ConditionBlocks(st = null) {
                 const s = st || MEP.UI.getStrategyState("strategy1");
-                const cfg = s?.config && typeof s.config === "object" ? s.config : (s.config = {});
-                if (!Array.isArray(cfg.conditionPoolIds)) cfg.conditionPoolIds = [];
-                cfg.conditionPoolIds = cfg.conditionPoolIds
-                    .map((id) => (id ?? "").toString().trim())
-                    .filter(Boolean);
-                return cfg.conditionPoolIds;
-            },
-
-            getStrategy1SupportedObjects() {
-                const items = MEP.ConditionObjects.list();
-                return items.filter(
-                    (it) =>
-                        (it?.strategyId || "strategy1") === "strategy1" &&
-                        (it?.type === "streak_lt" || it?.type === "charter" || it?.type === "diff_vector_state") &&
-                        it?.enabled !== false
-                );
-            },
-
-            getStrategyObjects(strategyId = "strategy1") {
-                const id = (strategyId || "strategy1").toString().trim().toLowerCase();
-                const items = MEP.ConditionObjects.list();
-                return items.filter((it) => (it?.strategyId || "strategy1") === id);
+                return MEP.Strategy1?.ensureConditionBlocks?.(s) || buildStrategy1ConditionBlocksDefault();
             },
 
             removeConditionIdFromStrategyPool(strategyId = "strategy1", objectId = "") {
@@ -8049,198 +8169,83 @@
                 return st.config.conditionPoolIds.length !== prevLen;
             },
 
-            ensureStrategy1BridgePool(st = null) {
-                const s = st || MEP.UI.getStrategyState("strategy1");
-                if (!s) return [];
-                const pool = MEP.UI.getStrategy1PoolIds(s);
-                const cfg = s?.config && typeof s.config === "object" ? s.config : (s.config = {});
-                const supported = MEP.UI.getStrategy1SupportedObjects();
-                const byId = new Map(supported.map((it) => [it.id, it]));
-                let changed = false;
-
-                for (let i = pool.length - 1; i >= 0; i--) {
-                    if (!byId.has(pool[i])) {
-                        pool.splice(i, 1);
-                        changed = true;
-                    }
-                }
-
-                // bridge default: авто-подхват streak_lt только до первого ручного действия пользователя
-                const streakItems = supported.filter((it) => it.type === "streak_lt");
-                const hasStreakInPool = pool.some((id) => byId.get(id)?.type === "streak_lt");
-                const userTouched = cfg.conditionPoolUserTouched === true;
-                if (!userTouched && !hasStreakInPool && streakItems.length) {
-                    pool.push(streakItems[0].id);
-                    cfg.conditionPoolAutoSeeded = true;
-                    changed = true;
-                }
-
-                if (changed) MEP.Storage.save();
-                return pool;
-            },
-
-            setStrategy1ConditionEnabled(objectId, enabled) {
+            setStrategy1ConditionEnabled(blockType = "", enabled = false) {
                 const st = MEP.UI.getStrategyState("strategy1");
                 if (!st) return;
-                const id = (objectId ?? "").toString().trim();
-                if (!id) return;
-                const cfg = st?.config && typeof st.config === "object" ? st.config : (st.config = {});
-                const obj = MEP.ConditionObjects.get(id);
-                if (!obj || (obj.type !== "streak_lt" && obj.type !== "charter" && obj.type !== "diff_vector_state")) return;
-                const pool = MEP.UI.getStrategy1PoolIds(st);
-                const want = !!enabled;
-                const inPool = pool.includes(id);
-                cfg.conditionPoolUserTouched = true;
-
-                if (want && !inPool) {
-                    // single-choice group support: при groupMode=single вырубаем все из той же группы
-                    const sameGroupId = (obj.groupId || "").toString().trim();
-                    const sameGroupSingle = (obj.groupMode || "").toString().trim().toLowerCase() === "single" && !!sameGroupId;
-                    if (sameGroupSingle) {
-                        for (let i = pool.length - 1; i >= 0; i--) {
-                            const curObj = MEP.ConditionObjects.get(pool[i]);
-                            if (!curObj) continue;
-                            if ((curObj.groupId || "").toString().trim() === sameGroupId) pool.splice(i, 1);
-                        }
-                    }
-                    pool.push(id);
-                }
-                if (!want && inPool) {
-                    const idx = pool.indexOf(id);
-                    if (idx >= 0) pool.splice(idx, 1);
-                }
-
+                const type = (blockType || "").toString().trim().toLowerCase();
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                if (!blocks[type]) return;
+                blocks[type].enabled = !!enabled;
                 MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
                 MEP.UI.renderStrategy1MinimalUi(st);
             },
 
-            buildStrategy1ObjectContext(st = null) {
-                const s = st || MEP.UI.getStrategyState("strategy1");
-                const currentBalance = MEP.UI.readCurrentBalanceFromDom().amount || 0;
-                return {
-                    lt2_streak: MEP.Utils.countStreakLT(2),
-                    charter: { allowed: s?.charterCheck?.allowed !== false },
-                    balance: {
-                        start: Number(s?.runtime?.startBalanceSnapshot) || 0,
-                        current: Number(currentBalance) || 0,
-                    },
-                    ema: {
-                        diff: { state: (MEP.State.diffVectorState || "flat").toString() },
-                        frequency: { state: (MEP.State.frequencyVectorState || "flat").toString() },
-                    },
-                    diff: {
-                        vector: { state: (MEP.State.diffVectorState || "flat").toString() },
-                    },
-                    stake: {
-                        players: { state: (MEP.State.stakePlayersVectorState || "flat").toString() },
-                        bet: { state: (MEP.State.stakeBetVectorState || "flat").toString() },
-                    },
-                };
+            setStrategy1StreakThreshold(value = 0) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                let threshold = Math.floor(Number(value));
+                if (!Number.isFinite(threshold) || threshold < 0) threshold = 0;
+                blocks.streak_lt.params.threshold = threshold;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(st);
             },
 
-            formatStrategy1ConditionText(obj) {
-                if (!obj) return "—";
-                if (obj.type === "streak_lt") {
-                    const label = (obj.label || "Подряд x <").toString().trim();
-                    const threshold = Number(obj?.params?.threshold);
-                    const thresholdText = Number.isFinite(threshold) ? String(threshold) : "?";
-                    return `${label} ${thresholdText}`;
-                }
-                if (obj.type === "charter") {
-                    const label = (obj.label || "Устав").toString().trim();
-                    return label || "Устав";
-                }
-                if (obj.type === "diff_vector_state") {
-                    const mode = (obj?.params?.mode || "gt").toString().trim().toLowerCase();
-                    const text = mode === "lt" ? "mainEMA < shiftedEMA" : mode === "flat" ? "false / flat" : "mainEMA > shiftedEMA";
-                    return (obj.label || `Diff: ${text}`).toString().trim();
-                }
-                return (obj.label || obj.type || "—").toString();
+            setStrategy1DiffMode(mode = "gt") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                const m = (mode || "").toString().trim().toLowerCase();
+                blocks.diff_vector_state.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(st);
             },
 
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!ui || !s || !ui.strategy1CondListEl || !ui.strategy1CondSummaryEl) return;
-
-                const pool = MEP.UI.ensureStrategy1BridgePool(s);
-                const supported = MEP.UI.getStrategy1SupportedObjects();
-                const allObjects = MEP.ConditionObjects.list();
-                const byId = new Map(supported.map((it) => [it.id, it]));
-                const activePoolIds = pool.filter((id) => byId.has(id));
-                const context = MEP.UI.buildStrategy1ObjectContext(s);
-                console.debug("[MEP][Strategy1][ConditionBridge] render start", {
-                    registryCount: allObjects.length,
-                    registryItems: allObjects.map((it) => ({
-                        id: it?.id || "",
-                        type: it?.type || "",
-                        enabled: it?.enabled !== false,
-                        groupId: it?.groupId || "",
-                    })),
-                    supportedCount: supported.length,
-                    supportedItems: supported.map((it) => ({
-                        id: it?.id || "",
-                        type: it?.type || "",
-                        groupId: it?.groupId || "",
-                    })),
-                    poolIds: pool.slice(),
-                    activePoolIds: activePoolIds.slice(),
-                });
-
-                if (!supported.length) {
-                    console.warn("[MEP][Strategy1][ConditionBridge] no supported objects", {
-                        reason: allObjects.length ? "objects_exist_but_filtered_out" : "registry_cache_empty",
-                        registryCount: allObjects.length,
-                    });
-                    ui.strategy1CondSummaryEl.textContent = "Пул условий: not use";
-                    ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false");
-                    ui.strategy1CondSummaryEl.classList.add("is-idle");
-                    ui.strategy1CondListEl.innerHTML = `<div class="mep-strategy1-cond-empty">Нет поддержанных объектов (streak_lt / charter / diff)</div>`;
-                    return;
-                }
-
-                let activeCount = 0;
-                let hasFalse = false;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(s);
+                const evaluated = MEP.Strategy1?.evaluateConditionBlocks?.(s) || [];
+                const byKey = Object.create(null);
+                for (const it of evaluated) byKey[it.key] = it;
+                const active = evaluated.filter((it) => it.enabled);
+                const hasFalse = active.some((it) => !it.result);
                 const rows = [];
-                for (const obj of supported) {
-                    const enabledInPool = activePoolIds.includes(obj.id);
-                    const evalResult = enabledInPool
-                        ? MEP.ConditionObjects.evaluateConditionObject(obj, context)
-                        : { ok: true, result: null, sourceValue: null };
-                    const displayText = MEP.UI.formatStrategy1ConditionText(obj);
-                    let currentText = "—";
-                    if (enabledInPool && evalResult?.ok) {
-                        currentText = obj.type === "charter" ? (evalResult.sourceValue ? "allowed" : "blocked") : String(evalResult.sourceValue);
-                    }
-                    let resultText = "not use";
-                    let resultClass = "is-idle";
-                    if (enabledInPool) {
-                        activeCount++;
-                        if (evalResult?.ok) {
-                            const ok = !!evalResult.result;
-                            resultText = ok ? "true" : "false";
-                            resultClass = ok ? "is-true" : "is-false";
-                            if (!ok) hasFalse = true;
-                        } else {
-                            resultText = "error";
-                            resultClass = "is-false";
-                            hasFalse = true;
-                        }
-                    }
-                    rows.push(
-                        `<label class="mep-strategy1-condition-row">
-<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-object-id="${obj.id}" ${enabledInPool ? "checked" : ""} /><span class="mep-strategy1-cond-toggle-txt">use</span></span>
-<span class="mep-strategy1-cond-text">${displayText}</span>
-<span class="mep-strategy1-cond-current">${currentText}</span>
-<span class="mep-strategy1-cond-result ${resultClass}">${resultText}</span>
+                const threshold = Math.max(0, Math.floor(Number(blocks?.streak_lt?.params?.threshold) || 0));
+                const diffMode = (blocks?.diff_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                rows.push(
+                    `<label class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="charter" ${blocks?.charter?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text">Устав</span>
+<span class="mep-strategy1-cond-current">${byKey?.charter?.currentValue ?? "—"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.charter?.enabled ? (byKey?.charter?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.charter?.enabled ? (byKey?.charter?.result ? "true" : "false") : "not use"}</span>
 </label>`
-                    );
-                }
+                );
+                rows.push(
+                    `<label class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="streak_lt" ${blocks?.streak_lt?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Подряд</span><span class="mep-strategy1-cond-inline">x &lt;</span><input class="mep-strategy1-cond-threshold" type="number" min="0" step="1" value="${threshold}" /></span>
+<span class="mep-strategy1-cond-current">${byKey?.streak_lt?.currentValue ?? "—"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.streak_lt?.enabled ? (byKey?.streak_lt?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.streak_lt?.enabled ? (byKey?.streak_lt?.result ? "true" : "false") : "not use"}</span>
+</label>`
+                );
+                rows.push(
+                    `<label class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="diff_vector_state" ${blocks?.diff_vector_state?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Diff</span><select class="mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>false</option></select></span>
+<span class="mep-strategy1-cond-current">${byKey?.diff_vector_state?.currentValue ?? "false"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "true" : "false") : "not use"}</span>
+</label>`
+                );
                 ui.strategy1CondListEl.innerHTML = rows.join("");
 
                 let summaryText = "Пул условий: not use";
                 let summaryClass = "is-idle";
-                if (activeCount > 0) {
+                if (active.length > 0) {
                     if (hasFalse) {
                         summaryText = "Пул условий: false";
                         summaryClass = "is-false";
@@ -8252,12 +8257,6 @@
                 ui.strategy1CondSummaryEl.textContent = summaryText;
                 ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false", "is-idle");
                 ui.strategy1CondSummaryEl.classList.add(summaryClass);
-                console.debug("[MEP][Strategy1][ConditionBridge] render summary", {
-                    summaryText,
-                    summaryClass,
-                    activeCount,
-                    hasFalse,
-                });
             },
 
             renderStrategyBalanceRow(strategyId = "strategy1") {
@@ -9649,13 +9648,28 @@
                 if (ui.strategy1CondListEl && s1) {
                     ui.strategy1CondListEl.addEventListener("change", (e) => {
                         const inp = e.target?.closest?.("input.mep-strategy1-cond-enabled");
-                        if (!inp) return;
-                        const objectId = (inp.dataset.objectId || "").trim();
-                        if (!objectId) {
-                            inp.checked = false;
+                        if (inp) {
+                            const blockType = (inp.dataset.blockType || "").trim();
+                            if (!blockType) {
+                                inp.checked = false;
+                                return;
+                            }
+                            MEP.UI.setStrategy1ConditionEnabled(blockType, !!inp.checked);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                             return;
                         }
-                        MEP.UI.setStrategy1ConditionEnabled(objectId, !!inp.checked);
+                        const thresholdInput = e.target?.closest?.("input.mep-strategy1-cond-threshold");
+                        if (thresholdInput) {
+                            MEP.UI.setStrategy1StreakThreshold(thresholdInput.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
+                        const modeSelect = e.target?.closest?.("select.mep-strategy1-cond-diff-mode");
+                        if (modeSelect) {
+                            MEP.UI.setStrategy1DiffMode(modeSelect.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
                         MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                     });
                 }
