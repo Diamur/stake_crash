@@ -295,3 +295,42 @@
 - В object-editor строки параметров переведены в формат "название + поле" на одной строке (`.mep-object-editor-row` grid 132px/auto).
 - JSON поля (`params/ui/runtimeDefaults`) сделаны сворачиваемыми через toggle-кнопки (`▸/▾`), по умолчанию скрыты при открытии редактора.
 - Версии обновлены: `crash.js 0.1.5.56` (шапка + `MEP.ver`) и `crash.css 0.1.5.33`.
+- 2026-04-04: Strategy1 condition pool переведён на встроенные `config.conditionBlocks` (charter/streak_lt/diff_vector_state) без зависимости от ConditionObjects registry.
+- В mini-pool Strategy1 оставлен ровно один блок каждого типа: toggle + threshold для `streak_lt` + mode (`gt/lt/flat`) для `diff_vector_state`.
+- UI подписи укорочены: `Diff`, `mEMA > sEMA`, `mEMA < sEMA`, `false`; текущее значение diff в currentValue показывается в этих же short-label.
+- Добавлена локальная оценка `Strategy1.checkConditions()/evaluateConditionBlocks()` по новым жёстким блокам с persistence через `strategy1Config` в `MEP.Storage`.
+- 2026-04-04: Точечный фикс Strategy1 minimal pool: summary `Пул условий` перенесён в DOM после списка строк условий.
+- Убрана конфликтная обёртка `<label>` у строк mini-pool (заменено на `<div>`), чтобы Diff-select работал без ложных кликов по row-wrapper.
+- Для Diff-dropdown улучшены стили (`appearance`, `z-index`, `cursor`, `min-width`) и добавлен guard от авто-rerender во время фокуса на select/input.
+- Версии повышены: `crash.js 0.1.5.58` (header + `MEP.ver`) и `crash.css 0.1.5.58`.
+- 2026-04-04: Strategy1 Diff dropdown UX fix — `select option` сделаны контрастными (`color:#111; background:#fff`) для нативного popup.
+- В Diff-строке mini-pool select вынесен из `.mep-strategy1-cond-text` (ellipsis-контейнер) в отдельный `.mep-strategy1-cond-control`.
+- Для Diff-строки добавлен отдельный grid-layout `.mep-strategy1-condition-row.is-diff`, чтобы label/select не обрезались.
+- Версии повышены: `crash.js 0.1.5.59` (header + `MEP.ver`) и `crash.css 0.1.5.59`.
+- 2026-04-04: Strategy1 minimal pool layout fix — currentValue колонка сжата и сдвинута ближе к result.
+- Grid обновлён: обычная строка `34px 1fr 84px 96px`, Diff строка `34px 72px 1fr 84px 96px`.
+- Для `.mep-strategy1-cond-current` добавлены `justify-self:end` и `padding-right:4px` для аккуратного выравнивания.
+- Версии повышены: `crash.js 0.1.5.60` (header + `MEP.ver`) и `crash.css 0.1.5.60`.
+- 2026-04-04: Strategy1 Diff row compact fix — ширина `.mep-strategy1-cond-diff-mode` уменьшена `126px -> 92px` (min-width также `92px`).
+- Для Diff-select поджат горизонтальный padding (`0 14px 0 4px`) для более компактной третьей колонки.
+- Для `.mep-strategy1-cond-current` усилено правое выравнивание (`padding-right:6px`).
+- Версии повышены: `crash.js 0.1.5.61` (header + `MEP.ver`) и `crash.css 0.1.5.61`.
+- 2026-04-04: Применено requested распределение ширин Strategy1 mini-pool grid.
+- `.mep-strategy1-condition-row` -> `34px 1fr 1fr 0.3fr`, `.is-diff` -> `34px 72px 1fr 1fr 0.3fr`.
+- `.mep-strategy1-cond-diff-mode` расширен до `width:150px` при `min-width:92px` (прочие UX-параметры без логических изменений).
+- Версии повышены: `crash.js 0.1.5.62` (header + `MEP.ver`) и `crash.css 0.1.5.62`.
+- 2026-04-04: Strategy1 mini-pool — строка summary `Пул условий` выровнена по правому краю.
+- Для `.mep-strategy1-cond-summary` добавлены `display:flex`, `justify-content:flex-end`, `text-align:right`.
+- Версии повышены: `crash.js 0.1.5.63` (header + `MEP.ver`) и `crash.css 0.1.5.63`.
+- 2026-04-04: Strategy1 Diff currentValue fix — фактическое состояние теперь показывается как `mEMA > sEMA` / `mEMA < sEMA` / `flat` (без boolean fallback `false`).
+- В коротких label для diff обновлён flat-state: `getDiffVectorShortLabelByState/Mode` возвращают `flat`.
+- В Diff select label режима `flat` также отображается как `flat`, и fallback currentValue в рендере заменён на `flat`.
+- Версии повышены: `crash.js 0.1.5.64` (header + `MEP.ver`) и `crash.css 0.1.5.64`.
+- 2026-04-04: Добавлен безопасный reset стратегий после `MEP.Storage.load()` в `MEP.Main.resetStrategiesAfterStorageLoad()`.
+- После reload принудительно: `strategy1.enabled=false`, `strategy2.enabled=false`, `activeStrategyId=null` при сохранении всех config-полей.
+- Для Strategy1 дополнительно сбрасываются runtime/execution/cycle/counters/timers/conditions/stakePlan в дефолтное idle-состояние; для Strategy2 — runtime/timers/execution-флаги.
+- Версии повышены: `crash.js 0.1.5.65` (header + `MEP.ver`) и `crash.css 0.1.5.65`.
+- 2026-04-04: Добавлен независимый модуль `MEP.CodeSettings` (code-priority layer) с полями `endpointUrl` и `soundsText`.
+- Реализован приоритет code > storage/DB: `MEP.Settings.getEndpoint()` и `MEP.Settings.getSoundsText()` сначала читают `MEP.CodeSettings`.
+- В settings UI добавлены readonly/title-hints для endpoint/sounds при активном code override; сохранение этих полей в state пропускается при code-priority.
+- Версии повышены: `crash.js 0.1.5.66` (header + `MEP.ver`) и `crash.css 0.1.5.66`.
