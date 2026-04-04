@@ -334,3 +334,9 @@
 - Реализован приоритет code > storage/DB: `MEP.Settings.getEndpoint()` и `MEP.Settings.getSoundsText()` сначала читают `MEP.CodeSettings`.
 - В settings UI добавлены readonly/title-hints для endpoint/sounds при активном code override; сохранение этих полей в state пропускается при code-priority.
 - Версии повышены: `crash.js 0.1.5.66` (header + `MEP.ver`) и `crash.css 0.1.5.66`.
+- 2026-04-04: Strategy1 minimal pool расширен локальным блоком `frequency_vector_state` (Freq) без registry/DB изменений.
+- Добавлены short-label helper'ы `getFrequencyVectorShortLabelByState/Mode` и evaluate-ветка `frequency_vector_state` по `MEP.State.frequencyVectorState` (`up/down/flat`).
+- В `renderStrategy1ConditionBridge` добавлена строка `Freq` сразу после `Diff` с toggle + mode select + currentValue + result.
+- Добавлены `setStrategy1FrequencyMode()` и bind `select.mep-strategy1-cond-frequency-mode`; guard автоперерендера расширен на общий класс `mep-strategy1-cond-vector-mode`.
+- Стили vector-mode select унифицированы через `.mep-strategy1-cond-vector-mode` (Diff/Freq используют один стиль).
+- Версии повышены: `crash.js 0.1.5.67` (header + `MEP.ver`) и `crash.css 0.1.5.67`.

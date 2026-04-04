@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.66";
+		MEP.ver = "0.1.5.67";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -81,6 +81,12 @@
                 type: "diff_vector_state",
                 enabled: false,
                 label: "Diff",
+                params: { mode: "gt" },
+            },
+            frequency_vector_state: {
+                type: "frequency_vector_state",
+                enabled: false,
+                label: "Freq",
                 params: { mode: "gt" },
             },
         });
@@ -3058,7 +3064,7 @@
         color:#fff;
         text-align:center;
         }
-        .mep-strategy1-cond-diff-mode{
+        .mep-strategy1-cond-vector-mode{
         width:150px;
         min-width:92px;
         height:24px;
@@ -3073,7 +3079,7 @@
         z-index:3;
         pointer-events:auto;
         }
-        .mep-strategy1-cond-diff-mode option{
+        .mep-strategy1-cond-vector-mode option{
         color:#111;
         background:#fff;
         }
@@ -5485,6 +5491,12 @@
                         label: "Diff",
                         params: { mode: toMode(src?.diff_vector_state?.params?.mode ?? d.diff_vector_state.params.mode) },
                     },
+                    frequency_vector_state: {
+                        type: "frequency_vector_state",
+                        enabled: toBool(src?.frequency_vector_state?.enabled, d.frequency_vector_state.enabled),
+                        label: "Freq",
+                        params: { mode: toMode(src?.frequency_vector_state?.params?.mode ?? d.frequency_vector_state.params.mode) },
+                    },
                 };
                 cfg.conditionBlocks = out;
                 return out;
@@ -5498,6 +5510,20 @@
             },
 
             getDiffVectorShortLabelByMode(mode = "") {
+                const m = (mode || "").toString().trim().toLowerCase();
+                if (m === "lt") return "mEMA < sEMA";
+                if (m === "flat") return "flat";
+                return "mEMA > sEMA";
+            },
+
+            getFrequencyVectorShortLabelByState(state = "") {
+                const s = (state || "").toString().trim().toLowerCase();
+                if (s === "up") return "mEMA > sEMA";
+                if (s === "down") return "mEMA < sEMA";
+                return "flat";
+            },
+
+            getFrequencyVectorShortLabelByMode(mode = "") {
                 const m = (mode || "").toString().trim().toLowerCase();
                 if (m === "lt") return "mEMA < sEMA";
                 if (m === "flat") return "flat";
@@ -5534,6 +5560,16 @@
                     enabled: !!blocks.diff_vector_state.enabled,
                     currentValue: this.getDiffVectorShortLabelByState(diffState),
                     result: !!diffResult,
+                });
+
+                const freqMode = (blocks?.frequency_vector_state?.params?.mode || "gt").toString();
+                const freqState = (MEP.State?.frequencyVectorState || "flat").toString().trim().toLowerCase();
+                const freqResult = freqMode === "lt" ? freqState === "down" : freqMode === "flat" ? freqState === "flat" : freqState === "up";
+                out.push({
+                    key: "frequency_vector_state",
+                    enabled: !!blocks.frequency_vector_state.enabled,
+                    currentValue: this.getFrequencyVectorShortLabelByState(freqState),
+                    result: !!freqResult,
                 });
 
                 return out;
@@ -8099,6 +8135,16 @@
                 MEP.Strategy1?.checkConditions?.();
             },
 
+            setStrategy1FrequencyMode(mode = "gt") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                const m = (mode || "").toString().trim().toLowerCase();
+                blocks.frequency_vector_state.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
@@ -8107,7 +8153,7 @@
                 const isEditingConditionControl =
                     !!activeEl &&
                     ui.strategy1CondListEl.contains(activeEl) &&
-                    (activeEl.classList.contains("mep-strategy1-cond-diff-mode") || activeEl.classList.contains("mep-strategy1-cond-threshold"));
+                    (activeEl.classList.contains("mep-strategy1-cond-vector-mode") || activeEl.classList.contains("mep-strategy1-cond-threshold"));
                 if (isEditingConditionControl) return;
                 const blocks = MEP.UI.getStrategy1ConditionBlocks(s);
                 const evaluated = MEP.Strategy1?.evaluateConditionBlocks?.(s) || [];
@@ -8118,6 +8164,7 @@
                 const rows = [];
                 const threshold = Math.max(0, Math.floor(Number(blocks?.streak_lt?.params?.threshold) || 0));
                 const diffMode = (blocks?.diff_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const freqMode = (blocks?.frequency_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
                 rows.push(
                     `<div class="mep-strategy1-condition-row">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="charter" ${blocks?.charter?.enabled ? "checked" : ""} /></span>
@@ -8138,9 +8185,18 @@
                     `<div class="mep-strategy1-condition-row is-diff">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="diff_vector_state" ${blocks?.diff_vector_state?.enabled ? "checked" : ""} /></span>
 <span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Diff</span></span>
-<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>flat</option></select></span>
 <span class="mep-strategy1-cond-current">${byKey?.diff_vector_state?.currentValue ?? "flat"}</span>
 <span class="mep-strategy1-cond-result ${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-diff">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="frequency_vector_state" ${blocks?.frequency_vector_state?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Freq</span></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-frequency-mode"><option value="gt" ${freqMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${freqMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${freqMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-current">${byKey?.frequency_vector_state?.currentValue ?? "flat"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.frequency_vector_state?.enabled ? (byKey?.frequency_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.frequency_vector_state?.enabled ? (byKey?.frequency_vector_state?.result ? "true" : "false") : "not use"}</span>
 </div>`
                 );
                 ui.strategy1CondListEl.innerHTML = rows.join("");
@@ -9566,9 +9622,15 @@
                             MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                             return;
                         }
-                        const modeSelect = e.target?.closest?.("select.mep-strategy1-cond-diff-mode");
-                        if (modeSelect) {
-                            MEP.UI.setStrategy1DiffMode(modeSelect.value);
+                        const diffModeSelect = e.target?.closest?.("select.mep-strategy1-cond-diff-mode");
+                        if (diffModeSelect) {
+                            MEP.UI.setStrategy1DiffMode(diffModeSelect.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
+                        const frequencyModeSelect = e.target?.closest?.("select.mep-strategy1-cond-frequency-mode");
+                        if (frequencyModeSelect) {
+                            MEP.UI.setStrategy1FrequencyMode(frequencyModeSelect.value);
                             MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                             return;
                         }
