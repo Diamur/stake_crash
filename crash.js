@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.65  ====
+// === crash.js 0.1.5.66  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -428,7 +428,17 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.65";
+        MEP.ver = "0.1.5.66";
+
+        // -------------------------
+        // Static code-priority settings
+        // -------------------------
+        MEP.CodeSettings = {
+            // Если непусто -> приоритет над localStorage/DB/UI
+            endpointUrl: "",
+            // Формат: key=url (по одному на строку)
+            soundsText: "",
+        };
 
         // -------------------------
         // Settings module
@@ -515,7 +525,17 @@
                 this.save();
             },
 
+            getCodeSoundsText() {
+                return (MEP.CodeSettings?.soundsText ?? "").toString();
+            },
+
+            hasCodeSoundsText() {
+                return !!this.getCodeSoundsText().trim();
+            },
+
             getSoundsText() {
+                const codeValue = this.getCodeSoundsText();
+                if (codeValue.trim()) return codeValue;
                 return (this.state.soundsText ?? "").toString();
             },
 
@@ -717,7 +737,17 @@
                 this.save();
             },
 
+            getCodeEndpoint() {
+                return (MEP.CodeSettings?.endpointUrl ?? "").toString().trim();
+            },
+
+            hasCodeEndpoint() {
+                return !!this.getCodeEndpoint();
+            },
+
             getEndpoint() {
+                const codeValue = this.getCodeEndpoint();
+                if (codeValue) return codeValue;
                 return (this.state.endpointUrl ?? "").toString().trim();
             },
         };
@@ -10709,6 +10739,20 @@
                     }
                 };
 
+                const applyCodePriorityUi = () => {
+                    const endpointForced = !!MEP.Settings.hasCodeEndpoint?.();
+                    const soundsForced = !!MEP.Settings.hasCodeSoundsText?.();
+
+                    if (ui.endpointInput) {
+                        ui.endpointInput.readOnly = endpointForced;
+                        ui.endpointInput.title = endpointForced ? "Значение задано в коде (MEP.CodeSettings.endpointUrl)" : "";
+                    }
+                    if (ui.soundsInput) {
+                        ui.soundsInput.readOnly = soundsForced;
+                        ui.soundsInput.title = soundsForced ? "Значение задано в коде (MEP.CodeSettings.soundsText)" : "";
+                    }
+                };
+
                 const openSettings = async () => {
                     if (!ui.settingsOverlay) return;
 
@@ -10758,6 +10802,7 @@
                     // priority mode
                     if (ui.priorityModeSelect) ui.priorityModeSelect.value = MEP.Settings.getPriorityMode();
                     if (ui.gamesInput) ui.gamesInput.value = MEP.Settings.getSupportedGamesText();
+                    applyCodePriorityUi();
 
                     ui.settingsOverlay.style.display = "flex";
                     setSettingsTab("settings");
@@ -10931,7 +10976,9 @@
                     if (!btn) return;
 
                     const url = (ui.endpointInput?.value || "").trim();
-                    MEP.Settings.setEndpoint(url); // сохраняем url перед запросом
+                    if (!MEP.Settings.hasCodeEndpoint?.()) {
+                        MEP.Settings.setEndpoint(url); // сохраняем url перед запросом
+                    }
 
                     const prevText = btn.textContent || "Загрузить с БД";
                     btn.textContent = "Загрузка...";
@@ -10957,6 +11004,7 @@
                         if (ui.gamesInput) ui.gamesInput.value = MEP.Settings.getSupportedGamesText();
 
                         if (ui.historySteps) ui.historySteps.value = String(MEP.Settings.getHistorySteps());
+                        applyCodePriorityUi();
 
                         // пересоберём звуки, если надо
                         try {
@@ -10978,10 +11026,12 @@
                 // save settings
                 ui.settingsSaveBtn?.addEventListener("click", async () => {
                     const url = (ui.endpointInput?.value || "").trim();
-                    MEP.Settings.setEndpoint(url);
+                    if (!MEP.Settings.hasCodeEndpoint?.()) {
+                        MEP.Settings.setEndpoint(url);
+                    }
 
                     // sounds
-                    if (ui.soundsInput) {
+                    if (ui.soundsInput && !MEP.Settings.hasCodeSoundsText?.()) {
                         MEP.Settings.setSoundsText(ui.soundsInput.value || "");
                     }
                     if (ui.soundDefaultSelect) {
@@ -11035,7 +11085,9 @@
                     const btn = ui.testEndpointBtn;
 
                     const url = (ui.endpointInput?.value || "").trim();
-                    MEP.Settings.setEndpoint(url); // сразу сохраняем
+                    if (!MEP.Settings.hasCodeEndpoint?.()) {
+                        MEP.Settings.setEndpoint(url); // сразу сохраняем
+                    }
 
                     const prevText = btn.textContent || "Тест";
                     btn.textContent = "Тест...";

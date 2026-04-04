@@ -330,3 +330,7 @@
 - После reload принудительно: `strategy1.enabled=false`, `strategy2.enabled=false`, `activeStrategyId=null` при сохранении всех config-полей.
 - Для Strategy1 дополнительно сбрасываются runtime/execution/cycle/counters/timers/conditions/stakePlan в дефолтное idle-состояние; для Strategy2 — runtime/timers/execution-флаги.
 - Версии повышены: `crash.js 0.1.5.65` (header + `MEP.ver`) и `crash.css 0.1.5.65`.
+- 2026-04-04: Добавлен независимый модуль `MEP.CodeSettings` (code-priority layer) с полями `endpointUrl` и `soundsText`.
+- Реализован приоритет code > storage/DB: `MEP.Settings.getEndpoint()` и `MEP.Settings.getSoundsText()` сначала читают `MEP.CodeSettings`.
+- В settings UI добавлены readonly/title-hints для endpoint/sounds при активном code override; сохранение этих полей в state пропускается при code-priority.
+- Версии повышены: `crash.js 0.1.5.66` (header + `MEP.ver`) и `crash.css 0.1.5.66`.
