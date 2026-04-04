@@ -311,3 +311,7 @@
 - Grid обновлён: обычная строка `34px 1fr 84px 96px`, Diff строка `34px 72px 1fr 84px 96px`.
 - Для `.mep-strategy1-cond-current` добавлены `justify-self:end` и `padding-right:4px` для аккуратного выравнивания.
 - Версии повышены: `crash.js 0.1.5.60` (header + `MEP.ver`) и `crash.css 0.1.5.60`.
+- 2026-04-04: Strategy1 Diff row compact fix — ширина `.mep-strategy1-cond-diff-mode` уменьшена `126px -> 92px` (min-width также `92px`).
+- Для Diff-select поджат горизонтальный padding (`0 14px 0 4px`) для более компактной третьей колонки.
+- Для `.mep-strategy1-cond-current` усилено правое выравнивание (`padding-right:6px`).
+- Версии повышены: `crash.js 0.1.5.61` (header + `MEP.ver`) и `crash.css 0.1.5.61`.
