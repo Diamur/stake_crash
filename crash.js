@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.69";
+		MEP.ver = "0.1.5.70";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -1094,6 +1094,7 @@
             save() {
                 const data = {
                     trackCount: MEP.State.trackCount,
+                    trackingCollapsed: MEP.State.trackingCollapsed,
                     track: MEP.State.track,
                     graphMax: MEP.State.graphMax,
                     graphDensity: MEP.State.graphDensity,
@@ -1194,6 +1195,7 @@
                     if (rawLS) {
                         const data = JSON.parse(rawLS);
                         if (typeof data.trackCount === "number") MEP.State.trackCount = data.trackCount;
+                        if (typeof data.trackingCollapsed === "boolean") MEP.State.trackingCollapsed = data.trackingCollapsed;
                         if (data.track && typeof data.track === "object") MEP.State.track = data.track;
                         if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                         if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
@@ -1297,6 +1299,7 @@
 
                     const data = JSON.parse(decodeURIComponent(rawC));
                     if (typeof data.trackCount === "number") MEP.State.trackCount = data.trackCount;
+                    if (typeof data.trackingCollapsed === "boolean") MEP.State.trackingCollapsed = data.trackingCollapsed;
                     if (data.track && typeof data.track === "object") MEP.State.track = data.track;
                     if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                     if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
@@ -2379,7 +2382,12 @@
 				#${PANEL_ID} .mep-graph-wrap.mep-collapsed .mep-graph-controls{
 				display:none;
 				}
+				#${PANEL_ID} .mep-tracking-wrap.mep-collapsed .mep-track-wrap,
+				#${PANEL_ID} .mep-tracking-wrap.mep-collapsed .mep-track-count{
+				display:none;
+				}
 				#${PANEL_ID} .mep-frequency-collapse,
+				#${PANEL_ID} .mep-track-collapse,
 				#${PANEL_ID} .mep-stake-collapse,
 				#${PANEL_ID} .mep-balance-collapse,
 				#${PANEL_ID} .mep-main-graph-collapse{
@@ -2393,6 +2401,7 @@
 				cursor: pointer;
 				}
 				#${PANEL_ID} .mep-frequency-collapse:hover,
+				#${PANEL_ID} .mep-track-collapse:hover,
 				#${PANEL_ID} .mep-stake-collapse:hover,
 				#${PANEL_ID} .mep-balance-collapse:hover,
 				#${PANEL_ID} .mep-main-graph-collapse:hover{
@@ -3328,6 +3337,7 @@
             // НОВАЯ модель: t1: { x, limit, sound }
             track: MEP.track || { ...MEP.Config.TRACK_DEFAULT },
             trackCount: MEP.trackCount ?? 3,
+            trackingCollapsed: !!MEP.trackingCollapsed,
 
             // чтобы звук не "долбил" каждый рендер
             soundFired: MEP.soundFired || {},
@@ -8720,9 +8730,13 @@
         </div>
     </div>
     <div class="mep-divider"></div>
+    <div class="mep-tracking-wrap">
     <div class="mep-section-head">
         <div class="mep-section-title">Отслеживание</div>
-        <input class="mep-track-count" type="number" min="1" step="1" />
+        <div class="mep-track-head-controls">
+            <input class="mep-track-count" type="number" min="1" step="1" />
+            <button class="mep-track-collapse" type="button" title="Свернуть параметры">▲</button>
+        </div>
     </div>
     <div class="mep-track-wrap">
         <table class="mep-track-table">
@@ -8778,6 +8792,7 @@
                 </tr>
             </tbody>
         </table>
+    </div>
     </div>
 </div>
 <div class="mep-diff-wrap">
@@ -9428,6 +9443,8 @@
                     soundSelects: [...panel.querySelectorAll("select.mep-soundkey")],
 
                     trackCountInput: panel.querySelector(".mep-track-count"),
+                    trackingWrap: panel.querySelector(".mep-tracking-wrap"),
+                    trackCollapseBtn: panel.querySelector("button.mep-track-collapse"),
 
                     historyBtn: panel.querySelector("button.mep-history-load"),
                     historySteps: panel.querySelector("input.mep-history-steps"),
@@ -10134,6 +10151,22 @@
                 MEP.FrequencyGraph?.init?.(ui);
                 MEP.StakeGraph?.init?.(ui);
                 MEP.BalanceGraph?.init?.(ui);
+
+                const applyTrackingCollapse = () => {
+                    if (!ui.trackingWrap || !ui.trackCollapseBtn) return;
+                    const collapsed = !!MEP.State.trackingCollapsed;
+                    ui.trackingWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.trackCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.trackCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyTrackingCollapse();
+                if (ui.trackCollapseBtn) {
+                    ui.trackCollapseBtn.addEventListener("click", () => {
+                        MEP.State.trackingCollapsed = !MEP.State.trackingCollapsed;
+                        MEP.Storage.save();
+                        applyTrackingCollapse();
+                    });
+                }
 
                 const applyFrequencyParamsCollapse = () => {
                     if (!ui.frequencyWrap || !ui.frequencyCollapseBtn) return;

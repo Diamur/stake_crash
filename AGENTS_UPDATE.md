@@ -352,3 +352,9 @@
 - При выключении `Ставка x10` скрываются: линия ставки + mainEMA + shiftedEMA ставки.
 - Расчёт EMA/state не менялся; изменены только условия отображения в `MEP.StakeGraph.render()`.
 - Версии повышены: `crash.js 0.1.5.69` (header + `MEP.ver`) и `crash.css 0.1.5.69`.
+- 2026-04-04: Добавлено сворачивание блока «Отслеживание» (кнопка-стрелка в header, как у графиков).
+- Введён state-флаг `MEP.State.trackingCollapsed` с persistence через `MEP.Storage.save/load` (localStorage + cookie).
+- В mount добавлены `mep-tracking-wrap`, `mep-track-collapse` и группировка `mep-track-head-controls`.
+- В bind добавлен `applyTrackingCollapse()` и click-handler кнопки с сохранением состояния.
+- В collapsed скрываются `.mep-track-wrap` и `.mep-track-count`, header и кнопка остаются видимыми.
+- Версии повышены: `crash.js 0.1.5.70` (header + `MEP.ver`) и `crash.css 0.1.5.70`.

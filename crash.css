@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.69 ==*/
+/*== CSS ver 0.1.5.70 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -337,6 +337,11 @@
   // padding: 20px;              /* ← ВАЖНО */
   gap: 12px;
 }
+#mep-control-panel .mep-track-head-controls{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
 
 /* Заголовок */
 #mep-control-panel .mep-section-title{
@@ -364,6 +369,23 @@
 
 #mep-control-panel .mep-track-count:focus{
   border-color: rgba(255,255,255,0.22);
+}
+#mep-control-panel .mep-track-collapse{
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.07);
+  color:#fff;
+  border-radius: 8px;
+  padding: 1px 8px 2px;
+  font-size: 13px;
+  line-height: 1.1;
+  cursor: pointer;
+}
+#mep-control-panel .mep-track-collapse:hover{
+  background: rgba(255,255,255,0.14);
+}
+#mep-control-panel .mep-tracking-wrap.mep-collapsed .mep-track-wrap,
+#mep-control-panel .mep-tracking-wrap.mep-collapsed .mep-track-count{
+  display:none;
 }
 
 
