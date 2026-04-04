@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.62  ====
+// === crash.js 0.1.5.63  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -428,7 +428,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.62";
+        MEP.ver = "0.1.5.63";
 
         // -------------------------
         // Settings module
@@ -3083,6 +3083,9 @@
         padding:5px 8px;
         background:rgba(255,255,255,.03);
         color:#a9b2bc;
+        display:flex;
+        justify-content:flex-end;
+        text-align:right;
         }
         .mep-strategy1-cond-summary.is-true{color:#00ff57;}
         .mep-strategy1-cond-summary.is-false{color:#ff6f9f;}

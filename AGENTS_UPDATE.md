@@ -319,3 +319,6 @@
 - `.mep-strategy1-condition-row` -> `34px 1fr 1fr 0.3fr`, `.is-diff` -> `34px 72px 1fr 1fr 0.3fr`.
 - `.mep-strategy1-cond-diff-mode` расширен до `width:150px` при `min-width:92px` (прочие UX-параметры без логических изменений).
 - Версии повышены: `crash.js 0.1.5.62` (header + `MEP.ver`) и `crash.css 0.1.5.62`.
+- 2026-04-04: Strategy1 mini-pool — строка summary `Пул условий` выровнена по правому краю.
+- Для `.mep-strategy1-cond-summary` добавлены `display:flex`, `justify-content:flex-end`, `text-align:right`.
+- Версии повышены: `crash.js 0.1.5.63` (header + `MEP.ver`) и `crash.css 0.1.5.63`.
