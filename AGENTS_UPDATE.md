@@ -315,3 +315,7 @@
 - Для Diff-select поджат горизонтальный padding (`0 14px 0 4px`) для более компактной третьей колонки.
 - Для `.mep-strategy1-cond-current` усилено правое выравнивание (`padding-right:6px`).
 - Версии повышены: `crash.js 0.1.5.61` (header + `MEP.ver`) и `crash.css 0.1.5.61`.
+- 2026-04-04: Применено requested распределение ширин Strategy1 mini-pool grid.
+- `.mep-strategy1-condition-row` -> `34px 1fr 1fr 0.3fr`, `.is-diff` -> `34px 72px 1fr 1fr 0.3fr`.
+- `.mep-strategy1-cond-diff-mode` расширен до `width:150px` при `min-width:92px` (прочие UX-параметры без логических изменений).
+- Версии повышены: `crash.js 0.1.5.62` (header + `MEP.ver`) и `crash.css 0.1.5.62`.

@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.61  ====
+// === crash.js 0.1.5.62  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -428,7 +428,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.61";
+        MEP.ver = "0.1.5.62";
 
         // -------------------------
         // Settings module
@@ -3098,7 +3098,7 @@
         .mep-strategy1-condition-row{
         margin-top:0px;
         display:grid;
-        grid-template-columns: 34px 1fr 84px 96px;
+        grid-template-columns: 34px 1fr 1fr 0.3fr;
         align-items:center;
         gap:0px;
         border:1px dashed rgba(255,255,255,.24);
@@ -3108,7 +3108,7 @@
         background:rgba(255,255,255,.04);
         }
         .mep-strategy1-condition-row.is-diff{
-        grid-template-columns:34px 72px 1fr 84px 96px;
+        grid-template-columns:34px 72px 1fr 1fr 0.3fr;
         }
         .mep-strategy1-cond-toggle-wrap{
         display:inline-flex;
@@ -3181,7 +3181,7 @@
         text-align:center;
         }
         .mep-strategy1-cond-diff-mode{
-        width:92px;
+        width:150px;
         min-width:92px;
         height:24px;
         padding:0 14px 0 4px;
