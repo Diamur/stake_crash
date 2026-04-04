@@ -1,4 +1,4 @@
-// === crash.js 0.1.5.58  ====
+// === crash.js 0.1.5.59  ====
 // === Хуки ====
 // === WebSocket ====
 
@@ -428,7 +428,7 @@
                 copiedRiskAmount: 0,
             },
         });
-        MEP.ver = "0.1.5.58";
+        MEP.ver = "0.1.5.59";
 
         // -------------------------
         // Settings module
@@ -3107,6 +3107,9 @@
         font-size:11px;
         background:rgba(255,255,255,.04);
         }
+        .mep-strategy1-condition-row.is-diff{
+        grid-template-columns:34px 72px 1fr 120px 96px;
+        }
         .mep-strategy1-cond-toggle-wrap{
         display:inline-flex;
         align-items:center;
@@ -3162,6 +3165,11 @@
         letter-spacing:.15px;
         }
         .mep-strategy1-cond-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f5f8fc;}
+        .mep-strategy1-cond-control{
+        display:inline-flex;
+        align-items:center;
+        min-width:0;
+        }
         .mep-strategy1-cond-title{display:inline-block;min-width:46px;}
         .mep-strategy1-cond-inline{display:inline-block;margin:0 6px 0 2px;color:#f5f8fc;}
         .mep-strategy1-cond-threshold{
@@ -3186,6 +3194,10 @@
         position:relative;
         z-index:3;
         pointer-events:auto;
+        }
+        .mep-strategy1-cond-diff-mode option{
+        color:#111;
+        background:#fff;
         }
         .mep-strategy1-cond-current{color:#ffd98f;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .mep-strategy1-cond-result{text-align:right;font-weight:700;white-space:nowrap;}
@@ -8245,9 +8257,10 @@
 </div>`
                 );
                 rows.push(
-                    `<div class="mep-strategy1-condition-row">
+                    `<div class="mep-strategy1-condition-row is-diff">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="diff_vector_state" ${blocks?.diff_vector_state?.enabled ? "checked" : ""} /></span>
-<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Diff</span><select class="mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>false</option></select></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Diff</span></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>false</option></select></span>
 <span class="mep-strategy1-cond-current">${byKey?.diff_vector_state?.currentValue ?? "false"}</span>
 <span class="mep-strategy1-cond-result ${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "true" : "false") : "not use"}</span>
 </div>`

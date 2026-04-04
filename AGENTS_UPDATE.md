@@ -303,3 +303,7 @@
 - Убрана конфликтная обёртка `<label>` у строк mini-pool (заменено на `<div>`), чтобы Diff-select работал без ложных кликов по row-wrapper.
 - Для Diff-dropdown улучшены стили (`appearance`, `z-index`, `cursor`, `min-width`) и добавлен guard от авто-rerender во время фокуса на select/input.
 - Версии повышены: `crash.js 0.1.5.58` (header + `MEP.ver`) и `crash.css 0.1.5.58`.
+- 2026-04-04: Strategy1 Diff dropdown UX fix — `select option` сделаны контрастными (`color:#111; background:#fff`) для нативного popup.
+- В Diff-строке mini-pool select вынесен из `.mep-strategy1-cond-text` (ellipsis-контейнер) в отдельный `.mep-strategy1-cond-control`.
+- Для Diff-строки добавлен отдельный grid-layout `.mep-strategy1-condition-row.is-diff`, чтобы label/select не обрезались.
+- Версии повышены: `crash.js 0.1.5.59` (header + `MEP.ver`) и `crash.css 0.1.5.59`.
