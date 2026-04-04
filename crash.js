@@ -9,26 +9,60 @@
         // -------------------------
         // Static code-priority settings
         // -------------------------
-        MEP.CodeSettings = {
-            // Если непусто -> приоритет над localStorage/DB/UI
-            endpointUrl: "https://tc-ab.ru/scate/index.php?action=ping",
-            // Формат: key=url (по одному на строку)
-            soundsText: `ping1=https://tc-ab.ru/scate/sound/ping1.mp3
-ping2=https://tc-ab.ru/scate/sound/ping2.mp3
-ping3=https://tc-ab.ru/scate/sound/ping3.mp3
-ping4=https://tc-ab.ru/scate/sound/ping4.mp3
-ping5=https://tc-ab.ru/scate/sound/ping5.mp3
-ping6=https://tc-ab.ru/scate/sound/ping6.mp3
-ping7=https://tc-ab.ru/scate/sound/ping7.mp3
-ping8=https://tc-ab.ru/scate/sound/ping8.mp3
-ping9=https://tc-ab.ru/scate/sound/ping9.mp3
-ping10=https://tc-ab.ru/scate/sound/ping10.mp3
-ping11=https://tc-ab.ru/scate/sound/ping11.mp3
-ping12=https://tc-ab.ru/scate/sound/ping12.mp3
-ping13=https://tc-ab.ru/scate/sound/ping13.mp3
-ping14=https://tc-ab.ru/scate/sound/ping14.mp3
-wrn=https://tc-ab.ru/scate/sound/wrn.mp3`,
-        };
+
+		MEP.CodeSettings = {
+			// Если непусто -> приоритет над localStorage / DB / UI
+			endpointUrl: "https://tc-ab.ru/scate/index.php?action=ping",
+
+			// Формат: key=url (по одному на строку)
+			soundsText: `ping1=https://tc-ab.ru/scate/sound/ping1.mp3
+		ping2=https://tc-ab.ru/scate/sound/ping2.mp3
+		ping3=https://tc-ab.ru/scate/sound/ping3.mp3
+		ping4=https://tc-ab.ru/scate/sound/ping4.mp3
+		ping5=https://tc-ab.ru/scate/sound/ping5.mp3
+		ping6=https://tc-ab.ru/scate/sound/ping6.mp3
+		ping7=https://tc-ab.ru/scate/sound/ping7.mp3
+		ping8=https://tc-ab.ru/scate/sound/ping8.mp3
+		ping9=https://tc-ab.ru/scate/sound/ping9.mp3
+		ping10=https://tc-ab.ru/scate/sound/ping10.mp3
+		ping11=https://tc-ab.ru/scate/sound/ping11.mp3
+		ping12=https://tc-ab.ru/scate/sound/ping12.mp3
+		ping13=https://tc-ab.ru/scate/sound/ping13.mp3
+		ping14=https://tc-ab.ru/scate/sound/ping14.mp3
+		wrn=https://tc-ab.ru/scate/sound/wrn.mp3`,
+
+			// Если непусто -> дефолтный звук в коде
+			soundDefaultKey: "",
+
+			// Если > 0 -> приоритет над UI / localStorage / DB
+			historySteps: 0,
+
+			// Если > 0 -> приоритет над UI / localStorage / DB
+			hitFlashMs: 0,
+
+			// Если >= 0 -> приоритет над UI / localStorage / DB
+			historyNextDelayMs: -1,
+
+			// "high" | "low", если пусто -> обычная логика
+			priorityMode: "",
+
+			// slug'и по одному в строке, если пусто -> обычная логика
+			supportedGamesText: "",
+
+			// Если > 0 -> приоритет над trackCount из storage/UI
+			trackCount: 6,
+
+			// Первичная конфигурация строк отслеживания
+			// limit = Порог, x = X, sound = ключ звука, color = опционально
+			track: {
+				t1: { x: 2, limit: 2, sound: "ping3", color: "#ff3b30" },
+				t2: { x: 2, limit: 3, sound: "ping3", color: "#ff3b30" },
+				t3: { x: 2, limit: 4, sound: "ping3", color: "#ff3b30" },
+				t4: { x: 2, limit: 5, sound: "ping3", color: "#ff3b30" },
+				t5: { x: 2, limit: 6, sound: "ping3", color: "#ff3b30" },
+				t6: { x: 2, limit: 7, sound: "ping3", color: "#ff3b30" },
+			},
+		};
 
         const buildStrategy1ConditionBlocksDefault = () => ({
             charter: {
