@@ -448,3 +448,8 @@
 - По клику выполняется безопасная подстановка с `focus -> input/change events -> blur`, без автоклика кнопки ставки.
 - В service-row добавлены классы `.mep-strategy1-click-apply-stake/.mep-strategy1-click-apply-target` + hover/cursor стили.
 - Версии повышены: `crash.js 0.1.5.87` (header + `MEP.ver`) и `crash.css 0.1.5.87`.
+- 2026-04-05: В строке `Ставка фикс.` стартовая колонка переведена из текста в inline input для ручного редактирования базовой fixed-ставки.
+- Добавлен setter `setStrategy1StartStakeBaseValue(value)`: нормализация `>=0`, запись в `config.startStakeValue`, авто-переключение `config.startStakeMode = "fixed"`, затем `MEP.Storage.save()`, `checkConditions()`, `renderStrategy1MinimalUi()`.
+- Новый input `mep-strategy1-start-stake-base-input` добавлен в anti-rerender guard и bind-обработчики (`change`/`Enter->blur`), чтобы не терялся фокус и не затирался ввод при редактировании.
+- Добавлен форматтер `formatStrategyStakeBaseValue()` для спокойного отображения base-ставки в поле без агрессивного форматирования по каждому символу.
+- Версии повышены: `crash.js 0.1.5.88` (header + `MEP.ver`) и `crash.css 0.1.5.88`.

@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.87";
+		MEP.ver = "0.1.5.88";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8614,6 +8614,13 @@
                 return n.toFixed(4).replace(/\.?0+$/g, "");
             },
 
+            formatStrategyStakeBaseValue(value = 0) {
+                const n = Number(value) || 0;
+                if (!(n > 0)) return "0";
+                if (Number.isInteger(n)) return String(n);
+                return n.toFixed(8).replace(/\.?0+$/g, "");
+            },
+
             getStrategy1StakeServiceData(st = null) {
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!s) return null;
@@ -8768,6 +8775,19 @@
                 MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
             },
 
+            setStrategy1StartStakeBaseValue(value = "") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                let v = Number((value ?? "").toString().replace(",", "."));
+                if (!Number.isFinite(v) || v < 0) v = 0;
+                cfg.startStakeValue = v;
+                cfg.startStakeMode = "fixed";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
             setStrategy1StopMinusCount(value = "") {
                 const st = MEP.UI.getStrategyState("strategy1");
                 if (!st) return;
@@ -8796,6 +8816,7 @@
                     !!stakeServiceWrapEl &&
                     stakeServiceWrapEl.contains(activeEl) &&
                     (activeEl.classList.contains("mep-strategy1-stake-growth-array-input") ||
+                        activeEl.classList.contains("mep-strategy1-start-stake-base-input") ||
                         activeEl.classList.contains("mep-strategy1-target-multiplier-array-input") ||
                         activeEl.classList.contains("mep-strategy1-target-base-input") ||
                         activeEl.classList.contains("mep-strategy1-stop-minus-input") ||
@@ -8950,7 +8971,7 @@
 <div class="mep-strategy1-stake-row ${serviceData.mode === "fixed" ? "is-active" : "is-inactive"}">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-stake-mode-toggle mep-strategy1-stake-mode-fixed" type="checkbox" ${serviceData.mode === "fixed" ? "checked" : ""} /></span>
 <span class="mep-strategy1-stake-col label">Ставка фикс.</span>
-<span class="mep-strategy1-stake-col start">${MEP.UI.formatCoinValue(serviceData.fixedStart)}</span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-start-stake-base-input" type="text" value="${MEP.UI.formatStrategyStakeBaseValue(serviceData.fixedStart)}" placeholder="0" /></span>
 <span class="mep-strategy1-stake-col loss">${serviceData.lossCount}</span>
 <span class="mep-strategy1-stake-col next mep-strategy1-click-apply mep-strategy1-click-apply-stake" data-value="${serviceData.nextFixed}">${MEP.UI.formatCoinValue(serviceData.nextFixed)}</span>
 </div>
@@ -10410,6 +10431,11 @@
                             MEP.UI.setStrategy1TargetMultiplierArrayText(targetMultiplierArrayInput.value);
                             return;
                         }
+                        const startStakeBaseInput = e.target?.closest?.("input.mep-strategy1-start-stake-base-input");
+                        if (startStakeBaseInput) {
+                            MEP.UI.setStrategy1StartStakeBaseValue(startStakeBaseInput.value);
+                            return;
+                        }
                         const targetBaseInput = e.target?.closest?.("input.mep-strategy1-target-base-input");
                         if (targetBaseInput) {
                             MEP.UI.setStrategy1TargetBaseValue(targetBaseInput.value);
@@ -10422,7 +10448,7 @@
                     });
                     ui.strategy1CondWrapEl.addEventListener("keydown", (e) => {
                         const arrayInput = e.target?.closest?.(
-                            "input.mep-strategy1-stake-growth-array-input, input.mep-strategy1-target-multiplier-array-input, input.mep-strategy1-target-base-input, input.mep-strategy1-stop-minus-input"
+                            "input.mep-strategy1-stake-growth-array-input, input.mep-strategy1-target-multiplier-array-input, input.mep-strategy1-start-stake-base-input, input.mep-strategy1-target-base-input, input.mep-strategy1-stop-minus-input"
                         );
                         if (!arrayInput) return;
                         if (e.key === "Enter") {
