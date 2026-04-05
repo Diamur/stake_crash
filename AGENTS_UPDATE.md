@@ -406,3 +406,8 @@
 - Добавлены setter'ы `setStrategy1StakeGrowthArrayText` / `setStrategy1TargetMultiplierArrayText` (save + check + rerender, авто-включение array-mode).
 - Строки ставок `Ставка фикс.` / `Ставка X%` теперь пересчитывают next-значения с циклическим множителем при изменении `lossCount`.
 - Версии повышены: `crash.js 0.1.5.78` (header + `MEP.ver`) и `crash.css 0.1.5.78`.
+- 2026-04-05: Исправлено ручное редактирование полей `Множ.ставок` / `Множ.коэф` (без автозатирания во время печати).
+- В `renderStrategy1ConditionBridge()` расширен guard: при фокусе на array-input service-блока ререндер пропускается.
+- Сохранение массивов оставлено на `change` (blur) + добавлен commit по Enter (`blur()`), без save на каждый символ.
+- Setter'ы теперь сохраняют строку как введена (`value.toString()`), без агрессивной нормализации во время ввода.
+- Версии повышены: `crash.js 0.1.5.79` (header + `MEP.ver`) и `crash.css 0.1.5.79`.

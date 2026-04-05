@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.78";
+		MEP.ver = "0.1.5.79";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8569,7 +8569,7 @@
                 const st = MEP.UI.getStrategyState("strategy1");
                 if (!st) return;
                 const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
-                cfg.stakeGrowthArrayText = (value || "").toString().trim().replace(/[,;]+/g, " ");
+                cfg.stakeGrowthArrayText = (value ?? "").toString();
                 cfg.stakeGrowthMode = "array";
                 MEP.Storage.save();
                 MEP.Strategy1?.checkConditions?.();
@@ -8580,7 +8580,7 @@
                 const st = MEP.UI.getStrategyState("strategy1");
                 if (!st) return;
                 const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
-                cfg.targetMultiplierArrayText = (value || "").toString().trim().replace(/[,;]+/g, " ");
+                cfg.targetMultiplierArrayText = (value ?? "").toString();
                 cfg.targetMode = "array";
                 MEP.Storage.save();
                 MEP.Strategy1?.checkConditions?.();
@@ -8592,13 +8592,21 @@
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!ui || !s || !ui.strategy1CondListEl || !ui.strategy1CondSummaryEl) return;
                 const activeEl = document.activeElement;
+                const stakeServiceWrapEl = ui.strategy1CondWrapEl?.querySelector?.(".mep-strategy1-stake-service-wrap") || null;
                 const isEditingConditionControl =
                     !!activeEl &&
                     ui.strategy1CondListEl.contains(activeEl) &&
                     (activeEl.classList.contains("mep-strategy1-cond-vector-mode") ||
                         activeEl.classList.contains("mep-strategy1-cond-threshold") ||
                         activeEl.classList.contains("mep-strategy1-cond-frequency-line-threshold"));
-                if (isEditingConditionControl) return;
+                const isEditingServiceArrayControl =
+                    !!activeEl &&
+                    !!stakeServiceWrapEl &&
+                    stakeServiceWrapEl.contains(activeEl) &&
+                    (activeEl.classList.contains("mep-strategy1-stake-growth-array-input") ||
+                        activeEl.classList.contains("mep-strategy1-target-multiplier-array-input") ||
+                        activeEl.classList.contains("mep-strategy1-service-array-input"));
+                if (isEditingConditionControl || isEditingServiceArrayControl) return;
                 const blocks = MEP.UI.getStrategy1ConditionBlocks(s);
                 const evaluated = MEP.Strategy1?.evaluateConditionBlocks?.(s) || [];
                 const byKey = Object.create(null);
@@ -8715,7 +8723,7 @@
                 ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false", "is-idle");
                 ui.strategy1CondSummaryEl.classList.add(summaryClass);
 
-                let stakeServiceWrapEl = ui.strategy1CondWrapEl?.querySelector?.(".mep-strategy1-stake-service-wrap") || null;
+                stakeServiceWrapEl = ui.strategy1CondWrapEl?.querySelector?.(".mep-strategy1-stake-service-wrap") || null;
                 if (!stakeServiceWrapEl && ui.strategy1CondSummaryEl?.parentNode) {
                     stakeServiceWrapEl = document.createElement("div");
                     stakeServiceWrapEl.className = "mep-strategy1-stake-service-wrap";
@@ -10188,6 +10196,16 @@
                         const targetMultiplierArrayInput = e.target?.closest?.("input.mep-strategy1-target-multiplier-array-input");
                         if (targetMultiplierArrayInput) {
                             MEP.UI.setStrategy1TargetMultiplierArrayText(targetMultiplierArrayInput.value);
+                        }
+                    });
+                    ui.strategy1CondWrapEl.addEventListener("keydown", (e) => {
+                        const arrayInput = e.target?.closest?.(
+                            "input.mep-strategy1-stake-growth-array-input, input.mep-strategy1-target-multiplier-array-input"
+                        );
+                        if (!arrayInput) return;
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            arrayInput.blur();
                         }
                     });
                 }
