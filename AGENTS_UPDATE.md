@@ -533,3 +533,7 @@
 - 2026-04-05: Вынесен точный селектор action-кнопки игры в константу `MEP.Config.GAME_ACTION_BUTTON_SELECTOR`.
 - `getGameBetButton()` теперь использует эту константу как приоритетный кандидат перед `cancel/cashout/bet` fallback-селекторами.
 - Версии повышены: `crash.js 0.1.5.105` (header + `MEP.ver`) и `crash.css 0.1.5.105`.
+
+- 2026-04-05: Уточнён `GAME_ACTION_BUTTON_SELECTOR` — убраны хвостовые svelte-классы из CSS-селектора кнопки (`#main-content > div.parent > div > div > div > div > div.content > div.game-sidebar > div > button`).
+- Это делает селектор более стабильным при смене хеш-классов сборки.
+- Версии повышены: `crash.js 0.1.5.106` (header + `MEP.ver`) и `crash.css 0.1.5.106`.

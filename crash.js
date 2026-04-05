@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.105";
+		MEP.ver = "0.1.5.106";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -1673,7 +1673,7 @@
             STYLE_ID: "mep-control-style-min",
             SELECTORS: ["#main-content div.past-bets", "#main-content div.past-bets.svelte-3cv27h"],
             GAME_ACTION_BUTTON_SELECTOR:
-                "#main-content > div.parent.svelte-1powyzj > div > div > div > div > div.content.svelte-vrm0e8 > div.game-sidebar.svelte-wcee0x > div.scrollable-content.scrollY.svelte-wcee0x > button",
+                "#main-content > div.parent > div > div > div > div > div.content > div.game-sidebar > div > button",
 
             // реестр поддерживаемых игр (slug из URL /casino/games/<slug>)
             SUPPORTED_GAMES: ["crash"],
