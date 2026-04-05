@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.101";
+		MEP.ver = "0.1.5.102";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8876,17 +8876,22 @@
             getGameBetButtonText() {
                 const btn = MEP.UI.getGameBetButton();
                 if (!btn) return "";
-                return MEP.UI.normalizeGameBetButtonText(btn.innerText || btn.textContent || "");
+                const raw =
+                    btn.getAttribute?.("aria-label") ||
+                    btn.innerText ||
+                    btn.textContent ||
+                    "";
+                return MEP.UI.normalizeGameBetButtonText(raw);
             },
 
             resolveGamePhaseFromBetButtonText(text = "") {
                 const t = MEP.UI.normalizeGameBetButtonText(text).toLowerCase();
                 if (!t) return "";
-                if (t === "сделать ставку (след. раунд)") return "game";
-                if (t === "начинается...") return "launch";
+                if (t === "сделать ставку (след. раунд)" || (t.includes("сделать ставку") && t.includes("след"))) return "game";
+                if (t === "начинается..." || t.includes("начинается")) return "launch";
                 if (t === "ставка") return "bet";
-                if (t === "отменить" || t.startsWith("отменить ")) return "placed";
-                if (t === "кэшаут" || t.startsWith("кэшаут ") || t.includes("кэшаут ") || t.includes("cash out")) return "in_game";
+                if (/\bотмен/.test(t)) return "placed";
+                if (/к[эе]шаут/.test(t) || /cash\s*out/.test(t) || /cashout/.test(t)) return "in_game";
                 return "";
             },
 
