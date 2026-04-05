@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.102";
+		MEP.ver = "0.1.5.103";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8861,12 +8861,26 @@
             getGameBetButton() {
                 const s1 = MEP.Strategy1;
                 const root = s1?.findSidebarRoot?.() || document;
-                return (
-                    s1?.findBetButton?.(root) ||
-                    root.querySelector?.('button[data-testid="bet-button"]') ||
-                    root.querySelector?.(".game-sidebar button") ||
-                    null
-                );
+                const direct = [
+                    s1?.findBetButton?.(root) || null,
+                    root.querySelector?.('button[data-testid="bet-button"]') || null,
+                    root.querySelector?.('button[data-testid="cancel-button"]') || null,
+                    root.querySelector?.('button[data-testid="cashout-button"]') || null,
+                ].filter(Boolean);
+                for (const btn of direct) {
+                    const txt = MEP.UI.normalizeGameBetButtonText(
+                        btn.getAttribute?.("aria-label") || btn.innerText || btn.textContent || ""
+                    );
+                    if (MEP.UI.resolveGamePhaseFromBetButtonText(txt)) return btn;
+                }
+                const buttons = root.querySelectorAll?.(".game-sidebar button") || [];
+                for (const btn of buttons) {
+                    const txt = MEP.UI.normalizeGameBetButtonText(
+                        btn.getAttribute?.("aria-label") || btn.innerText || btn.textContent || ""
+                    );
+                    if (MEP.UI.resolveGamePhaseFromBetButtonText(txt)) return btn;
+                }
+                return direct[0] || root.querySelector?.(".game-sidebar button") || null;
             },
 
             normalizeGameBetButtonText(text = "") {

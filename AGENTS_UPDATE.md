@@ -521,3 +521,7 @@
 - `placed` теперь ловится по корню `отмен*`; `in_game` — по `кэшаут/кешаут` и `cash out/cashout`; для `game/launch` сохранён tolerant fallback через `includes`.
 - `getGameBetButtonText()` теперь также читает `aria-label` до `innerText/textContent`, что помогает на кнопках с нестандартной разметкой.
 - Версии повышены: `crash.js 0.1.5.102` (header + `MEP.ver`) и `crash.css 0.1.5.102`.
+
+- 2026-04-05: Починен выбор action-кнопки для фазы Game: `getGameBetButton()` теперь ищет не только `bet-button`, но и `cancel-button`/`cashout-button` и дополнительно сканирует `.game-sidebar button` по распознаваемому тексту.
+- Это исправляет кейс, когда при состоянии `Отменить/Кэшаут` выбиралась не та кнопка и фазы `Поставили`/`В игре` не подсвечивались.
+- Версии повышены: `crash.js 0.1.5.103` (header + `MEP.ver`) и `crash.css 0.1.5.103`.
