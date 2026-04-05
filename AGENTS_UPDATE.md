@@ -541,3 +541,8 @@
 - 2026-04-05: Исправлено распознавание фазы `Поставили`: убран regex-границы `\b` для кириллицы, проверка заменена на `t.includes("отмен")`.
 - Причина: `\b` в JS некорректно работает для границ русских букв, из-за чего `Отменить` мог не матчиться.
 - Версии повышены: `crash.js 0.1.5.107` (header + `MEP.ver`) и `crash.css 0.1.5.107`.
+
+- 2026-04-05: Добавлена button-aware фазовая идентификация: новый `resolveGamePhaseFromBetButton(btn)` учитывает атрибуты кнопки при тексте `Ставка`.
+- Для `Ставка` введено правило: если кнопка disabled/`data-test-action-enabled=false`/`data-test-action-bet=disabled`/`data-test-bet-next=false`, фаза считается `placed`; иначе `bet`.
+- `getGameBetButton()` и `updateGamePhaseFromDom()` переведены на `resolveGamePhaseFromBetButton(btn)`.
+- Версии повышены: `crash.js 0.1.5.108` (header + `MEP.ver`) и `crash.css 0.1.5.108`.

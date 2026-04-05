@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.107";
+		MEP.ver = "0.1.5.108";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8872,7 +8872,7 @@
                         const txt = MEP.UI.normalizeGameBetButtonText(
                             btn.getAttribute?.("aria-label") || btn.innerText || btn.textContent || ""
                         );
-                        const phase = MEP.UI.resolveGamePhaseFromBetButtonText(txt);
+                        const phase = MEP.UI.resolveGamePhaseFromBetButton(btn);
                         const rank = phaseRank[phase] || 0;
                         if (rank > bestRank) {
                             bestRank = rank;
@@ -8915,6 +8915,22 @@
                 return MEP.UI.normalizeGameBetButtonText(raw);
             },
 
+            resolveGamePhaseFromBetButton(btn = null) {
+                if (!btn) return "";
+                const text = MEP.UI.normalizeGameBetButtonText(
+                    btn.getAttribute?.("aria-label") || btn.innerText || btn.textContent || ""
+                );
+                const byText = MEP.UI.resolveGamePhaseFromBetButtonText(text);
+                if (byText !== "bet") return byText;
+
+                const disabled = !!btn.disabled || btn.getAttribute?.("aria-disabled") === "true";
+                const actionEnabled = (btn.getAttribute?.("data-test-action-enabled") || "").toString().toLowerCase();
+                const actionBet = (btn.getAttribute?.("data-test-action-bet") || "").toString().toLowerCase();
+                const betNext = (btn.getAttribute?.("data-test-bet-next") || "").toString().toLowerCase();
+                if (disabled || actionEnabled === "false" || actionBet === "disabled" || betNext === "false") return "placed";
+                return "bet";
+            },
+
             resolveGamePhaseFromBetButtonText(text = "") {
                 const t = MEP.UI.normalizeGameBetButtonText(text).toLowerCase();
                 if (!t) return "";
@@ -8927,8 +8943,8 @@
             },
 
             updateGamePhaseFromDom() {
-                const text = MEP.UI.getGameBetButtonText();
-                const phase = MEP.UI.resolveGamePhaseFromBetButtonText(text);
+                const btn = MEP.UI.getGameBetButton();
+                const phase = MEP.UI.resolveGamePhaseFromBetButton(btn);
                 MEP.State.gamePhase = phase;
                 return phase;
             },
