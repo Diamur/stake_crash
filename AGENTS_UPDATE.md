@@ -432,3 +432,8 @@
 - Новый порядок после `Пул условий`: `Множ.ставок` -> `Ставка фикс.` -> `Ставка X%` -> `Множ.коэф` -> `Цел.коэф.`.
 - Логика/bind/save/guard/расчёты не менялись, изменён только порядок рендера HTML.
 - Версии повышены: `crash.js 0.1.5.84` (header + `MEP.ver`) и `crash.css 0.1.5.84`.
+- 2026-04-05: Перед `Множ.ставок` добавлена инфо-строка цикла `Раунд / Ставок / Минусов` в Strategy1 service-блоке.
+- В cycle добавлено поле `betCount`; оно увеличивается при фактическом `onExecutionAccepted()` (ставка реально отправлена).
+- При `startCycle()` значение `betCount` сбрасывается в `0` вместе с `roundCount/lossCount`.
+- `getStrategy1StakeServiceData()` расширен полями `cycleRoundCount`, `cycleBetCount`, `cycleLossCount`.
+- Версии повышены: `crash.js 0.1.5.85` (header + `MEP.ver`) и `crash.css 0.1.5.85`.

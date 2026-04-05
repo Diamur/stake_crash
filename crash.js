@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.84";
+		MEP.ver = "0.1.5.85";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -177,6 +177,7 @@
                 cyclePnL: 0,
                 totalStakeSum: 0,
                 roundCount: 0,
+                betCount: 0,
                 lossCount: 0,
                 winCount: 0,
                 stepIndex: 0,
@@ -3045,6 +3046,24 @@
         .mep-strategy1-stake-col.start{color:#d7dde5;text-align:right;}
         .mep-strategy1-stake-col.loss{color:#9eb3d7;text-align:center;}
         .mep-strategy1-stake-col.next{color:#9ef5b4;text-align:right;}
+        .mep-strategy1-cycle-info-row{
+        display:grid;
+        grid-template-columns:1fr 1fr 1fr;
+        align-items:center;
+        gap:0;
+        border:1px dashed rgba(255,255,255,.24);
+        border-radius:0;
+        background:rgba(255,255,255,.04);
+        margin-top:0;
+        }
+        .mep-strategy1-cycle-info-cell{
+        padding:6px 8px;
+        font-size:12px;
+        color:#dce4f0;
+        text-align:center;
+        white-space:nowrap;
+        }
+        .mep-strategy1-cycle-info-cell b{color:#fff;font-weight:700;}
         .mep-strategy1-service-array-row{
         margin-top:0;
         display:grid;
@@ -6279,6 +6298,7 @@
                 st.runtime.waitingRoundResult = true;
                 st.cycle.lastStake = Number(p.betAmount) || 0;
                 st.cycle.lastTargetMultiplier = Number(p.targetMultiplier) || 0;
+                st.cycle.betCount = (Number(st.cycle.betCount) || 0) + 1;
                 st.counters.lastStake = Number(p.betAmount) || 0;
                 this.executionDebug("[MEP][Strategy1][execution accepted]", {
                     betAmount: Number(p.betAmount) || 0,
@@ -7177,6 +7197,7 @@
                 st.cycle.cyclePnL = 0;
                 st.cycle.totalStakeSum = 0;
                 st.cycle.roundCount = 0;
+                st.cycle.betCount = 0;
                 st.cycle.lossCount = 0;
                 st.cycle.winCount = 0;
                 st.cycle.stepIndex = 0;
@@ -8569,6 +8590,8 @@
                 const fixedStart = Math.max(0, Number(cfg.startStakeValue) || 0);
                 const percentStart = Math.max(0, currentBalance * (riskPercent / 100));
                 const lossCount = Math.max(0, Math.floor(Number(s.cycle?.lossCount) || 0));
+                const roundCount = Math.max(0, Math.floor(Number(s.cycle?.roundCount) || 0));
+                const betCount = Math.max(0, Math.floor(Number(s.cycle?.betCount) || 0));
                 const nextStep = lossCount + 1;
                 const activeStakeGrowthMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.stakeGrowthArrayText, lossCount);
                 const activeTargetMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.targetMultiplierArrayText, lossCount);
@@ -8588,6 +8611,9 @@
                     targetBaseValue,
                     targetLossCount,
                     targetNextValue,
+                    cycleRoundCount: roundCount,
+                    cycleBetCount: betCount,
+                    cycleLossCount: lossCount,
                     nextFixed: MEP.UI.calcStrategy1NextStakeByMode(fixedStart, s, nextStep),
                     nextPercent: MEP.UI.calcStrategy1NextStakeByMode(percentStart, s, nextStep),
                 };
@@ -8796,6 +8822,11 @@
                         .replace(/</g, "&lt;")
                         .replace(/>/g, "&gt;");
                     stakeServiceWrapEl.innerHTML = `
+<div class="mep-strategy1-cycle-info-row">
+<span class="mep-strategy1-cycle-info-cell">Раунд: <b>${serviceData.cycleRoundCount}</b></span>
+<span class="mep-strategy1-cycle-info-cell">Ставок: <b>${serviceData.cycleBetCount}</b></span>
+<span class="mep-strategy1-cycle-info-cell">Минусов: <b>${serviceData.cycleLossCount}</b></span>
+</div>
 <div class="mep-strategy1-service-array-row">
 <span class="mep-strategy1-service-array-spacer"></span>
 <span class="mep-strategy1-stake-col label">Множ.ставок</span>
