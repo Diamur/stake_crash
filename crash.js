@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.80";
+		MEP.ver = "0.1.5.81";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8526,6 +8526,40 @@
                 return Number(arr[idx]) || 0;
             },
 
+            getStrategy1TargetValueByStep(st = null, stepIndex = 0) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!s) return 0;
+                const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
+                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0));
+                const targetMode = cfg.targetMode === "array" ? "array" : "fixed";
+                if (targetMode === "array") {
+                    const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
+                    const arr = parse ? parse(cfg.targetMultiplierArrayText) : [];
+                    if (!arr.length) return 0;
+                    return Number(arr[idx % arr.length]) || 0;
+                }
+                return Number(cfg.targetMultiplierValue) || 0;
+            },
+
+            getStrategy1TargetBaseValue(st = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!s) return 0;
+                const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
+                if (cfg.targetMode === "array") {
+                    const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
+                    const arr = parse ? parse(cfg.targetMultiplierArrayText) : [];
+                    return arr.length ? Number(arr[0]) || 0 : 0;
+                }
+                return Number(cfg.targetMultiplierValue) || 0;
+            },
+
+            formatStrategyTargetValue(value = 0) {
+                const n = Number(value) || 0;
+                if (!(n > 0)) return "0";
+                if (Number.isInteger(n)) return String(n);
+                return n.toFixed(4).replace(/\.?0+$/g, "");
+            },
+
             getStrategy1StakeServiceData(st = null) {
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!s) return null;
@@ -8538,6 +8572,9 @@
                 const nextStep = lossCount + 1;
                 const activeStakeGrowthMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.stakeGrowthArrayText, lossCount);
                 const activeTargetMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.targetMultiplierArrayText, lossCount);
+                const targetBaseValue = MEP.UI.getStrategy1TargetBaseValue(s);
+                const targetLossCount = lossCount;
+                const targetNextValue = MEP.UI.getStrategy1TargetValueByStep(s, lossCount);
                 return {
                     mode: cfg.startStakeMode === "percent" ? "percent" : "fixed",
                     riskPercent,
@@ -8548,6 +8585,9 @@
                     targetMultiplierArrayText: (cfg.targetMultiplierArrayText || "").toString(),
                     activeStakeGrowthMultiplier,
                     activeTargetMultiplier,
+                    targetBaseValue,
+                    targetLossCount,
+                    targetNextValue,
                     nextFixed: MEP.UI.calcStrategy1NextStakeByMode(fixedStart, s, nextStep),
                     nextPercent: MEP.UI.calcStrategy1NextStakeByMode(percentStart, s, nextStep),
                 };
@@ -8767,6 +8807,13 @@
 <span class="mep-strategy1-stake-col label">Множ.коэф</span>
 <span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-target-multiplier-array-input" type="text" value="${safeTargetMultiplierArrayText}" placeholder="2 3 4" /></span>
 <span class="mep-strategy1-stake-col active">${serviceData.activeTargetMultiplier > 0 ? serviceData.activeTargetMultiplier : "—"}</span>
+</div>
+<div class="mep-strategy1-stake-row is-inactive">
+<span class="mep-strategy1-cond-toggle-wrap"><span class="mep-strategy1-service-array-spacer"></span></span>
+<span class="mep-strategy1-stake-col label">Цел.коэф.</span>
+<span class="mep-strategy1-stake-col start">${MEP.UI.formatStrategyTargetValue(serviceData.targetBaseValue)}</span>
+<span class="mep-strategy1-stake-col loss">${serviceData.targetLossCount}</span>
+<span class="mep-strategy1-stake-col next">${MEP.UI.formatStrategyTargetValue(serviceData.targetNextValue)}</span>
 </div>`;
                 }
             },

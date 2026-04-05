@@ -415,3 +415,8 @@
 - Причина: в `renderStrategy1ConditionBridge()` была реассайнация `const stakeServiceWrapEl`, что валило рендер.
 - Исправление: `stakeServiceWrapEl` снова `let`, повторный поиск/создание блока работает без runtime-ошибки.
 - Версии повышены: `crash.js 0.1.5.80` (header + `MEP.ver`) и `crash.css 0.1.5.80`.
+- 2026-04-05: В Strategy1 service-блок после `Множ.коэф` добавлена расчётная строка `Цел.коэф.`.
+- `getStrategy1StakeServiceData()` расширен полями `targetBaseValue`, `targetLossCount`, `targetNextValue`.
+- Добавлены helper'ы `getStrategy1TargetBaseValue()`, `getStrategy1TargetValueByStep()`, `formatStrategyTargetValue()`.
+- Для `targetMode=array` расчёт `targetNextValue` идёт циклически по `lossCount % array.length`.
+- Версии повышены: `crash.js 0.1.5.81` (header + `MEP.ver`) и `crash.css 0.1.5.81`.
