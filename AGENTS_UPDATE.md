@@ -474,3 +474,9 @@
 - Логика bridge: если `isExecuting && waitingRoundResult` -> `handleRoundFinishedForExecution`, иначе -> `updateAfterRound` с `stake=0/targetMultiplier=0` и `resultKind=dom_cycle_round`.
 - Это фиксит проблему, когда при включённой стратегии `Циклов=1`, но `Раунд` не увеличивался на новых DOM-раундах.
 - Версии повышены: `crash.js 0.1.5.92` (header + `MEP.ver`) и `crash.css 0.1.5.92`.
+- 2026-04-05: Добавлено ветвление condition-pool Strategy1 на две независимые ветки `plus` и `minus` с UI-вкладками `ПЛЮС/МИНУС`.
+- Миграция legacy: старый `config.conditionBlocks` переносится в `conditionBranches.plus`; `conditionBranches.minus` создаётся отдельным пулом с выключенными условиями (независимые toggle/mode/threshold).
+- Добавлено `config.conditionSelectedBranch` (persisted) и переключение вкладок в UI; редактирование условий теперь работает для выбранной вкладки.
+- Реализован раздельный evaluate: `evaluateConditionBlocks(st, branch)` + расчёт pool-state по каждой ветке (`plus/minus`) и `runtime.activeBranch` для runtime-подсветки вкладок.
+- Для обратной совместимости `config.conditionBlocks` поддерживается как зеркало ветки `plus`.
+- Версии повышены: `crash.js 0.1.5.93` (header + `MEP.ver`) и `crash.css 0.1.5.93`.

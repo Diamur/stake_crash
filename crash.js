@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.92";
+		MEP.ver = "0.1.5.93";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -121,6 +121,19 @@
             },
         });
 
+        const buildStrategy1ConditionBlocksDisabledDefault = () => {
+            const src = buildStrategy1ConditionBlocksDefault();
+            const out = {};
+            for (const k of Object.keys(src)) {
+                out[k] = {
+                    ...src[k],
+                    enabled: false,
+                    params: src[k]?.params && typeof src[k].params === "object" ? { ...src[k].params } : {},
+                };
+            }
+            return out;
+        };
+
         const buildStrategy1DefaultState = () => ({
             id: "strategy1",
             name: "Стратегия1",
@@ -131,6 +144,11 @@
                 riskPercent: 0,
                 conditionPoolIds: [],
                 conditionBlocks: buildStrategy1ConditionBlocksDefault(),
+                conditionBranches: {
+                    plus: buildStrategy1ConditionBlocksDefault(),
+                    minus: buildStrategy1ConditionBlocksDisabledDefault(),
+                },
+                conditionSelectedBranch: "plus",
                 startStakeMode: "fixed",
                 startStakeValue: 0,
                 startStakeArrayText: "",
@@ -233,6 +251,8 @@
             runtime: {
                 lastSignal: "",
                 lastConditionResult: null,
+                lastConditionBranchResults: null,
+                activeBranch: "",
                 lastStakePlanResult: null,
                 lastProcessedRoundId: "",
                 lastProcessedBalanceTs: 0,
@@ -3012,6 +3032,16 @@
         flex-direction:column;
         gap:6px;
         }
+        .mep-strategy1-branch-tabs{display:flex;gap:6px;}
+        .mep-strategy1-branch-tab{
+        min-width:74px;height:24px;border-radius:6px;
+        border:1px solid rgba(255,255,255,.22);
+        background:rgba(255,255,255,.08);color:#d8dde6;font-size:12px;cursor:pointer;
+        }
+        .mep-strategy1-branch-tab.is-selected{background:rgba(255,255,255,.28);color:#fff;}
+        .mep-strategy1-branch-tab.is-runtime-active{
+        background:rgba(0,255,87,.2);border-color:rgba(0,255,87,.75);color:#b5ffca;box-shadow:0 0 10px rgba(0,255,87,.45);
+        }
         .mep-strategy1-cond-summary{
         font-size:11px;
         line-height:1.1;
@@ -5630,12 +5660,14 @@
                 return MEP.State?.strategies?.strategy1 || null;
             },
 
-            ensureConditionBlocks(st = null) {
+            ensureConditionBlocks(st = null, branch = "plus") {
                 const state = st || this.getState();
                 if (!state) return buildStrategy1ConditionBlocksDefault();
                 const cfg = state.config && typeof state.config === "object" ? state.config : (state.config = {});
-                const src = cfg.conditionBlocks && typeof cfg.conditionBlocks === "object" ? cfg.conditionBlocks : {};
                 const d = buildStrategy1ConditionBlocksDefault();
+                const dMinus = buildStrategy1ConditionBlocksDisabledDefault();
+                const legacySrc = cfg.conditionBlocks && typeof cfg.conditionBlocks === "object" ? cfg.conditionBlocks : {};
+                const key = (branch || "").toString().trim().toLowerCase() === "minus" ? "minus" : "plus";
                 const toBool = (v, fallback) => (v === undefined ? !!fallback : !!v);
                 const toThreshold = (v) => {
                     const n = Math.floor(Number(v));
@@ -5653,64 +5685,82 @@
                     const m = (v ?? "gt").toString().trim().toLowerCase();
                     return m === "lt" || m === "flat" ? m : "gt";
                 };
-                const out = {
+                const normalizeBranch = (src = {}, defaults = d) => ({
                     charter: {
                         type: "charter",
-                        enabled: toBool(src?.charter?.enabled, d.charter.enabled),
+                        enabled: toBool(src?.charter?.enabled, defaults.charter.enabled),
                         label: "Устав",
                         params: {},
                     },
                     streak_lt: {
                         type: "streak_lt",
-                        enabled: toBool(src?.streak_lt?.enabled, d.streak_lt.enabled),
+                        enabled: toBool(src?.streak_lt?.enabled, defaults.streak_lt.enabled),
                         label: "Подряд",
-                        params: { threshold: toThreshold(src?.streak_lt?.params?.threshold ?? d.streak_lt.params.threshold) },
+                        params: { threshold: toThreshold(src?.streak_lt?.params?.threshold ?? defaults.streak_lt.params.threshold) },
                     },
                     diff_vector_state: {
                         type: "diff_vector_state",
-                        enabled: toBool(src?.diff_vector_state?.enabled, d.diff_vector_state.enabled),
+                        enabled: toBool(src?.diff_vector_state?.enabled, defaults.diff_vector_state.enabled),
                         label: "Diff",
-                        params: { mode: toMode(src?.diff_vector_state?.params?.mode ?? d.diff_vector_state.params.mode) },
+                        params: { mode: toMode(src?.diff_vector_state?.params?.mode ?? defaults.diff_vector_state.params.mode) },
                     },
                     frequency_vector_state: {
                         type: "frequency_vector_state",
-                        enabled: toBool(src?.frequency_vector_state?.enabled, d.frequency_vector_state.enabled),
+                        enabled: toBool(src?.frequency_vector_state?.enabled, defaults.frequency_vector_state.enabled),
                         label: "Freq",
-                        params: { mode: toMode(src?.frequency_vector_state?.params?.mode ?? d.frequency_vector_state.params.mode) },
+                        params: { mode: toMode(src?.frequency_vector_state?.params?.mode ?? defaults.frequency_vector_state.params.mode) },
                     },
                     frequency_line_gt: {
                         type: "frequency_line_gt",
-                        enabled: toBool(src?.frequency_line_gt?.enabled, d.frequency_line_gt.enabled),
+                        enabled: toBool(src?.frequency_line_gt?.enabled, defaults.frequency_line_gt.enabled),
                         label: "FreqL",
-                        params: { threshold: toFrequencyLineThreshold(src?.frequency_line_gt?.params?.threshold ?? d.frequency_line_gt.params.threshold) },
+                        params: { threshold: toFrequencyLineThreshold(src?.frequency_line_gt?.params?.threshold ?? defaults.frequency_line_gt.params.threshold) },
                     },
                     stake_players_vector_state: {
                         type: "stake_players_vector_state",
-                        enabled: toBool(src?.stake_players_vector_state?.enabled, d.stake_players_vector_state.enabled),
+                        enabled: toBool(src?.stake_players_vector_state?.enabled, defaults.stake_players_vector_state.enabled),
                         label: "Clients",
-                        params: { mode: toMode(src?.stake_players_vector_state?.params?.mode ?? d.stake_players_vector_state.params.mode) },
+                        params: { mode: toMode(src?.stake_players_vector_state?.params?.mode ?? defaults.stake_players_vector_state.params.mode) },
                     },
                     stake_bet_vector_state: {
                         type: "stake_bet_vector_state",
-                        enabled: toBool(src?.stake_bet_vector_state?.enabled, d.stake_bet_vector_state.enabled),
+                        enabled: toBool(src?.stake_bet_vector_state?.enabled, defaults.stake_bet_vector_state.enabled),
                         label: "Bet",
-                        params: { mode: toMode(src?.stake_bet_vector_state?.params?.mode ?? d.stake_bet_vector_state.params.mode) },
+                        params: { mode: toMode(src?.stake_bet_vector_state?.params?.mode ?? defaults.stake_bet_vector_state.params.mode) },
                     },
                     stake_players_line_gte: {
                         type: "stake_players_line_gte",
-                        enabled: toBool(src?.stake_players_line_gte?.enabled, d.stake_players_line_gte.enabled),
+                        enabled: toBool(src?.stake_players_line_gte?.enabled, defaults.stake_players_line_gte.enabled),
                         label: "ClientsL",
-                        params: { threshold: toStakeLineThreshold(src?.stake_players_line_gte?.params?.threshold ?? d.stake_players_line_gte.params.threshold) },
+                        params: { threshold: toStakeLineThreshold(src?.stake_players_line_gte?.params?.threshold ?? defaults.stake_players_line_gte.params.threshold) },
                     },
                     stake_bet_line_gte: {
                         type: "stake_bet_line_gte",
-                        enabled: toBool(src?.stake_bet_line_gte?.enabled, d.stake_bet_line_gte.enabled),
+                        enabled: toBool(src?.stake_bet_line_gte?.enabled, defaults.stake_bet_line_gte.enabled),
                         label: "BetL",
-                        params: { threshold: toStakeLineThreshold(src?.stake_bet_line_gte?.params?.threshold ?? d.stake_bet_line_gte.params.threshold) },
+                        params: { threshold: toStakeLineThreshold(src?.stake_bet_line_gte?.params?.threshold ?? defaults.stake_bet_line_gte.params.threshold) },
                     },
+                });
+
+                const rawBranches = cfg.conditionBranches && typeof cfg.conditionBranches === "object" ? cfg.conditionBranches : null;
+                const plusRaw = rawBranches?.plus && typeof rawBranches.plus === "object" ? rawBranches.plus : legacySrc;
+                const minusRaw = rawBranches?.minus && typeof rawBranches.minus === "object" ? rawBranches.minus : {};
+                const plusOut = normalizeBranch(plusRaw, d);
+                const minusOut = normalizeBranch(minusRaw, dMinus);
+                cfg.conditionBranches = { plus: plusOut, minus: minusOut };
+                cfg.conditionBlocks = plusOut;
+                if (cfg.conditionSelectedBranch !== "minus") cfg.conditionSelectedBranch = "plus";
+                return cfg.conditionBranches[key];
+            },
+
+            getConditionBranchPoolState(evaluated = []) {
+                const active = (evaluated || []).filter((it) => it.enabled);
+                const hasFalse = active.some((it) => !it.result);
+                return {
+                    activeCount: active.length,
+                    hasFalse,
+                    result: active.length > 0 ? !hasFalse : false,
                 };
-                cfg.conditionBlocks = out;
-                return out;
             },
 
             getDiffVectorShortLabelByState(state = "") {
@@ -5798,9 +5848,9 @@
                 return 0;
             },
 
-            evaluateConditionBlocks(st = null) {
+            evaluateConditionBlocks(st = null, branch = "plus") {
                 const state = st || this.getState();
-                const blocks = this.ensureConditionBlocks(state);
+                const blocks = this.ensureConditionBlocks(state, branch);
                 const out = [];
 
                 const strategyEnabled = !!state?.enabled;
@@ -7640,20 +7690,25 @@
             checkConditions() {
                 const st = this.getState();
                 if (!st) return { canBet: false, shouldEndCycle: false, reason: "strategy1_not_found" };
-                const evaluated = this.evaluateConditionBlocks(st);
-                const active = evaluated.filter((it) => it.enabled);
-                const hasFalse = active.some((it) => !it.result);
+                const evaluatedPlus = this.evaluateConditionBlocks(st, "plus");
+                const evaluatedMinus = this.evaluateConditionBlocks(st, "minus");
+                const plusPool = this.getConditionBranchPoolState(evaluatedPlus);
+                const minusPool = this.getConditionBranchPoolState(evaluatedMinus);
                 const result = {
-                    canBet: active.length > 0 ? !hasFalse : false,
+                    canBet: plusPool.result,
                     shouldEndCycle: false,
-                    reason: active.length ? (hasFalse ? "condition_pool_false" : "") : "condition_pool_not_used",
-                    items: evaluated,
+                    reason: plusPool.activeCount ? (plusPool.hasFalse ? "condition_pool_false" : "") : "condition_pool_not_used",
+                    items: evaluatedPlus,
+                    plusResult: plusPool.result,
+                    minusResult: minusPool.result,
                 };
                 if (st.conditions?.lastResult) {
                     st.conditions.lastResult.canBet = !!result.canBet;
                     st.conditions.lastResult.shouldEndCycle = false;
                     st.conditions.lastResult.reason = (result.reason || "").toString();
                 }
+                st.runtime.activeBranch = st.enabled ? (plusPool.result ? "plus" : minusPool.result ? "minus" : "") : "";
+                st.runtime.lastConditionBranchResults = { plus: plusPool, minus: minusPool };
                 st.runtime.lastConditionResult = result;
                 st.runtime.lastCycleAction = "checkConditions";
                 this.updateUiCounters();
@@ -8471,9 +8526,31 @@
                 return n.toFixed(8).replace(/\.?0+$/, "").replace(".", ",");
             },
 
-            getStrategy1ConditionBlocks(st = null) {
+            getStrategy1SelectedConditionBranch(st = null) {
                 const s = st || MEP.UI.getStrategyState("strategy1");
-                return MEP.Strategy1?.ensureConditionBlocks?.(s) || buildStrategy1ConditionBlocksDefault();
+                if (!s) return "plus";
+                const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
+                const branch = (cfg.conditionSelectedBranch || "plus").toString().trim().toLowerCase();
+                const safe = branch === "minus" ? "minus" : "plus";
+                cfg.conditionSelectedBranch = safe;
+                return safe;
+            },
+
+            setStrategy1SelectedConditionBranch(branch = "plus") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                const safe = (branch || "").toString().trim().toLowerCase() === "minus" ? "minus" : "plus";
+                if (cfg.conditionSelectedBranch === safe) return;
+                cfg.conditionSelectedBranch = safe;
+                MEP.Storage.save();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
+            getStrategy1ConditionBlocks(st = null, branch = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                const selected = branch || MEP.UI.getStrategy1SelectedConditionBranch(s);
+                return MEP.Strategy1?.ensureConditionBlocks?.(s, selected) || buildStrategy1ConditionBlocksDefault();
             },
 
             removeConditionIdFromStrategyPool(strategyId = "strategy1", objectId = "") {
@@ -8857,12 +8934,19 @@
                         activeEl.classList.contains("mep-strategy1-stop-minus-input") ||
                         activeEl.classList.contains("mep-strategy1-service-array-input"));
                 if (isEditingConditionControl || isEditingServiceArrayControl) return;
-                const blocks = MEP.UI.getStrategy1ConditionBlocks(s);
-                const evaluated = MEP.Strategy1?.evaluateConditionBlocks?.(s) || [];
+                const selectedBranch = MEP.UI.getStrategy1SelectedConditionBranch(s);
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(s, selectedBranch);
+                const evaluatedPlus = MEP.Strategy1?.evaluateConditionBlocks?.(s, "plus") || [];
+                const evaluatedMinus = MEP.Strategy1?.evaluateConditionBlocks?.(s, "minus") || [];
+                const evaluated = selectedBranch === "minus" ? evaluatedMinus : evaluatedPlus;
                 const byKey = Object.create(null);
                 for (const it of evaluated) byKey[it.key] = it;
-                const active = evaluated.filter((it) => it.enabled);
-                const hasFalse = active.some((it) => !it.result);
+                const plusPool = MEP.Strategy1?.getConditionBranchPoolState?.(evaluatedPlus) || { activeCount: 0, hasFalse: false, result: false };
+                const minusPool = MEP.Strategy1?.getConditionBranchPoolState?.(evaluatedMinus) || { activeCount: 0, hasFalse: false, result: false };
+                const activeBranch = s.enabled ? (plusPool.result ? "plus" : minusPool.result ? "minus" : "") : "";
+                s.runtime = s.runtime && typeof s.runtime === "object" ? s.runtime : {};
+                s.runtime.activeBranch = activeBranch;
+                const currentPool = selectedBranch === "minus" ? minusPool : plusPool;
                 const rows = [];
                 const threshold = Math.max(0, Math.floor(Number(blocks?.streak_lt?.params?.threshold) || 0));
                 const diffMode = (blocks?.diff_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
@@ -8960,8 +9044,8 @@
 
                 let summaryText = "Пул условий: not use";
                 let summaryClass = "is-idle";
-                if (active.length > 0) {
-                    if (hasFalse) {
+                if (currentPool.activeCount > 0) {
+                    if (currentPool.hasFalse) {
                         summaryText = "Пул условий: false";
                         summaryClass = "is-false";
                     } else {
@@ -8972,6 +9056,19 @@
                 ui.strategy1CondSummaryEl.textContent = summaryText;
                 ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false", "is-idle");
                 ui.strategy1CondSummaryEl.classList.add(summaryClass);
+                if (ui.strategy1CondBranchTabsEl) {
+                    const plusBtn = ui.strategy1CondBranchTabsEl.querySelector(".mep-strategy1-branch-tab-plus");
+                    const minusBtn = ui.strategy1CondBranchTabsEl.querySelector(".mep-strategy1-branch-tab-minus");
+                    const applyTabState = (btn, branchKey) => {
+                        if (!btn) return;
+                        const isSelected = selectedBranch === branchKey;
+                        const isRuntimeActive = activeBranch === branchKey;
+                        btn.classList.toggle("is-selected", isSelected);
+                        btn.classList.toggle("is-runtime-active", isRuntimeActive);
+                    };
+                    applyTabState(plusBtn, "plus");
+                    applyTabState(minusBtn, "minus");
+                }
 
                 stakeServiceWrapEl = ui.strategy1CondWrapEl?.querySelector?.(".mep-strategy1-stake-service-wrap") || null;
                 if (!stakeServiceWrapEl && ui.strategy1CondSummaryEl?.parentNode) {
@@ -9992,6 +10089,10 @@
             <span class="mep-strategy1-risk-percent-sign">%</span>
         </div>
         <div class="mep-strategy1-conditions-wrap">
+            <div class="mep-strategy1-branch-tabs">
+                <button class="mep-strategy1-branch-tab mep-strategy1-branch-tab-plus is-selected" type="button" data-branch="plus">ПЛЮС</button>
+                <button class="mep-strategy1-branch-tab mep-strategy1-branch-tab-minus" type="button" data-branch="minus">МИНУС</button>
+            </div>
             <div class="mep-strategy1-cond-list"></div>
             <div class="mep-strategy1-cond-summary is-idle">Пул условий: not use</div>
         </div>
@@ -10082,6 +10183,7 @@
                     strategy1RiskAmountEl: panel.querySelector(".mep-strategy1-risk-amount"),
                     strategy1RiskPercentInput: panel.querySelector(".mep-strategy1-risk-percent"),
                     strategy1CondWrapEl: panel.querySelector(".mep-strategy1-conditions-wrap"),
+                    strategy1CondBranchTabsEl: panel.querySelector(".mep-strategy1-branch-tabs"),
                     strategy1CondSummaryEl: panel.querySelector(".mep-strategy1-cond-summary"),
                     strategy1CondListEl: panel.querySelector(".mep-strategy1-cond-list"),
                     strategy1TabBtn: panel.querySelector('button.mep-game-tab-btn[data-tab="strategy1"]'),
@@ -10503,6 +10605,12 @@
                         }
                     });
                     ui.strategy1CondWrapEl.addEventListener("click", (e) => {
+                        const branchTab = e.target?.closest?.(".mep-strategy1-branch-tab");
+                        if (branchTab) {
+                            const branch = (branchTab.dataset.branch || "plus").toString();
+                            MEP.UI.setStrategy1SelectedConditionBranch(branch);
+                            return;
+                        }
                         const stakeApply = e.target?.closest?.(".mep-strategy1-click-apply-stake");
                         if (stakeApply) {
                             const value = Number(stakeApply.dataset.value) || 0;
