@@ -334,3 +334,70 @@
 - Реализован приоритет code > storage/DB: `MEP.Settings.getEndpoint()` и `MEP.Settings.getSoundsText()` сначала читают `MEP.CodeSettings`.
 - В settings UI добавлены readonly/title-hints для endpoint/sounds при активном code override; сохранение этих полей в state пропускается при code-priority.
 - Версии повышены: `crash.js 0.1.5.66` (header + `MEP.ver`) и `crash.css 0.1.5.66`.
+- 2026-04-04: Strategy1 minimal pool расширен локальным блоком `frequency_vector_state` (Freq) без registry/DB изменений.
+- Добавлены short-label helper'ы `getFrequencyVectorShortLabelByState/Mode` и evaluate-ветка `frequency_vector_state` по `MEP.State.frequencyVectorState` (`up/down/flat`).
+- В `renderStrategy1ConditionBridge` добавлена строка `Freq` сразу после `Diff` с toggle + mode select + currentValue + result.
+- Добавлены `setStrategy1FrequencyMode()` и bind `select.mep-strategy1-cond-frequency-mode`; guard автоперерендера расширен на общий класс `mep-strategy1-cond-vector-mode`.
+- Стили vector-mode select унифицированы через `.mep-strategy1-cond-vector-mode` (Diff/Freq используют один стиль).
+- Версии повышены: `crash.js 0.1.5.67` (header + `MEP.ver`) и `crash.css 0.1.5.67`.
+- 2026-04-04: В Strategy1 local minimal pool добавлен новый блок `frequency_line_gt` (`label: FreqL`, `params.threshold`, без registry/DB).
+- В `evaluateConditionBlocks()` добавлена проверка `currentFrequency > threshold` с `currentValue` как числом частотности и `resultText` вида `N > T`.
+- Текущая частотность берётся из runtime-расчёта FrequencyGraph: `_toOldestFirstNumbers()` + `_buildSeries(...)` + последний элемент серии.
+- В `renderStrategy1ConditionBridge` после строки `Freq` добавлена строка `FreqL` с компактной формулой `f > [threshold]`.
+- Добавлены `setStrategy1FrequencyLineThreshold()` и bind для `mep-strategy1-cond-frequency-line-threshold`; guard авто-rerender расширен под новый input.
+- Версии повышены: `crash.js 0.1.5.68` (header + `MEP.ver`) и `crash.css 0.1.5.68`.
+- 2026-04-04: StakeGraph render fix — векторные линии теперь зависят не только от `stake*VectorEnabled`, но и от видимости соответствующей серии.
+- Добавлены флаги `renderPlayersVectors = showPlayers && stakePlayersVectorEnabled` и `renderBetVectors = showBet && stakeBetVectorEnabled`.
+- При выключении `Клиенты` скрываются: линия клиентов + mainEMA + shiftedEMA клиентов.
+- При выключении `Ставка x10` скрываются: линия ставки + mainEMA + shiftedEMA ставки.
+- Расчёт EMA/state не менялся; изменены только условия отображения в `MEP.StakeGraph.render()`.
+- Версии повышены: `crash.js 0.1.5.69` (header + `MEP.ver`) и `crash.css 0.1.5.69`.
+- 2026-04-04: Добавлено сворачивание блока «Отслеживание» (кнопка-стрелка в header, как у графиков).
+- Введён state-флаг `MEP.State.trackingCollapsed` с persistence через `MEP.Storage.save/load` (localStorage + cookie).
+- В mount добавлены `mep-tracking-wrap`, `mep-track-collapse` и группировка `mep-track-head-controls`.
+- В bind добавлен `applyTrackingCollapse()` и click-handler кнопки с сохранением состояния.
+- В collapsed скрываются `.mep-track-wrap` и `.mep-track-count`, header и кнопка остаются видимыми.
+- Версии повышены: `crash.js 0.1.5.70` (header + `MEP.ver`) и `crash.css 0.1.5.70`.
+- 2026-04-04: Для `График ставок` добавлены ручные цвета основных линий: `stakeGraphPlayersColor` и `stakeGraphBetColor`.
+- В stake-params добавлены color-контролы: `mep-stake-color-players` и `mep-stake-color-bet`.
+- Рендер основныйх series в `MEP.StakeGraph.render()` переведён с hardcoded цветов на state-цвета.
+- Легенда `.mep-stake-legend-players/.mep-stake-legend-bets` теперь синхронизируется с выбранными state-цветами.
+- Новые поля добавлены в `MEP.Storage.save/load` (localStorage + cookie) и в bind handlers с save+rerender.
+- Версии повышены: `crash.js 0.1.5.71` (header + `MEP.ver`) и `crash.css 0.1.5.71`.
+- 2026-04-04: В Strategy1 minimal pool добавлен обязательный системный пункт `strategy_enabled` (первая строка `Вкл/Откл`).
+- Пункт не хранится как редактируемый `conditionBlock`: он подмешивается в `evaluateConditionBlocks()` с `enabled:true` и `currentValue on/off`.
+- При `strategy1.enabled=false` первая строка даёт `false`, и общий `Пул условий` теперь корректно становится `false`.
+- В `renderStrategy1ConditionBridge` строка `strategy_enabled` вставлена первой, перед `Устав`.
+- UI сделан locked/non-disable: вместо интерактивного checkbox используется неинтерактивный индикатор `.mep-strategy1-cond-lock-indicator`.
+- Версии повышены: `crash.js 0.1.5.72` (header + `MEP.ver`) и `crash.css 0.1.5.72`.
+- 2026-04-04: В Strategy1 local minimal pool добавлен новый блок `stake_players_vector_state` (`label: Clients`, `mode: gt/lt/flat`, без registry/DB).
+- Добавлены short-label helper'ы `getStakePlayersVectorShortLabelByState/Mode` в формате `mEMA > sEMA | mEMA < sEMA | flat`.
+- В `evaluateConditionBlocks()` добавлена ветка `stake_players_vector_state` по runtime-источнику `MEP.State.stakePlayersVectorState`.
+- В `renderStrategy1ConditionBridge` добавлена строка `Clients` после `Freq line` с toggle + vector-mode select + currentValue + result.
+- Добавлены `setStrategy1StakePlayersMode()` и bind для `select.mep-strategy1-cond-stake-players-mode`.
+- Версии повышены: `crash.js 0.1.5.73` (header + `MEP.ver`) и `crash.css 0.1.5.73`.
+- 2026-04-04: В Strategy1 local minimal pool добавлен новый блок `stake_bet_vector_state` (`label: Bet`, `mode: gt/lt/flat`, без registry/DB).
+- Добавлены short-label helper'ы `getStakeBetVectorShortLabelByState/Mode` в формате `mEMA > sEMA | mEMA < sEMA | flat`.
+- В `evaluateConditionBlocks()` добавлена ветка `stake_bet_vector_state` по runtime-источнику `MEP.State.stakeBetVectorState`.
+- В `renderStrategy1ConditionBridge` добавлена строка `Bet` после `Clients` с toggle + vector-mode select + currentValue + result.
+- Добавлены `setStrategy1StakeBetMode()` и bind для `select.mep-strategy1-cond-stake-bet-mode`.
+- Версии повышены: `crash.js 0.1.5.74` (header + `MEP.ver`) и `crash.css 0.1.5.74`.
+- 2026-04-04: В Strategy1 local minimal pool добавлены line-условия `stake_players_line_gte` и `stake_bet_line_gte` (без registry/DB).
+- Добавлены runtime helper'ы `getCurrentStakePlayersValue()` и `getCurrentStakeBetValue()` по последним значениям `roundPlayersCountHistory/roundBetSumHistory` (сырые значения).
+- В `evaluateConditionBlocks()` добавлены проверки `currentPlayers >= threshold` и `currentBet >= threshold` с `currentValue`/`resultText`.
+- В `renderStrategy1ConditionBridge` добавлены строки `ClientsL` (`c >=`) и `BetL` (`b >=`) после `Clients`/`Bet`.
+- Добавлены setter'ы `setStrategy1StakePlayersThreshold()` / `setStrategy1StakeBetThreshold()` и bind для новых threshold input.
+- Версии повышены: `crash.js 0.1.5.75` (header + `MEP.ver`) и `crash.css 0.1.5.75`.
+- 2026-04-04: В Strategy1 minimal UI после `Пул условий` добавлены service-строки `Ставка фикс.` и `Ставка X%` (вне condition-pool).
+- Добавлено вычисление start/loss/next для fixed и percent режимов; `next` считается как шаг `lossCount + 1` через текущие growth-настройки.
+- Добавлены toggles режимов старта: `startStakeMode` переключается между `fixed` и `percent` с save + checkConditions + rerender.
+- Клик по `.mep-strategy1-risk-amount` теперь копирует значение и в `Strategy1.config.startStakeValue` (с сохранением и ререндером).
+- Добавлены стили service-строк в `crash.js` (inline style block) и `crash.css`.
+- Версии повышены: `crash.js 0.1.5.76` (header + `MEP.ver`) и `crash.css 0.1.5.76`.
+- 2026-04-05: Убрано многоточие в service-строках ставок Strategy1 (`Ставка фикс.` / `Ставка X%`).
+- Для `.mep-strategy1-stake-col` включён полный вывод значений: `white-space: normal`, `overflow: visible`, `text-overflow: clip`, `word-break: break-all`.
+- Изменение внесено синхронно в inline-стили `crash.js` и в `crash.css`.
+- 2026-04-05: Для service-строк ставок Strategy1 расширены колонки значений, чтобы числа не переносились по цифрам.
+- `.mep-strategy1-stake-row` переведён на сетку `34px minmax(88px,1fr) 86px 42px 86px`.
+- Для `.mep-strategy1-stake-col` включён `white-space: nowrap` и увеличен горизонтальный padding.
+- Версии повышены: `crash.js 0.1.5.77` (header + `MEP.ver`) и `crash.css 0.1.5.77`.
