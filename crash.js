@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.100";
+		MEP.ver = "0.1.5.101";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8885,8 +8885,8 @@
                 if (t === "сделать ставку (след. раунд)") return "game";
                 if (t === "начинается...") return "launch";
                 if (t === "ставка") return "bet";
-                if (t === "отменить") return "placed";
-                if (t === "кэшаут") return "in_game";
+                if (t === "отменить" || t.startsWith("отменить ")) return "placed";
+                if (t === "кэшаут" || t.startsWith("кэшаут ") || t.includes("кэшаут ") || t.includes("cash out")) return "in_game";
                 return "";
             },
 
