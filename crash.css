@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.76 ==*/
+/*== CSS ver 0.1.5.77 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -903,7 +903,7 @@ body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
 #mep-control-panel .mep-strategy1-stake-row{
   margin-top:0;
   display:grid;
-  grid-template-columns:34px 1fr 64px 38px 64px;
+  grid-template-columns:34px minmax(88px,1fr) 86px 42px 86px;
   align-items:center;
   gap:0;
   border:1px dashed rgba(255,255,255,.24);
@@ -915,7 +915,7 @@ body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
 #mep-control-panel .mep-strategy1-stake-row.is-active{border-color:rgba(0,255,87,.5);background:rgba(0,255,87,.08);}
 #mep-control-panel .mep-strategy1-stake-row.is-inactive{opacity:.86;}
 #mep-control-panel .mep-strategy1-stake-mode-toggle{width:16px;height:16px;accent-color:#00e51f;}
-#mep-control-panel .mep-strategy1-stake-col{padding:4px 6px;white-space:normal;overflow:visible;text-overflow:clip;word-break:break-all;line-height:1.2;}
+#mep-control-panel .mep-strategy1-stake-col{padding:4px 8px;white-space:nowrap;overflow:visible;text-overflow:clip;word-break:normal;line-height:1.2;}
 #mep-control-panel .mep-strategy1-stake-col.label{color:#f0f4fb;}
 #mep-control-panel .mep-strategy1-stake-col.start{color:#d7dde5;text-align:right;}
 #mep-control-panel .mep-strategy1-stake-col.loss{color:#9eb3d7;text-align:center;}

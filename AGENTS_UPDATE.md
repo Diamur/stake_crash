@@ -397,3 +397,7 @@
 - 2026-04-05: Убрано многоточие в service-строках ставок Strategy1 (`Ставка фикс.` / `Ставка X%`).
 - Для `.mep-strategy1-stake-col` включён полный вывод значений: `white-space: normal`, `overflow: visible`, `text-overflow: clip`, `word-break: break-all`.
 - Изменение внесено синхронно в inline-стили `crash.js` и в `crash.css`.
+- 2026-04-05: Для service-строк ставок Strategy1 расширены колонки значений, чтобы числа не переносились по цифрам.
+- `.mep-strategy1-stake-row` переведён на сетку `34px minmax(88px,1fr) 86px 42px 86px`.
+- Для `.mep-strategy1-stake-col` включён `white-space: nowrap` и увеличен горизонтальный padding.
+- Версии повышены: `crash.js 0.1.5.77` (header + `MEP.ver`) и `crash.css 0.1.5.77`.
