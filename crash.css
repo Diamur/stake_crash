@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.89 ==*/
+/*== CSS ver 0.1.5.90 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -934,7 +934,7 @@ body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
 }
 #mep-control-panel .mep-strategy1-cycle-info-row{
   display:grid;
-  grid-template-columns:1fr 1fr 1fr;
+  grid-template-columns:1fr 1fr 1fr 1fr;
   align-items:center;
   gap:0;
   border:1px dashed rgba(255,255,255,.24);

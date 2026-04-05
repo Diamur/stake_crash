@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.89";
+		MEP.ver = "0.1.5.90";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -173,6 +173,7 @@
             cycle: {
                 cycleId: "",
                 isActive: false,
+                cycleNumber: 0,
                 startBalance: 0,
                 currentBalance: 0,
                 cyclePnL: 0,
@@ -3061,7 +3062,7 @@
         }
         .mep-strategy1-cycle-info-row{
         display:grid;
-        grid-template-columns:1fr 1fr 1fr;
+        grid-template-columns:1fr 1fr 1fr 1fr;
         align-items:center;
         gap:0;
         border:1px dashed rgba(255,255,255,.24);
@@ -7204,6 +7205,7 @@
                 MEP.State.activeStrategyId = st.id;
                 st.cycle.isActive = true;
                 st.cycle.cycleId = `s1_${now}`;
+                st.cycle.cycleNumber = Math.max(0, Math.floor(Number(st.cycle.cycleNumber) || 0)) + 1;
                 st.cycle.endReason = "";
                 st.cycle.startBalance = currentBalanceNow;
                 st.cycle.currentBalance = currentBalanceNow;
@@ -8628,13 +8630,15 @@
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!s) return null;
                 const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
+                const enabled = !!s.enabled;
                 const currentBalance = Math.max(0, Number(MEP.UI.readCurrentBalanceFromDom().amount) || 0);
                 const riskPercent = Math.max(0, Number(cfg.riskPercent) || 0);
                 const fixedStart = Math.max(0, Number(cfg.startStakeValue) || 0);
                 const percentStart = Math.max(0, currentBalance * (riskPercent / 100));
-                const lossCount = Math.max(0, Math.floor(Number(s.cycle?.lossCount) || 0));
-                const roundCount = Math.max(0, Math.floor(Number(s.cycle?.roundCount) || 0));
-                const betCount = Math.max(0, Math.floor(Number(s.cycle?.betCount) || 0));
+                const lossCount = enabled ? Math.max(0, Math.floor(Number(s.cycle?.lossCount) || 0)) : 0;
+                const roundCount = enabled ? Math.max(0, Math.floor(Number(s.cycle?.roundCount) || 0)) : 0;
+                const betCount = enabled ? Math.max(0, Math.floor(Number(s.cycle?.betCount) || 0)) : 0;
+                const cycleNumber = enabled ? Math.max(0, Math.floor(Number(s.cycle?.cycleNumber) || 0)) : 0;
                 const activeStakeGrowthMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.stakeGrowthArrayText, lossCount);
                 const activeTargetMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.targetMultiplierArrayText, lossCount);
                 const targetBaseValue = MEP.UI.getStrategy1TargetBaseValue(s);
@@ -8653,6 +8657,7 @@
                     targetBaseValue,
                     targetLossCount,
                     targetNextValue,
+                    cycleNumber,
                     cycleRoundCount: roundCount,
                     cycleBetCount: betCount,
                     cycleLossCount: lossCount,
@@ -8960,6 +8965,7 @@
                         .replace(/>/g, "&gt;");
                     stakeServiceWrapEl.innerHTML = `
 <div class="mep-strategy1-cycle-info-row">
+<span class="mep-strategy1-cycle-info-cell">Циклов: <b>${serviceData.cycleNumber}</b></span>
 <span class="mep-strategy1-cycle-info-cell">Раунд: <b>${serviceData.cycleRoundCount}</b></span>
 <span class="mep-strategy1-cycle-info-cell">Ставок: <b>${serviceData.cycleBetCount}</b></span>
 <span class="mep-strategy1-cycle-info-cell">Минусов: <b>${serviceData.cycleLossCount}</b></span>
@@ -10330,6 +10336,12 @@
                                 s1.timers.enabledAtTs = 0;
                                 s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
                                 s1.runtime.startBalanceSnapshot = 0;
+                                s1.cycle = s1.cycle && typeof s1.cycle === "object" ? s1.cycle : {};
+                                s1.cycle.isActive = false;
+                                s1.cycle.cycleNumber = 0;
+                                s1.cycle.roundCount = 0;
+                                s1.cycle.betCount = 0;
+                                s1.cycle.lossCount = 0;
                                 if (MEP.State.activeStrategyId === "strategy1" && !s1.isExecuting) MEP.State.activeStrategyId = null;
                             }
                             MEP.Storage.save();
@@ -12828,6 +12840,18 @@
                             roundId: entry?.raw ? `${entry.raw}|${entry.ts}` : `dom_${Date.now()}`,
                             ts: Number(entry?.ts) || Date.now(),
                             rawMultiplier: Number(entry?.num),
+                        });
+                    } else if (st?.enabled && st?.cycle?.isActive) {
+                        MEP.Strategy1?.updateAfterRound?.({
+                            roundId: entry?.raw ? `${entry.raw}|${entry.ts}` : `dom_${Date.now()}`,
+                            ts: Number(entry?.ts) || Date.now(),
+                            balance: Number(MEP.Strategy1?.getCurrentBalance?.()) || 0,
+                            stake: 0,
+                            targetMultiplier: 0,
+                            rawMultiplier: Number(entry?.num),
+                            won: false,
+                            lost: false,
+                            resultKind: "dom_cycle_round",
                         });
                     }
                 } catch (e) {

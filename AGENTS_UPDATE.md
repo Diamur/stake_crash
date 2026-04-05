@@ -459,3 +459,9 @@
 - В `getStrategy1StakeServiceData()` убран `lossCount + 1`: `nextFixed/nextPercent/targetNextValue` считаются строго по текущему `lossCount`.
 - `getStrategy1TargetBaseValue()` теперь возвращает базовый target из `config.targetMultiplierValue` независимо от режима массива, чтобы `Цел.коэф.` использовал стабильную стартовую базу.
 - Версии повышены: `crash.js 0.1.5.89` (header + `MEP.ver`) и `crash.css 0.1.5.89`.
+- 2026-04-05: В cycle-info Strategy1 добавлена 4-я секция `Циклов` и порядок обновлён на `Циклов | Раунд | Ставок | Минусов`.
+- В `Strategy1.cycle` добавлено поле `cycleNumber`; при каждом `startCycle()` оно увеличивается на `+1`, а `roundCount/betCount/lossCount` сбрасываются в `0`.
+- Для round-tracking без ставки: в DOM tracker (`addNewest`) добавлен вызов `Strategy1.updateAfterRound()` для каждого завершённого игрового раунда при `strategy1.enabled && cycle.isActive`, если нет `waitingRoundResult` execution-моста.
+- При выключении Strategy1 через toggle теперь сбрасываются `cycle.isActive=false`, `cycleNumber=0`, `roundCount=0`, `betCount=0`, `lossCount=0` (чтобы инфо-строка не показывала старые значения).
+- В `getStrategy1StakeServiceData()` добавлена выдача `cycleNumber`; при `strategy1.enabled === false` все cycle-счётчики (`cycleNumber/roundCount/betCount/lossCount`) принудительно отдаются как `0`.
+- Версии повышены: `crash.js 0.1.5.90` (header + `MEP.ver`) и `crash.css 0.1.5.90`.
