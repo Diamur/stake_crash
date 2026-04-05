@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.81";
+		MEP.ver = "0.1.5.82";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8627,6 +8627,19 @@
                 MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
             },
 
+            setStrategy1TargetBaseValue(value = "") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                let v = Number((value ?? "").toString().replace(",", "."));
+                if (!Number.isFinite(v) || v <= 0) v = 0;
+                cfg.targetMultiplierValue = v;
+                cfg.targetMode = "fixed";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
@@ -8645,6 +8658,7 @@
                     stakeServiceWrapEl.contains(activeEl) &&
                     (activeEl.classList.contains("mep-strategy1-stake-growth-array-input") ||
                         activeEl.classList.contains("mep-strategy1-target-multiplier-array-input") ||
+                        activeEl.classList.contains("mep-strategy1-target-base-input") ||
                         activeEl.classList.contains("mep-strategy1-service-array-input"));
                 if (isEditingConditionControl || isEditingServiceArrayControl) return;
                 const blocks = MEP.UI.getStrategy1ConditionBlocks(s);
@@ -8811,7 +8825,7 @@
 <div class="mep-strategy1-stake-row is-inactive">
 <span class="mep-strategy1-cond-toggle-wrap"><span class="mep-strategy1-service-array-spacer"></span></span>
 <span class="mep-strategy1-stake-col label">Цел.коэф.</span>
-<span class="mep-strategy1-stake-col start">${MEP.UI.formatStrategyTargetValue(serviceData.targetBaseValue)}</span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-target-base-input" type="text" value="${MEP.UI.formatStrategyTargetValue(serviceData.targetBaseValue)}" placeholder="2" /></span>
 <span class="mep-strategy1-stake-col loss">${serviceData.targetLossCount}</span>
 <span class="mep-strategy1-stake-col next">${MEP.UI.formatStrategyTargetValue(serviceData.targetNextValue)}</span>
 </div>`;
@@ -10243,11 +10257,16 @@
                         const targetMultiplierArrayInput = e.target?.closest?.("input.mep-strategy1-target-multiplier-array-input");
                         if (targetMultiplierArrayInput) {
                             MEP.UI.setStrategy1TargetMultiplierArrayText(targetMultiplierArrayInput.value);
+                            return;
+                        }
+                        const targetBaseInput = e.target?.closest?.("input.mep-strategy1-target-base-input");
+                        if (targetBaseInput) {
+                            MEP.UI.setStrategy1TargetBaseValue(targetBaseInput.value);
                         }
                     });
                     ui.strategy1CondWrapEl.addEventListener("keydown", (e) => {
                         const arrayInput = e.target?.closest?.(
-                            "input.mep-strategy1-stake-growth-array-input, input.mep-strategy1-target-multiplier-array-input"
+                            "input.mep-strategy1-stake-growth-array-input, input.mep-strategy1-target-multiplier-array-input, input.mep-strategy1-target-base-input"
                         );
                         if (!arrayInput) return;
                         if (e.key === "Enter") {

@@ -420,3 +420,8 @@
 - Добавлены helper'ы `getStrategy1TargetBaseValue()`, `getStrategy1TargetValueByStep()`, `formatStrategyTargetValue()`.
 - Для `targetMode=array` расчёт `targetNextValue` идёт циклически по `lossCount % array.length`.
 - Версии повышены: `crash.js 0.1.5.81` (header + `MEP.ver`) и `crash.css 0.1.5.81`.
+- 2026-04-05: В строке `Цел.коэф.` первая числовая колонка переведена в editable input (`.mep-strategy1-target-base-input`).
+- Добавлен setter `setStrategy1TargetBaseValue()` -> пишет `config.targetMultiplierValue`, переключает `targetMode=fixed`, сохраняет и ререндерит.
+- В guard `renderStrategy1ConditionBridge()` добавлен класс `mep-strategy1-target-base-input` (без потери фокуса при вводе).
+- В bind добавлено сохранение по `change` и commit по Enter для нового input.
+- Версии повышены: `crash.js 0.1.5.82` (header + `MEP.ver`) и `crash.css 0.1.5.82`.
