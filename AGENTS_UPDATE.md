@@ -469,3 +469,8 @@
 - Добавлен авто-старт цикла и при init UI, если стратегия уже включена из сохранённого состояния и `cycle.isActive === false`.
 - Это обеспечивает корректный подсчёт раундов без ставок: `Tracker.addNewest -> updateAfterRound(dom_cycle_round)` теперь работает сразу после включения стратегии, т.к. цикл активен.
 - Версии повышены: `crash.js 0.1.5.91` (header + `MEP.ver`) и `crash.css 0.1.5.91`.
+- 2026-04-05: Вынесен единый DOM-bridge `Strategy1.handleRoundFinishedFromDom(entry)` для подсчёта раундов цикла по завершённым игровым раундам (и без ставок тоже).
+- Bridge теперь вызывается в двух путях трекера: `addNewest` и `reconcileLatestWindow` (для backfill-пропусков), чтобы roundCount не терялся при reconcile-сценариях.
+- Логика bridge: если `isExecuting && waitingRoundResult` -> `handleRoundFinishedForExecution`, иначе -> `updateAfterRound` с `stake=0/targetMultiplier=0` и `resultKind=dom_cycle_round`.
+- Это фиксит проблему, когда при включённой стратегии `Циклов=1`, но `Раунд` не увеличивался на новых DOM-раундах.
+- Версии повышены: `crash.js 0.1.5.92` (header + `MEP.ver`) и `crash.css 0.1.5.92`.

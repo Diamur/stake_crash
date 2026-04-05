@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.91";
+		MEP.ver = "0.1.5.92";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -6533,6 +6533,34 @@
                 return { applied: !!updated?.applied, reason: updated?.reason || "", roundId: result.roundId };
             },
 
+            handleRoundFinishedFromDom(entry = {}) {
+                const st = this.getState();
+                if (!st || !st.enabled || !st.cycle?.isActive) {
+                    return { applied: false, reason: "strategy_disabled_or_cycle_inactive" };
+                }
+                const roundId = entry?.raw ? `${entry.raw}|${entry.ts}` : `dom_${Date.now()}`;
+                const ts = Number(entry?.ts) || Date.now();
+                const rawMultiplier = Number(entry?.num);
+                if (st.isExecuting && st.runtime?.waitingRoundResult) {
+                    return this.handleRoundFinishedForExecution({
+                        roundId,
+                        ts,
+                        rawMultiplier,
+                    });
+                }
+                return this.updateAfterRound({
+                    roundId,
+                    ts,
+                    balance: Number(this.getCurrentBalance()) || 0,
+                    stake: 0,
+                    targetMultiplier: 0,
+                    rawMultiplier,
+                    won: false,
+                    lost: false,
+                    resultKind: "dom_cycle_round",
+                });
+            },
+
             checkExecutionTimeout() {
                 const st = this.getState();
                 if (!st) return { applied: false, reason: "strategy1_not_found" };
@@ -12766,6 +12794,12 @@
 
                         // lastAddedKey подвинем на самое свежее из DOM
                         if (j === 0) MEP.State.lastAddedKey = k;
+
+                        try {
+                            MEP.Strategy1?.handleRoundFinishedFromDom?.(e);
+                        } catch (e) {
+                            console.warn("[MEP] reconcile strategy1 round bridge failed:", e);
+                        }
                     }
 
                     // чтобы не было двойного addNewest на этом же тике
@@ -12838,26 +12872,7 @@
                     console.warn("[MEP] sendEntry call failed:", e);
                 }
                 try {
-                    const st = MEP.State?.strategies?.strategy1;
-                    if (st?.isExecuting && st?.runtime?.waitingRoundResult) {
-                        MEP.Strategy1?.handleRoundFinishedForExecution?.({
-                            roundId: entry?.raw ? `${entry.raw}|${entry.ts}` : `dom_${Date.now()}`,
-                            ts: Number(entry?.ts) || Date.now(),
-                            rawMultiplier: Number(entry?.num),
-                        });
-                    } else if (st?.enabled && st?.cycle?.isActive) {
-                        MEP.Strategy1?.updateAfterRound?.({
-                            roundId: entry?.raw ? `${entry.raw}|${entry.ts}` : `dom_${Date.now()}`,
-                            ts: Number(entry?.ts) || Date.now(),
-                            balance: Number(MEP.Strategy1?.getCurrentBalance?.()) || 0,
-                            stake: 0,
-                            targetMultiplier: 0,
-                            rawMultiplier: Number(entry?.num),
-                            won: false,
-                            lost: false,
-                            resultKind: "dom_cycle_round",
-                        });
-                    }
+                    MEP.Strategy1?.handleRoundFinishedFromDom?.(entry);
                 } catch (e) {
                     console.warn("[MEP] execution round bridge failed:", e);
                 }
