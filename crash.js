@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.97";
+		MEP.ver = "0.1.5.98";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -1779,7 +1779,7 @@
 				#${PANEL_ID} .mep-game-phase-cell{
 				border:1px solid rgba(255,255,255,.25);
 				border-radius:6px;
-				height:26px;
+				height:16px;
 				display:flex;
 				align-items:center;
 				justify-content:center;
