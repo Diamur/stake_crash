@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.88";
+		MEP.ver = "0.1.5.89";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8559,11 +8559,13 @@
                 const safeBase = Number(baseStake) || 0;
                 if (!(safeBase > 0)) return 0;
                 const idx = Math.max(0, Math.floor(Number(stepIndex) || 0));
-                const growthMode = s.config?.stakeGrowthMode === "array" ? "array" : "factor";
-                if (growthMode === "array") {
-                    const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
-                    const growthArr = parse ? parse(s.config?.stakeGrowthArrayText) : [];
-                    if (!growthArr.length) return 0;
+                const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
+                const growthArr = parse ? parse(s.config?.stakeGrowthArrayText) : [];
+                if (growthArr.length === 1) {
+                    const g = Number(growthArr[0]) || 0;
+                    return g > 0 ? safeBase * Math.pow(g, idx) : 0;
+                }
+                if (growthArr.length > 1) {
                     const g = Number(growthArr[idx % growthArr.length]) || 0;
                     return g > 0 ? safeBase * g : 0;
                 }
@@ -8585,25 +8587,26 @@
                 if (!s) return 0;
                 const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
                 const idx = Math.max(0, Math.floor(Number(stepIndex) || 0));
-                const targetMode = cfg.targetMode === "array" ? "array" : "fixed";
-                if (targetMode === "array") {
-                    const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
-                    const arr = parse ? parse(cfg.targetMultiplierArrayText) : [];
-                    if (!arr.length) return 0;
-                    return Number(arr[idx % arr.length]) || 0;
+                const base = Math.max(0, Number(cfg.targetMultiplierValue) || 0);
+                if (!(base > 0)) return 0;
+                const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
+                const arr = parse ? parse(cfg.targetMultiplierArrayText) : [];
+                if (arr.length === 1) {
+                    const g = Number(arr[0]) || 0;
+                    return g > 0 ? base * Math.pow(g, idx) : 0;
                 }
-                return Number(cfg.targetMultiplierValue) || 0;
+                if (arr.length > 1) {
+                    const g = Number(arr[idx % arr.length]) || 0;
+                    return g > 0 ? base * g : 0;
+                }
+                const fallback = Number(cfg.targetMultiplierValue) || 0;
+                return fallback > 0 ? fallback : 0;
             },
 
             getStrategy1TargetBaseValue(st = null) {
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!s) return 0;
                 const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
-                if (cfg.targetMode === "array") {
-                    const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
-                    const arr = parse ? parse(cfg.targetMultiplierArrayText) : [];
-                    return arr.length ? Number(arr[0]) || 0 : 0;
-                }
                 return Number(cfg.targetMultiplierValue) || 0;
             },
 
@@ -8632,7 +8635,6 @@
                 const lossCount = Math.max(0, Math.floor(Number(s.cycle?.lossCount) || 0));
                 const roundCount = Math.max(0, Math.floor(Number(s.cycle?.roundCount) || 0));
                 const betCount = Math.max(0, Math.floor(Number(s.cycle?.betCount) || 0));
-                const nextStep = lossCount + 1;
                 const activeStakeGrowthMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.stakeGrowthArrayText, lossCount);
                 const activeTargetMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.targetMultiplierArrayText, lossCount);
                 const targetBaseValue = MEP.UI.getStrategy1TargetBaseValue(s);
@@ -8654,8 +8656,8 @@
                     cycleRoundCount: roundCount,
                     cycleBetCount: betCount,
                     cycleLossCount: lossCount,
-                    nextFixed: MEP.UI.calcStrategy1NextStakeByMode(fixedStart, s, nextStep),
-                    nextPercent: MEP.UI.calcStrategy1NextStakeByMode(percentStart, s, nextStep),
+                    nextFixed: MEP.UI.calcStrategy1NextStakeByMode(fixedStart, s, lossCount),
+                    nextPercent: MEP.UI.calcStrategy1NextStakeByMode(percentStart, s, lossCount),
                 };
             },
 

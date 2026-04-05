@@ -453,3 +453,9 @@
 - Новый input `mep-strategy1-start-stake-base-input` добавлен в anti-rerender guard и bind-обработчики (`change`/`Enter->blur`), чтобы не терялся фокус и не затирался ввод при редактировании.
 - Добавлен форматтер `formatStrategyStakeBaseValue()` для спокойного отображения base-ставки в поле без агрессивного форматирования по каждому символу.
 - Версии повышены: `crash.js 0.1.5.88` (header + `MEP.ver`) и `crash.css 0.1.5.88`.
+- 2026-04-05: Обновлены формулы service-расчётов Strategy1 для `Ставка фикс.`, `Ставка X%`, `Цел.коэф.` с разделением режимов одиночного множителя и массива множителей.
+- Для `Множ.ставок`: если после парсинга 1 значение -> степенная формула `base * multiplier^lossCount`; если >1 -> циклический выбор `base * arr[lossCount % arr.length]`.
+- Для `Множ.коэф`: аналогично, `nextTarget` теперь считается от `targetBaseValue` по тем же правилам (single=степень, array=активный элемент), с использованием текущего `cycle.lossCount`.
+- В `getStrategy1StakeServiceData()` убран `lossCount + 1`: `nextFixed/nextPercent/targetNextValue` считаются строго по текущему `lossCount`.
+- `getStrategy1TargetBaseValue()` теперь возвращает базовый target из `config.targetMultiplierValue` независимо от режима массива, чтобы `Цел.коэф.` использовал стабильную стартовую базу.
+- Версии повышены: `crash.js 0.1.5.89` (header + `MEP.ver`) и `crash.css 0.1.5.89`.
