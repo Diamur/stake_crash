@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.99 ==*/
+/*== CSS ver 0.1.5.100 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -9,7 +9,7 @@
 
 #mep-control-panel .mep-game-phase-row{
   display:grid;
-  grid-template-columns:1fr 1fr 1fr;
+  grid-template-columns:1fr 1fr 1fr 1fr 1fr;
   gap:8px;
   margin-bottom:10px;
 }
@@ -47,6 +47,22 @@
   border-color:rgba(255,136,0,.92);
   box-shadow:0 0 12px rgba(255,136,0,.52), inset 0 0 8px rgba(255,136,0,.14);
   text-shadow:0 0 6px rgba(255,136,0,.55);
+}
+
+#mep-control-panel .mep-game-phase-cell-placed.is-active{
+  color:#d8f4ff;
+  background:rgba(0,170,255,.24);
+  border-color:rgba(0,170,255,.92);
+  box-shadow:0 0 12px rgba(0,170,255,.5), inset 0 0 8px rgba(0,170,255,.14);
+  text-shadow:0 0 6px rgba(0,170,255,.55);
+}
+
+#mep-control-panel .mep-game-phase-cell-in-game.is-active{
+  color:#fff7cf;
+  background:rgba(255,223,0,.24);
+  border-color:rgba(255,223,0,.92);
+  box-shadow:0 0 12px rgba(255,223,0,.5), inset 0 0 8px rgba(255,223,0,.14);
+  text-shadow:0 0 6px rgba(255,223,0,.55);
 }
 
 #mep-control-panel .mep-game-tab-panel{

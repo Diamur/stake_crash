@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.99";
+		MEP.ver = "0.1.5.100";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -1772,7 +1772,7 @@
 				}
 				#${PANEL_ID} .mep-game-phase-row{
 				display:grid;
-				grid-template-columns:1fr 1fr 1fr;
+				grid-template-columns:1fr 1fr 1fr 1fr 1fr;
 				gap:8px;
 				margin-bottom:10px;
 				}
@@ -1808,6 +1808,20 @@
 				border-color:rgba(255,136,0,.92);
 				box-shadow:0 0 12px rgba(255,136,0,.52), inset 0 0 8px rgba(255,136,0,.14);
 				text-shadow:0 0 6px rgba(255,136,0,.55);
+				}
+				#${PANEL_ID} .mep-game-phase-cell-placed.is-active{
+				color:#d8f4ff;
+				background:rgba(0,170,255,.24);
+				border-color:rgba(0,170,255,.92);
+				box-shadow:0 0 12px rgba(0,170,255,.5), inset 0 0 8px rgba(0,170,255,.14);
+				text-shadow:0 0 6px rgba(0,170,255,.55);
+				}
+				#${PANEL_ID} .mep-game-phase-cell-in-game.is-active{
+				color:#fff7cf;
+				background:rgba(255,223,0,.24);
+				border-color:rgba(255,223,0,.92);
+				box-shadow:0 0 12px rgba(255,223,0,.5), inset 0 0 8px rgba(255,223,0,.14);
+				text-shadow:0 0 6px rgba(255,223,0,.55);
 				}
 				#${PANEL_ID} .mep-game-tab-panel{
 				display:none;
@@ -2970,13 +2984,14 @@
         }
         .mep-strategy1-info-bar{
         height:24px;
-        background:rgba(146,146,146,.9);
-        color:#fff;
+        background:rgb(4 51 6 / 90%);
+        color:#19ff00;
         display:flex;
         align-items:center;
         overflow:hidden;
         padding:0 8px;
         box-sizing:border-box;
+        font-weight:100;
         }
         .mep-strategy1-info-track{
         width:100%;
@@ -2987,8 +3002,9 @@
         display:inline-block;
         will-change:transform;
         transform:translateX(0);
-        font-size:12px;
-        line-height:1;
+        font-size:14px;
+        line-height:initial;
+        letter-spacing:2px;
         }
         .mep-strategy1-info-ticker.is-running{
         animation:mepS1Ticker var(--mep-s1-ticker-duration,3200ms) linear 1 forwards;
@@ -8866,9 +8882,11 @@
             resolveGamePhaseFromBetButtonText(text = "") {
                 const t = MEP.UI.normalizeGameBetButtonText(text).toLowerCase();
                 if (!t) return "";
-                if (t.includes("сделать ставку") && t.includes("след")) return "game";
-                if (t.includes("начинается")) return "launch";
+                if (t === "сделать ставку (след. раунд)") return "game";
+                if (t === "начинается...") return "launch";
                 if (t === "ставка") return "bet";
+                if (t === "отменить") return "placed";
+                if (t === "кэшаут") return "in_game";
                 return "";
             },
 
@@ -8883,7 +8901,7 @@
                 const ui = MEP.UI.ui;
                 if (!ui || !ui.gamePhaseRowEl) return;
                 const phase = MEP.UI.updateGamePhaseFromDom();
-                const cells = [ui.gamePhaseCellGameEl, ui.gamePhaseCellLaunchEl, ui.gamePhaseCellBetEl];
+                const cells = [ui.gamePhaseCellGameEl, ui.gamePhaseCellLaunchEl, ui.gamePhaseCellBetEl, ui.gamePhaseCellPlacedEl, ui.gamePhaseCellInGameEl];
                 for (const cell of cells) {
                     if (!cell) continue;
                     const key = (cell.dataset.phase || "").toString();
@@ -10145,6 +10163,8 @@
     <div class="mep-game-phase-cell mep-game-phase-cell-game" data-phase="game">Игра</div>
     <div class="mep-game-phase-cell mep-game-phase-cell-launch" data-phase="launch">Запуск</div>
     <div class="mep-game-phase-cell mep-game-phase-cell-bet" data-phase="bet">Ставка</div>
+    <div class="mep-game-phase-cell mep-game-phase-cell-placed" data-phase="placed">Поставили</div>
+    <div class="mep-game-phase-cell mep-game-phase-cell-in-game" data-phase="in_game">В игре</div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-charter is-active">
     <div class="mep-charter-note">0 = без ограничений</div>
@@ -10285,6 +10305,8 @@
                     gamePhaseCellGameEl: panel.querySelector(".mep-game-phase-cell-game"),
                     gamePhaseCellLaunchEl: panel.querySelector(".mep-game-phase-cell-launch"),
                     gamePhaseCellBetEl: panel.querySelector(".mep-game-phase-cell-bet"),
+                    gamePhaseCellPlacedEl: panel.querySelector(".mep-game-phase-cell-placed"),
+                    gamePhaseCellInGameEl: panel.querySelector(".mep-game-phase-cell-in-game"),
                     charterPanel: panel.querySelector(".mep-game-tab-panel-charter"),
                     strategy1Panel: panel.querySelector(".mep-game-tab-panel-strategy1"),
                     strategy2Panel: panel.querySelector(".mep-game-tab-panel-strategy2"),
