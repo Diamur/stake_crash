@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.94 ==*/
+/*== CSS ver 0.1.5.95 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -959,6 +959,28 @@ body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
 #mep-control-panel .mep-strategy1-branch-tab.is-selected{background:rgba(255,255,255,.28);color:#fff;}
 #mep-control-panel .mep-strategy1-branch-tab.is-runtime-active{
   background:rgba(0,255,87,.2);border-color:rgba(0,255,87,.75);color:#b5ffca;box-shadow:0 0 10px rgba(0,255,87,.45);
+}
+#mep-control-panel .mep-strategy1-cond-summary{
+  transition:all .15s ease;
+}
+#mep-control-panel .mep-strategy1-cond-summary.is-true{
+  color:#d9ffe5;
+  background:rgba(0,255,87,.22);
+  border-color:rgba(0,255,87,.85);
+  box-shadow:0 0 12px rgba(0,255,87,.48), inset 0 0 10px rgba(0,255,87,.15);
+  text-shadow:0 0 6px rgba(0,255,87,.55);
+}
+#mep-control-panel .mep-strategy1-cond-summary.is-false{
+  color:#ff6f9f;
+  background:rgba(255,255,255,.03);
+  border-color:rgba(255,255,255,.2);
+  box-shadow:none;
+}
+#mep-control-panel .mep-strategy1-cond-summary.is-idle{
+  color:#a9b2bc;
+  background:rgba(255,255,255,.03);
+  border-color:rgba(255,255,255,.2);
+  box-shadow:none;
 }
 #mep-control-panel .mep-strategy1-service-array-row{
   margin-top:0;

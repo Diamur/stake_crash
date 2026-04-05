@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.94";
+		MEP.ver = "0.1.5.95";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -3053,10 +3053,27 @@
         display:flex;
         justify-content:flex-end;
         text-align:right;
+        transition:all .15s ease;
         }
-        .mep-strategy1-cond-summary.is-true{color:#00ff57;}
-        .mep-strategy1-cond-summary.is-false{color:#ff6f9f;}
-        .mep-strategy1-cond-summary.is-idle{color:#a9b2bc;}
+        .mep-strategy1-cond-summary.is-true{
+        color:#d9ffe5;
+        background:rgba(0,255,87,.22);
+        border-color:rgba(0,255,87,.85);
+        box-shadow:0 0 12px rgba(0,255,87,.48), inset 0 0 10px rgba(0,255,87,.15);
+        text-shadow:0 0 6px rgba(0,255,87,.55);
+        }
+        .mep-strategy1-cond-summary.is-false{
+        color:#ff6f9f;
+        background:rgba(255,255,255,.03);
+        border-color:rgba(255,255,255,.2);
+        box-shadow:none;
+        }
+        .mep-strategy1-cond-summary.is-idle{
+        color:#a9b2bc;
+        background:rgba(255,255,255,.03);
+        border-color:rgba(255,255,255,.2);
+        box-shadow:none;
+        }
         .mep-strategy1-stake-service-wrap{display:flex;flex-direction:column;gap:5px;}
         .mep-strategy1-stake-row{
         margin-top:0;

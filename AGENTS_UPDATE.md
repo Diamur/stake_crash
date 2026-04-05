@@ -484,3 +484,8 @@
 - Добавлен helper `getRuntimeActiveBranch(st, plusPool, minusPool)`; он использует приоритет `plus` на старте цикла и далее опирается на `routeBranch()` при `lossCount > 0`.
 - Это убирает баг ранней неон-подсветки `МИНУС` при нулевых минусах в начале цикла.
 - Версии повышены: `crash.js 0.1.5.94` (header + `MEP.ver`) и `crash.css 0.1.5.94`.
+- 2026-04-05: Усилен visual-state summary-блока `Пул условий` в Strategy1.
+- Для `.mep-strategy1-cond-summary.is-true` добавлен яркий зелёный неоновый фон/граница/glow (виден издалека), при этом выравнивание и layout блока сохранены.
+- `.is-false` и `.is-idle` оставлены в спокойной тёмной основе с текущими цветовыми акцентами текста.
+- Стили обновлены и в inline-style `crash.js`, и в `crash.css` (`#mep-control-panel .mep-strategy1-cond-summary*`).
+- Версии повышены: `crash.js 0.1.5.95` (header + `MEP.ver`) и `crash.css 0.1.5.95`.
