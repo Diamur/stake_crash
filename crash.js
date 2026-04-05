@@ -3040,7 +3040,7 @@
         .mep-strategy1-stake-row.is-active{border-color:rgba(0,255,87,.5);background:rgba(0,255,87,.08);}
         .mep-strategy1-stake-row.is-inactive{opacity:.86;}
         .mep-strategy1-stake-mode-toggle{width:16px;height:16px;accent-color:#00e51f;}
-        .mep-strategy1-stake-col{padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .mep-strategy1-stake-col{padding:4px 6px;white-space:normal;overflow:visible;text-overflow:clip;word-break:break-all;line-height:1.2;}
         .mep-strategy1-stake-col.label{color:#f0f4fb;}
         .mep-strategy1-stake-col.start{color:#d7dde5;text-align:right;}
         .mep-strategy1-stake-col.loss{color:#9eb3d7;text-align:center;}

@@ -394,3 +394,6 @@
 - Клик по `.mep-strategy1-risk-amount` теперь копирует значение и в `Strategy1.config.startStakeValue` (с сохранением и ререндером).
 - Добавлены стили service-строк в `crash.js` (inline style block) и `crash.css`.
 - Версии повышены: `crash.js 0.1.5.76` (header + `MEP.ver`) и `crash.css 0.1.5.76`.
+- 2026-04-05: Убрано многоточие в service-строках ставок Strategy1 (`Ставка фикс.` / `Ставка X%`).
+- Для `.mep-strategy1-stake-col` включён полный вывод значений: `white-space: normal`, `overflow: visible`, `text-overflow: clip`, `word-break: break-all`.
+- Изменение внесено синхронно в inline-стили `crash.js` и в `crash.css`.
