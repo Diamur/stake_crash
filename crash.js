@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.83";
+		MEP.ver = "0.1.5.84";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8796,6 +8796,12 @@
                         .replace(/</g, "&lt;")
                         .replace(/>/g, "&gt;");
                     stakeServiceWrapEl.innerHTML = `
+<div class="mep-strategy1-service-array-row">
+<span class="mep-strategy1-service-array-spacer"></span>
+<span class="mep-strategy1-stake-col label">Множ.ставок</span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-stake-growth-array-input" type="text" value="${safeStakeGrowthArrayText}" placeholder="2 3 4" /></span>
+<span class="mep-strategy1-stake-col active">${serviceData.activeStakeGrowthMultiplier > 0 ? serviceData.activeStakeGrowthMultiplier : "—"}</span>
+</div>
 <div class="mep-strategy1-stake-row ${serviceData.mode === "fixed" ? "is-active" : "is-inactive"}">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-stake-mode-toggle mep-strategy1-stake-mode-fixed" type="checkbox" ${serviceData.mode === "fixed" ? "checked" : ""} /></span>
 <span class="mep-strategy1-stake-col label">Ставка фикс.</span>
@@ -8809,12 +8815,6 @@
 <span class="mep-strategy1-stake-col start">${MEP.UI.formatCoinValue(serviceData.percentStart)}</span>
 <span class="mep-strategy1-stake-col loss">${serviceData.lossCount}</span>
 <span class="mep-strategy1-stake-col next">${MEP.UI.formatCoinValue(serviceData.nextPercent)}</span>
-</div>
-<div class="mep-strategy1-service-array-row">
-<span class="mep-strategy1-service-array-spacer"></span>
-<span class="mep-strategy1-stake-col label">Множ.ставок</span>
-<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-stake-growth-array-input" type="text" value="${safeStakeGrowthArrayText}" placeholder="2 3 4" /></span>
-<span class="mep-strategy1-stake-col active">${serviceData.activeStakeGrowthMultiplier > 0 ? serviceData.activeStakeGrowthMultiplier : "—"}</span>
 </div>
 <div class="mep-strategy1-service-array-row">
 <span class="mep-strategy1-service-array-spacer"></span>
