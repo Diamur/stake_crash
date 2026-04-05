@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.106";
+		MEP.ver = "0.1.5.107";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8921,7 +8921,7 @@
                 if (t === "сделать ставку (след. раунд)" || (t.includes("сделать ставку") && t.includes("след"))) return "game";
                 if (t === "начинается..." || t.includes("начинается")) return "launch";
                 if (t === "ставка") return "bet";
-                if (/\bотмен/.test(t)) return "placed";
+                if (t.includes("отмен")) return "placed";
                 if (/к[эе]шаут/.test(t) || /cash\s*out/.test(t) || /cashout/.test(t)) return "in_game";
                 return "";
             },
