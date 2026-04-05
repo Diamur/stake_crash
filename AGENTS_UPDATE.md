@@ -401,3 +401,8 @@
 - `.mep-strategy1-stake-row` переведён на сетку `34px minmax(88px,1fr) 86px 42px 86px`.
 - Для `.mep-strategy1-stake-col` включён `white-space: nowrap` и увеличен горизонтальный padding.
 - Версии повышены: `crash.js 0.1.5.77` (header + `MEP.ver`) и `crash.css 0.1.5.77`.
+- 2026-04-05: В Strategy1 service-блок после строк ставок добавлены строки `Множ.ставок` и `Множ.коэф` с текстовыми input массивов.
+- В сервисных расчётах и в реальном `Strategy1.buildStakePlan()` переведён выбор элементов массивов на циклический режим (`stepIndex % array.length`).
+- Добавлены setter'ы `setStrategy1StakeGrowthArrayText` / `setStrategy1TargetMultiplierArrayText` (save + check + rerender, авто-включение array-mode).
+- Строки ставок `Ставка фикс.` / `Ставка X%` теперь пересчитывают next-значения с циклическим множителем при изменении `lossCount`.
+- Версии повышены: `crash.js 0.1.5.78` (header + `MEP.ver`) и `crash.css 0.1.5.78`.

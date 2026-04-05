@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.77";
+		MEP.ver = "0.1.5.78";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -3045,6 +3045,31 @@
         .mep-strategy1-stake-col.start{color:#d7dde5;text-align:right;}
         .mep-strategy1-stake-col.loss{color:#9eb3d7;text-align:center;}
         .mep-strategy1-stake-col.next{color:#9ef5b4;text-align:right;}
+        .mep-strategy1-service-array-row{
+        margin-top:0;
+        display:grid;
+        grid-template-columns:34px 92px minmax(86px,1fr) 86px;
+        align-items:center;
+        gap:0;
+        border:1px dashed rgba(255,255,255,.24);
+        border-radius:0;
+        font-size:11px;
+        background:rgba(255,255,255,.04);
+        }
+        .mep-strategy1-service-array-spacer{display:inline-block;}
+        .mep-strategy1-service-array-input{
+        width:100%;
+        height:22px;
+        border:1px solid rgba(255,255,255,.26);
+        background:rgba(255,255,255,.08);
+        color:#fff;
+        padding:0 6px;
+        font-size:11px;
+        box-sizing:border-box;
+        outline:none;
+        }
+        .mep-strategy1-service-array-input:focus{border-color:rgba(0,255,87,.55);}
+        .mep-strategy1-stake-col.active{color:#f7e7a2;text-align:right;}
         .mep-strategy1-cond-list{display:flex;flex-direction:column;gap:5px;}
         .mep-strategy1-cond-empty{
         font-size:11px;
@@ -7573,6 +7598,12 @@
                     .filter((n) => Number.isFinite(n));
             },
 
+            getCycleArrayItem(arr = [], stepIndex = 0) {
+                if (!Array.isArray(arr) || !arr.length) return 0;
+                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0)) % arr.length;
+                return Number(arr[idx]) || 0;
+            },
+
             getStakePlanStatusText(plan = null) {
                 const p = plan || {};
                 if (p.ready) return "План ставки готов";
@@ -7651,7 +7682,7 @@
                     if (startMode === "array") {
                         const startArr = this.parseNumberArray(st.config?.startStakeArrayText);
                         if (!startArr.length) plan.invalidReason = "start_array_empty";
-                        else baseStake = startArr[Math.min(stepIndex, startArr.length - 1)] || 0;
+                        else baseStake = this.getCycleArrayItem(startArr, stepIndex);
                     } else {
                         baseStake = Number(st.config?.startStakeValue) || 0;
                         if (!(baseStake > 0)) plan.invalidReason = "start_stake_invalid";
@@ -7664,7 +7695,7 @@
                         if (!growthArr.length) {
                             plan.invalidReason = "growth_array_empty";
                         } else {
-                            const growthMultiplier = growthArr[Math.min(stepIndex, growthArr.length - 1)] || 0;
+                            const growthMultiplier = this.getCycleArrayItem(growthArr, stepIndex);
                             plan.betAmount = baseStake * growthMultiplier;
                         }
                     } else {
@@ -7683,7 +7714,7 @@
                     if (targetMode === "array") {
                         const targetArr = this.parseNumberArray(st.config?.targetMultiplierArrayText);
                         if (!targetArr.length) plan.invalidReason = "target_array_empty";
-                        else plan.targetMultiplier = targetArr[Math.min(stepIndex, targetArr.length - 1)] || 0;
+                        else plan.targetMultiplier = this.getCycleArrayItem(targetArr, stepIndex);
                     } else {
                         plan.targetMultiplier = Number(st.config?.targetMultiplierValue) || 0;
                     }
@@ -8479,12 +8510,20 @@
                     const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
                     const growthArr = parse ? parse(s.config?.stakeGrowthArrayText) : [];
                     if (!growthArr.length) return 0;
-                    const g = Number(growthArr[Math.min(idx, growthArr.length - 1)]) || 0;
+                    const g = Number(growthArr[idx % growthArr.length]) || 0;
                     return g > 0 ? safeBase * g : 0;
                 }
                 const factor = Number(s.config?.stakeGrowthFactor);
                 if (!Number.isFinite(factor) || factor <= 0) return 0;
                 return safeBase * Math.pow(factor, idx);
+            },
+
+            getStrategy1CycleArrayActiveValue(text = "", stepIndex = 0) {
+                const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
+                const arr = parse ? parse(text) : [];
+                if (!arr.length) return 0;
+                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0)) % arr.length;
+                return Number(arr[idx]) || 0;
             },
 
             getStrategy1StakeServiceData(st = null) {
@@ -8497,12 +8536,18 @@
                 const percentStart = Math.max(0, currentBalance * (riskPercent / 100));
                 const lossCount = Math.max(0, Math.floor(Number(s.cycle?.lossCount) || 0));
                 const nextStep = lossCount + 1;
+                const activeStakeGrowthMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.stakeGrowthArrayText, lossCount);
+                const activeTargetMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.targetMultiplierArrayText, lossCount);
                 return {
                     mode: cfg.startStakeMode === "percent" ? "percent" : "fixed",
                     riskPercent,
                     lossCount,
                     fixedStart,
                     percentStart,
+                    stakeGrowthArrayText: (cfg.stakeGrowthArrayText || "").toString(),
+                    targetMultiplierArrayText: (cfg.targetMultiplierArrayText || "").toString(),
+                    activeStakeGrowthMultiplier,
+                    activeTargetMultiplier,
                     nextFixed: MEP.UI.calcStrategy1NextStakeByMode(fixedStart, s, nextStep),
                     nextPercent: MEP.UI.calcStrategy1NextStakeByMode(percentStart, s, nextStep),
                 };
@@ -8515,6 +8560,28 @@
                 const next = mode === "percent" ? "percent" : "fixed";
                 if (cfg.startStakeMode === next) return;
                 cfg.startStakeMode = next;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
+            setStrategy1StakeGrowthArrayText(value = "") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                cfg.stakeGrowthArrayText = (value || "").toString().trim().replace(/[,;]+/g, " ");
+                cfg.stakeGrowthMode = "array";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
+            setStrategy1TargetMultiplierArrayText(value = "") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                cfg.targetMultiplierArrayText = (value || "").toString().trim().replace(/[,;]+/g, " ");
+                cfg.targetMode = "array";
                 MEP.Storage.save();
                 MEP.Strategy1?.checkConditions?.();
                 MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
@@ -8656,6 +8723,16 @@
                 }
                 const serviceData = MEP.UI.getStrategy1StakeServiceData(s);
                 if (stakeServiceWrapEl && serviceData) {
+                    const safeStakeGrowthArrayText = (serviceData.stakeGrowthArrayText || "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/\"/g, "&quot;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;");
+                    const safeTargetMultiplierArrayText = (serviceData.targetMultiplierArrayText || "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/\"/g, "&quot;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;");
                     stakeServiceWrapEl.innerHTML = `
 <div class="mep-strategy1-stake-row ${serviceData.mode === "fixed" ? "is-active" : "is-inactive"}">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-stake-mode-toggle mep-strategy1-stake-mode-fixed" type="checkbox" ${serviceData.mode === "fixed" ? "checked" : ""} /></span>
@@ -8670,6 +8747,18 @@
 <span class="mep-strategy1-stake-col start">${MEP.UI.formatCoinValue(serviceData.percentStart)}</span>
 <span class="mep-strategy1-stake-col loss">${serviceData.lossCount}</span>
 <span class="mep-strategy1-stake-col next">${MEP.UI.formatCoinValue(serviceData.nextPercent)}</span>
+</div>
+<div class="mep-strategy1-service-array-row">
+<span class="mep-strategy1-service-array-spacer"></span>
+<span class="mep-strategy1-stake-col label">Множ.ставок</span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-stake-growth-array-input" type="text" value="${safeStakeGrowthArrayText}" placeholder="2 3 4" /></span>
+<span class="mep-strategy1-stake-col active">${serviceData.activeStakeGrowthMultiplier > 0 ? serviceData.activeStakeGrowthMultiplier : "—"}</span>
+</div>
+<div class="mep-strategy1-service-array-row">
+<span class="mep-strategy1-service-array-spacer"></span>
+<span class="mep-strategy1-stake-col label">Множ.коэф</span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-target-multiplier-array-input" type="text" value="${safeTargetMultiplierArrayText}" placeholder="2 3 4" /></span>
+<span class="mep-strategy1-stake-col active">${serviceData.activeTargetMultiplier > 0 ? serviceData.activeTargetMultiplier : "—"}</span>
 </div>`;
                 }
             },
@@ -10089,6 +10178,16 @@
                         if (percentToggle) {
                             percentToggle.checked = true;
                             MEP.UI.setStrategy1StartStakeMode("percent");
+                            return;
+                        }
+                        const stakeGrowthArrayInput = e.target?.closest?.("input.mep-strategy1-stake-growth-array-input");
+                        if (stakeGrowthArrayInput) {
+                            MEP.UI.setStrategy1StakeGrowthArrayText(stakeGrowthArrayInput.value);
+                            return;
+                        }
+                        const targetMultiplierArrayInput = e.target?.closest?.("input.mep-strategy1-target-multiplier-array-input");
+                        if (targetMultiplierArrayInput) {
+                            MEP.UI.setStrategy1TargetMultiplierArrayText(targetMultiplierArrayInput.value);
                         }
                     });
                 }

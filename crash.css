@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.77 ==*/
+/*== CSS ver 0.1.5.78 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -920,3 +920,28 @@ body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
 #mep-control-panel .mep-strategy1-stake-col.start{color:#d7dde5;text-align:right;}
 #mep-control-panel .mep-strategy1-stake-col.loss{color:#9eb3d7;text-align:center;}
 #mep-control-panel .mep-strategy1-stake-col.next{color:#9ef5b4;text-align:right;}
+#mep-control-panel .mep-strategy1-service-array-row{
+  margin-top:0;
+  display:grid;
+  grid-template-columns:34px 92px minmax(86px,1fr) 86px;
+  align-items:center;
+  gap:0;
+  border:1px dashed rgba(255,255,255,.24);
+  border-radius:0;
+  font-size:11px;
+  background:rgba(255,255,255,.04);
+}
+#mep-control-panel .mep-strategy1-service-array-spacer{display:inline-block;}
+#mep-control-panel .mep-strategy1-service-array-input{
+  width:100%;
+  height:22px;
+  border:1px solid rgba(255,255,255,.26);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  padding:0 6px;
+  font-size:11px;
+  box-sizing:border-box;
+  outline:none;
+}
+#mep-control-panel .mep-strategy1-service-array-input:focus{border-color:rgba(0,255,87,.55);}
+#mep-control-panel .mep-strategy1-stake-col.active{color:#f7e7a2;text-align:right;}
