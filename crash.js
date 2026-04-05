@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.86";
+		MEP.ver = "0.1.5.87";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -3047,6 +3047,18 @@
         .mep-strategy1-stake-col.start{color:#d7dde5;text-align:right;}
         .mep-strategy1-stake-col.loss{color:#9eb3d7;text-align:center;}
         .mep-strategy1-stake-col.next{color:#9ef5b4;text-align:right;}
+        .mep-strategy1-click-apply{
+        cursor:pointer;
+        text-decoration:underline;
+        text-decoration-color:rgba(158,245,180,.6);
+        text-underline-offset:2px;
+        transition:all .15s ease;
+        }
+        .mep-strategy1-click-apply:hover{
+        color:#fff;
+        text-decoration-color:#fff;
+        text-shadow:0 0 8px rgba(158,245,180,.55);
+        }
         .mep-strategy1-cycle-info-row{
         display:grid;
         grid-template-columns:1fr 1fr 1fr;
@@ -8640,6 +8652,75 @@
                 };
             },
 
+            getGameAmountInput() {
+                const s1 = MEP.Strategy1;
+                const root = s1?.findSidebarRoot?.() || document;
+                return s1?.findBetAmountInput?.(root) || root.querySelector?.('input[data-testid="input-game-amount"]') || null;
+            },
+
+            getGameTargetInput() {
+                const s1 = MEP.Strategy1;
+                const root = s1?.findSidebarRoot?.() || document;
+                const byHelper = s1?.findTargetMultiplierInput?.(root);
+                if (byHelper) return byHelper;
+                const labels = root.querySelectorAll?.("label, div, span") || [];
+                for (const node of labels) {
+                    const text = (node.textContent || "").toString().toLowerCase();
+                    if (!text.includes("целевой коэффициент")) continue;
+                    const candidate =
+                        node.querySelector?.('input[type="number"]') ||
+                        node.parentElement?.querySelector?.('input[type="number"]') ||
+                        node.closest?.("label, div")?.querySelector?.('input[type="number"]');
+                    if (candidate) return candidate;
+                }
+                return root.querySelector?.('input[type="number"][min="1.01"]') || null;
+            },
+
+            setNativeInputValue(el, value) {
+                if (!el) return false;
+                const proto = Object.getPrototypeOf(el);
+                const descriptor = Object.getOwnPropertyDescriptor(proto, "value");
+                const setter = descriptor?.set;
+                try {
+                    el.focus?.();
+                    if (typeof setter === "function") setter.call(el, value);
+                    else el.value = value;
+                    el.dispatchEvent(new Event("input", { bubbles: true }));
+                    el.dispatchEvent(new Event("change", { bubbles: true }));
+                    el.blur?.();
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            },
+
+            formatGameNumericValue(value, fallback = "0") {
+                const n = Number(value);
+                if (!Number.isFinite(n) || n < 0) return fallback;
+                const raw = n.toFixed(8).replace(/\.?0+$/, "");
+                return raw && raw !== "-0" ? raw : fallback;
+            },
+
+            applyGameAmountValue(value) {
+                const input = MEP.UI.getGameAmountInput();
+                if (!input) {
+                    console.warn("[MEP][Strategy1] amount input not found");
+                    return false;
+                }
+                const text = MEP.UI.formatGameNumericValue(value, "0");
+                return MEP.UI.setNativeInputValue(input, text);
+            },
+
+            applyGameTargetValue(value) {
+                const input = MEP.UI.getGameTargetInput();
+                if (!input) {
+                    console.warn("[MEP][Strategy1] target input not found");
+                    return false;
+                }
+                const text = MEP.UI.formatGameNumericValue(value, "2");
+                return MEP.UI.setNativeInputValue(input, text);
+            },
+
             setStrategy1StartStakeMode(mode = "fixed") {
                 const st = MEP.UI.getStrategyState("strategy1");
                 if (!st) return;
@@ -8871,14 +8952,14 @@
 <span class="mep-strategy1-stake-col label">Ставка фикс.</span>
 <span class="mep-strategy1-stake-col start">${MEP.UI.formatCoinValue(serviceData.fixedStart)}</span>
 <span class="mep-strategy1-stake-col loss">${serviceData.lossCount}</span>
-<span class="mep-strategy1-stake-col next">${MEP.UI.formatCoinValue(serviceData.nextFixed)}</span>
+<span class="mep-strategy1-stake-col next mep-strategy1-click-apply mep-strategy1-click-apply-stake" data-value="${serviceData.nextFixed}">${MEP.UI.formatCoinValue(serviceData.nextFixed)}</span>
 </div>
 <div class="mep-strategy1-stake-row ${serviceData.mode === "percent" ? "is-active" : "is-inactive"}">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-stake-mode-toggle mep-strategy1-stake-mode-percent" type="checkbox" ${serviceData.mode === "percent" ? "checked" : ""} /></span>
 <span class="mep-strategy1-stake-col label">Ставка ${serviceData.riskPercent}%</span>
 <span class="mep-strategy1-stake-col start">${MEP.UI.formatCoinValue(serviceData.percentStart)}</span>
 <span class="mep-strategy1-stake-col loss">${serviceData.lossCount}</span>
-<span class="mep-strategy1-stake-col next">${MEP.UI.formatCoinValue(serviceData.nextPercent)}</span>
+<span class="mep-strategy1-stake-col next mep-strategy1-click-apply mep-strategy1-click-apply-stake" data-value="${serviceData.nextPercent}">${MEP.UI.formatCoinValue(serviceData.nextPercent)}</span>
 </div>
 <div class="mep-strategy1-service-array-row">
 <span class="mep-strategy1-service-array-spacer"></span>
@@ -8891,7 +8972,7 @@
 <span class="mep-strategy1-stake-col label">Цел.коэф.</span>
 <span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-target-base-input" type="number" min="0" step="0.01" value="${MEP.UI.formatStrategyTargetValue(serviceData.targetBaseValue)}" placeholder="2" /></span>
 <span class="mep-strategy1-stake-col loss">${serviceData.targetLossCount}</span>
-<span class="mep-strategy1-stake-col next">${MEP.UI.formatStrategyTargetValue(serviceData.targetNextValue)}</span>
+<span class="mep-strategy1-stake-col next mep-strategy1-click-apply mep-strategy1-click-apply-target" data-value="${serviceData.targetNextValue}">${MEP.UI.formatStrategyTargetValue(serviceData.targetNextValue)}</span>
 </div>
 <div class="mep-strategy1-service-array-row">
 <span class="mep-strategy1-service-array-spacer"></span>
@@ -10347,6 +10428,19 @@
                         if (e.key === "Enter") {
                             e.preventDefault();
                             arrayInput.blur();
+                        }
+                    });
+                    ui.strategy1CondWrapEl.addEventListener("click", (e) => {
+                        const stakeApply = e.target?.closest?.(".mep-strategy1-click-apply-stake");
+                        if (stakeApply) {
+                            const value = Number(stakeApply.dataset.value) || 0;
+                            MEP.UI.applyGameAmountValue(value);
+                            return;
+                        }
+                        const targetApply = e.target?.closest?.(".mep-strategy1-click-apply-target");
+                        if (targetApply) {
+                            const value = Number(targetApply.dataset.value) || 0;
+                            MEP.UI.applyGameTargetValue(value);
                         }
                     });
                 }

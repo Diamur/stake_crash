@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.86 ==*/
+/*== CSS ver 0.1.5.87 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -920,6 +920,18 @@ body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
 #mep-control-panel .mep-strategy1-stake-col.start{color:#d7dde5;text-align:right;}
 #mep-control-panel .mep-strategy1-stake-col.loss{color:#9eb3d7;text-align:center;}
 #mep-control-panel .mep-strategy1-stake-col.next{color:#9ef5b4;text-align:right;}
+#mep-control-panel .mep-strategy1-click-apply{
+  cursor:pointer;
+  text-decoration:underline;
+  text-decoration-color:rgba(158,245,180,.6);
+  text-underline-offset:2px;
+  transition:all .15s ease;
+}
+#mep-control-panel .mep-strategy1-click-apply:hover{
+  color:#fff;
+  text-decoration-color:#fff;
+  text-shadow:0 0 8px rgba(158,245,180,.55);
+}
 #mep-control-panel .mep-strategy1-cycle-info-row{
   display:grid;
   grid-template-columns:1fr 1fr 1fr;

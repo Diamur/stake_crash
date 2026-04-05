@@ -443,3 +443,8 @@
 - В `startCycle()` инициализирован reset счётчиков цикла (в т.ч. `roundCount/betCount/lossCount`), `betCount` инкрементится только при `onExecutionAccepted()`.
 - Изменён стиль `.mep-strategy1-control-row` на `padding: 0px 0px 0;`.
 - Версии повышены: `crash.js 0.1.5.86` (header + `MEP.ver`) и `crash.css 0.1.5.86`.
+- 2026-04-05: Расчётные `nextStake` (fixed/% строки) и `nextTarget` (`Цел.коэф.`) сделаны кликабельными для автоподстановки в поля игры.
+- Добавлены helper'ы UI: `getGameAmountInput`, `getGameTargetInput`, `setNativeInputValue`, `formatGameNumericValue`, `applyGameAmountValue`, `applyGameTargetValue`.
+- По клику выполняется безопасная подстановка с `focus -> input/change events -> blur`, без автоклика кнопки ставки.
+- В service-row добавлены классы `.mep-strategy1-click-apply-stake/.mep-strategy1-click-apply-target` + hover/cursor стили.
+- Версии повышены: `crash.js 0.1.5.87` (header + `MEP.ver`) и `crash.css 0.1.5.87`.
