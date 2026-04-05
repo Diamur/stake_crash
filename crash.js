@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.66";
+		MEP.ver = "0.1.5.77";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -82,6 +82,42 @@
                 enabled: false,
                 label: "Diff",
                 params: { mode: "gt" },
+            },
+            frequency_vector_state: {
+                type: "frequency_vector_state",
+                enabled: false,
+                label: "Freq",
+                params: { mode: "gt" },
+            },
+            frequency_line_gt: {
+                type: "frequency_line_gt",
+                enabled: false,
+                label: "FreqL",
+                params: { threshold: 3 },
+            },
+            stake_players_vector_state: {
+                type: "stake_players_vector_state",
+                enabled: false,
+                label: "Clients",
+                params: { mode: "gt" },
+            },
+            stake_bet_vector_state: {
+                type: "stake_bet_vector_state",
+                enabled: false,
+                label: "Bet",
+                params: { mode: "gt" },
+            },
+            stake_players_line_gte: {
+                type: "stake_players_line_gte",
+                enabled: false,
+                label: "ClientsL",
+                params: { threshold: 300 },
+            },
+            stake_bet_line_gte: {
+                type: "stake_bet_line_gte",
+                enabled: false,
+                label: "BetL",
+                params: { threshold: 300 },
             },
         });
 
@@ -1082,6 +1118,7 @@
             save() {
                 const data = {
                     trackCount: MEP.State.trackCount,
+                    trackingCollapsed: MEP.State.trackingCollapsed,
                     track: MEP.State.track,
                     graphMax: MEP.State.graphMax,
                     graphDensity: MEP.State.graphDensity,
@@ -1090,6 +1127,8 @@
                     stakeGraphAutoHeight: MEP.State.stakeGraphAutoHeight,
                     stakeGraphPlayersScale: MEP.State.stakeGraphPlayersScale,
                     stakeGraphBetScale: MEP.State.stakeGraphBetScale,
+                    stakeGraphPlayersColor: MEP.State.stakeGraphPlayersColor,
+                    stakeGraphBetColor: MEP.State.stakeGraphBetColor,
                     stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
                     stakeGraphShowBet: MEP.State.stakeGraphShowBet,
                     stakePlayersVectorEnabled: MEP.State.stakePlayersVectorEnabled,
@@ -1182,6 +1221,7 @@
                     if (rawLS) {
                         const data = JSON.parse(rawLS);
                         if (typeof data.trackCount === "number") MEP.State.trackCount = data.trackCount;
+                        if (typeof data.trackingCollapsed === "boolean") MEP.State.trackingCollapsed = data.trackingCollapsed;
                         if (data.track && typeof data.track === "object") MEP.State.track = data.track;
                         if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                         if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
@@ -1190,6 +1230,8 @@
                         if (typeof data.stakeGraphAutoHeight === "boolean") MEP.State.stakeGraphAutoHeight = data.stakeGraphAutoHeight;
                         if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
                         if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
+                        if (typeof data.stakeGraphPlayersColor === "string") MEP.State.stakeGraphPlayersColor = data.stakeGraphPlayersColor;
+                        if (typeof data.stakeGraphBetColor === "string") MEP.State.stakeGraphBetColor = data.stakeGraphBetColor;
                         if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                         if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                         if (typeof data.stakePlayersVectorEnabled === "boolean") MEP.State.stakePlayersVectorEnabled = data.stakePlayersVectorEnabled;
@@ -1285,6 +1327,7 @@
 
                     const data = JSON.parse(decodeURIComponent(rawC));
                     if (typeof data.trackCount === "number") MEP.State.trackCount = data.trackCount;
+                    if (typeof data.trackingCollapsed === "boolean") MEP.State.trackingCollapsed = data.trackingCollapsed;
                     if (data.track && typeof data.track === "object") MEP.State.track = data.track;
                     if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                     if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
@@ -1293,6 +1336,8 @@
                     if (typeof data.stakeGraphAutoHeight === "boolean") MEP.State.stakeGraphAutoHeight = data.stakeGraphAutoHeight;
                     if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
                     if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
+                    if (typeof data.stakeGraphPlayersColor === "string") MEP.State.stakeGraphPlayersColor = data.stakeGraphPlayersColor;
+                    if (typeof data.stakeGraphBetColor === "string") MEP.State.stakeGraphBetColor = data.stakeGraphBetColor;
                     if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                     if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                     if (typeof data.stakePlayersVectorEnabled === "boolean") MEP.State.stakePlayersVectorEnabled = data.stakePlayersVectorEnabled;
@@ -2367,7 +2412,12 @@
 				#${PANEL_ID} .mep-graph-wrap.mep-collapsed .mep-graph-controls{
 				display:none;
 				}
+				#${PANEL_ID} .mep-tracking-wrap.mep-collapsed .mep-track-wrap,
+				#${PANEL_ID} .mep-tracking-wrap.mep-collapsed .mep-track-count{
+				display:none;
+				}
 				#${PANEL_ID} .mep-frequency-collapse,
+				#${PANEL_ID} .mep-track-collapse,
 				#${PANEL_ID} .mep-stake-collapse,
 				#${PANEL_ID} .mep-balance-collapse,
 				#${PANEL_ID} .mep-main-graph-collapse{
@@ -2381,6 +2431,7 @@
 				cursor: pointer;
 				}
 				#${PANEL_ID} .mep-frequency-collapse:hover,
+				#${PANEL_ID} .mep-track-collapse:hover,
 				#${PANEL_ID} .mep-stake-collapse:hover,
 				#${PANEL_ID} .mep-balance-collapse:hover,
 				#${PANEL_ID} .mep-main-graph-collapse:hover{
@@ -2555,7 +2606,9 @@
 				outline:none;
 				}
 				#${PANEL_ID} input.mep-stake-scale-players,
-				#${PANEL_ID} input.mep-stake-scale-bet{
+				#${PANEL_ID} input.mep-stake-scale-bet,
+				#${PANEL_ID} input.mep-stake-color-players,
+				#${PANEL_ID} input.mep-stake-color-bet{
 				width:58px;
 				border-radius:8px;
 				border: 1px solid rgba(255,255,255,0.10);
@@ -2564,6 +2617,12 @@
 				padding: 0 8px;
 				font-size:12px;
 				outline:none;
+				}
+				#${PANEL_ID} input.mep-stake-color-players,
+				#${PANEL_ID} input.mep-stake-color-bet{
+				padding: 0;
+				height: 24px;
+				width: 36px;
 				}
 				#${PANEL_ID} .mep-stake-sync-label{
 				display:inline-flex;
@@ -2965,6 +3024,27 @@
         .mep-strategy1-cond-summary.is-true{color:#00ff57;}
         .mep-strategy1-cond-summary.is-false{color:#ff6f9f;}
         .mep-strategy1-cond-summary.is-idle{color:#a9b2bc;}
+        .mep-strategy1-stake-service-wrap{display:flex;flex-direction:column;gap:5px;}
+        .mep-strategy1-stake-row{
+        margin-top:0;
+        display:grid;
+        grid-template-columns:34px minmax(88px,1fr) 86px 42px 86px;
+        align-items:center;
+        gap:0;
+        border:1px dashed rgba(255,255,255,.24);
+        border-radius:0;
+        padding:0;
+        font-size:11px;
+        background:rgba(255,255,255,.04);
+        }
+        .mep-strategy1-stake-row.is-active{border-color:rgba(0,255,87,.5);background:rgba(0,255,87,.08);}
+        .mep-strategy1-stake-row.is-inactive{opacity:.86;}
+        .mep-strategy1-stake-mode-toggle{width:16px;height:16px;accent-color:#00e51f;}
+        .mep-strategy1-stake-col{padding:4px 8px;white-space:nowrap;overflow:visible;text-overflow:clip;word-break:normal;line-height:1.2;}
+        .mep-strategy1-stake-col.label{color:#f0f4fb;}
+        .mep-strategy1-stake-col.start{color:#d7dde5;text-align:right;}
+        .mep-strategy1-stake-col.loss{color:#9eb3d7;text-align:center;}
+        .mep-strategy1-stake-col.next{color:#9ef5b4;text-align:right;}
         .mep-strategy1-cond-list{display:flex;flex-direction:column;gap:5px;}
         .mep-strategy1-cond-empty{
         font-size:11px;
@@ -2997,6 +3077,38 @@
         line-height:1;
         white-space:nowrap;
         min-width:0;
+        }
+        .mep-strategy1-cond-toggle-wrap.is-locked{
+        justify-content:center;
+        }
+        .mep-strategy1-cond-lock-indicator{
+        width:18px;
+        height:18px;
+        border-radius:4px;
+        border:1px solid rgba(255,255,255,.6);
+        background:rgba(255,255,255,.08);
+        display:inline-block;
+        position:relative;
+        }
+        .mep-strategy1-cond-lock-indicator.is-on{
+        background:#00e51f;
+        border-color:#00e51f;
+        box-shadow:0 0 8px rgba(0,229,31,.28);
+        }
+        .mep-strategy1-cond-lock-indicator.is-on::after{
+        content:"";
+        position:absolute;
+        left:5px;
+        top:2px;
+        width:6px;
+        height:10px;
+        border-right:2px solid #fff;
+        border-bottom:2px solid #fff;
+        transform:rotate(45deg);
+        }
+        .mep-strategy1-cond-lock-indicator.is-off{
+        background:rgba(255,255,255,.03);
+        border-color:rgba(255,255,255,.55);
         }
         .mep-strategy1-cond-toggle-wrap input{
         appearance:none;
@@ -3058,7 +3170,7 @@
         color:#fff;
         text-align:center;
         }
-        .mep-strategy1-cond-diff-mode{
+        .mep-strategy1-cond-vector-mode{
         width:150px;
         min-width:92px;
         height:24px;
@@ -3073,7 +3185,7 @@
         z-index:3;
         pointer-events:auto;
         }
-        .mep-strategy1-cond-diff-mode option{
+        .mep-strategy1-cond-vector-mode option{
         color:#111;
         background:#fff;
         }
@@ -3254,6 +3366,8 @@
             stakeGraphAutoHeight: !!MEP.stakeGraphAutoHeight,
             stakeGraphPlayersScale: typeof MEP.stakeGraphPlayersScale === "number" ? MEP.stakeGraphPlayersScale : 1,
             stakeGraphBetScale: typeof MEP.stakeGraphBetScale === "number" ? MEP.stakeGraphBetScale : 10,
+            stakeGraphPlayersColor: typeof MEP.stakeGraphPlayersColor === "string" ? MEP.stakeGraphPlayersColor : "#52d56a",
+            stakeGraphBetColor: typeof MEP.stakeGraphBetColor === "string" ? MEP.stakeGraphBetColor : "#ffad3c",
             stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
             stakeGraphShowBet: ("stakeGraphShowBet" in MEP) ? !!MEP.stakeGraphShowBet : true,
             stakePlayersVectorEnabled: ("stakePlayersVectorEnabled" in MEP) ? !!MEP.stakePlayersVectorEnabled : true,
@@ -3316,6 +3430,7 @@
             // НОВАЯ модель: t1: { x, limit, sound }
             track: MEP.track || { ...MEP.Config.TRACK_DEFAULT },
             trackCount: MEP.trackCount ?? 3,
+            trackingCollapsed: !!MEP.trackingCollapsed,
 
             // чтобы звук не "долбил" каждый рендер
             soundFired: MEP.soundFired || {},
@@ -4653,6 +4768,10 @@
                 const betsScaledView = betsRealView.map((v) => v * betScale); // только для рендера
                 const showPlayers = MEP.State.stakeGraphShowPlayers !== false;
                 const showBet = MEP.State.stakeGraphShowBet !== false;
+                const playersLineColor = (MEP.State.stakeGraphPlayersColor || "#52d56a").toString();
+                const betLineColor = (MEP.State.stakeGraphBetColor || "#ffad3c").toString();
+                if (ui.stakeLegendPlayersLine) ui.stakeLegendPlayersLine.style.background = playersLineColor;
+                if (ui.stakeLegendBetLine) ui.stakeLegendBetLine.style.background = betLineColor;
                 const autoHeight = !!MEP.State.stakeGraphAutoHeight;
                 const vbW = 100;
                 const vbH = 60;
@@ -4740,9 +4859,11 @@
                     svg.appendChild(pl);
                 };
 
-                if (showPlayers) makePolyline(playersPts, "rgba(112,206,255,0.95)");
-                if (showBet) makePolyline(betsPts, "rgba(255,170,60,0.95)");
-                if (MEP.State.stakePlayersVectorEnabled) {
+                if (showPlayers) makePolyline(playersPts, playersLineColor);
+                if (showBet) makePolyline(betsPts, betLineColor);
+                const renderPlayersVectors = showPlayers && MEP.State.stakePlayersVectorEnabled;
+                const renderBetVectors = showBet && MEP.State.stakeBetVectorEnabled;
+                if (renderPlayersVectors) {
                     makePolyline(
                         playersMainPts,
                         (MEP.State.stakePlayersVectorMainColor || "rgba(255,255,255,0.96)").toString(),
@@ -4760,7 +4881,7 @@
                         svg.appendChild(shiftPl);
                     }
                 }
-                if (MEP.State.stakeBetVectorEnabled) {
+                if (renderBetVectors) {
                     const mainPl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
                     if (betMainPts.length) {
                         mainPl.setAttribute("points", betMainPts.map((p) => `${p.x},${p.y}`).join(" "));
@@ -5462,6 +5583,14 @@
                     const n = Math.floor(Number(v));
                     return Number.isFinite(n) ? Math.max(0, n) : 3;
                 };
+                const toFrequencyLineThreshold = (v) => {
+                    const n = Math.floor(Number(v));
+                    return Number.isFinite(n) ? Math.max(0, n) : 3;
+                };
+                const toStakeLineThreshold = (v) => {
+                    const n = Number(v);
+                    return Number.isFinite(n) ? Math.max(0, n) : 300;
+                };
                 const toMode = (v) => {
                     const m = (v ?? "gt").toString().trim().toLowerCase();
                     return m === "lt" || m === "flat" ? m : "gt";
@@ -5485,6 +5614,42 @@
                         label: "Diff",
                         params: { mode: toMode(src?.diff_vector_state?.params?.mode ?? d.diff_vector_state.params.mode) },
                     },
+                    frequency_vector_state: {
+                        type: "frequency_vector_state",
+                        enabled: toBool(src?.frequency_vector_state?.enabled, d.frequency_vector_state.enabled),
+                        label: "Freq",
+                        params: { mode: toMode(src?.frequency_vector_state?.params?.mode ?? d.frequency_vector_state.params.mode) },
+                    },
+                    frequency_line_gt: {
+                        type: "frequency_line_gt",
+                        enabled: toBool(src?.frequency_line_gt?.enabled, d.frequency_line_gt.enabled),
+                        label: "FreqL",
+                        params: { threshold: toFrequencyLineThreshold(src?.frequency_line_gt?.params?.threshold ?? d.frequency_line_gt.params.threshold) },
+                    },
+                    stake_players_vector_state: {
+                        type: "stake_players_vector_state",
+                        enabled: toBool(src?.stake_players_vector_state?.enabled, d.stake_players_vector_state.enabled),
+                        label: "Clients",
+                        params: { mode: toMode(src?.stake_players_vector_state?.params?.mode ?? d.stake_players_vector_state.params.mode) },
+                    },
+                    stake_bet_vector_state: {
+                        type: "stake_bet_vector_state",
+                        enabled: toBool(src?.stake_bet_vector_state?.enabled, d.stake_bet_vector_state.enabled),
+                        label: "Bet",
+                        params: { mode: toMode(src?.stake_bet_vector_state?.params?.mode ?? d.stake_bet_vector_state.params.mode) },
+                    },
+                    stake_players_line_gte: {
+                        type: "stake_players_line_gte",
+                        enabled: toBool(src?.stake_players_line_gte?.enabled, d.stake_players_line_gte.enabled),
+                        label: "ClientsL",
+                        params: { threshold: toStakeLineThreshold(src?.stake_players_line_gte?.params?.threshold ?? d.stake_players_line_gte.params.threshold) },
+                    },
+                    stake_bet_line_gte: {
+                        type: "stake_bet_line_gte",
+                        enabled: toBool(src?.stake_bet_line_gte?.enabled, d.stake_bet_line_gte.enabled),
+                        label: "BetL",
+                        params: { threshold: toStakeLineThreshold(src?.stake_bet_line_gte?.params?.threshold ?? d.stake_bet_line_gte.params.threshold) },
+                    },
                 };
                 cfg.conditionBlocks = out;
                 return out;
@@ -5504,10 +5669,89 @@
                 return "mEMA > sEMA";
             },
 
+            getFrequencyVectorShortLabelByState(state = "") {
+                const s = (state || "").toString().trim().toLowerCase();
+                if (s === "up") return "mEMA > sEMA";
+                if (s === "down") return "mEMA < sEMA";
+                return "flat";
+            },
+
+            getFrequencyVectorShortLabelByMode(mode = "") {
+                const m = (mode || "").toString().trim().toLowerCase();
+                if (m === "lt") return "mEMA < sEMA";
+                if (m === "flat") return "flat";
+                return "mEMA > sEMA";
+            },
+
+            getStakePlayersVectorShortLabelByState(state = "") {
+                const s = (state || "").toString().trim().toLowerCase();
+                if (s === "up") return "mEMA > sEMA";
+                if (s === "down") return "mEMA < sEMA";
+                return "flat";
+            },
+
+            getStakePlayersVectorShortLabelByMode(mode = "") {
+                const m = (mode || "").toString().trim().toLowerCase();
+                if (m === "lt") return "mEMA < sEMA";
+                if (m === "flat") return "flat";
+                return "mEMA > sEMA";
+            },
+
+            getStakeBetVectorShortLabelByState(state = "") {
+                const s = (state || "").toString().trim().toLowerCase();
+                if (s === "up") return "mEMA > sEMA";
+                if (s === "down") return "mEMA < sEMA";
+                return "flat";
+            },
+
+            getStakeBetVectorShortLabelByMode(mode = "") {
+                const m = (mode || "").toString().trim().toLowerCase();
+                if (m === "lt") return "mEMA < sEMA";
+                if (m === "flat") return "flat";
+                return "mEMA > sEMA";
+            },
+
+            getCurrentFrequencyValue() {
+                const graph = MEP.FrequencyGraph;
+                if (!graph || typeof graph._toOldestFirstNumbers !== "function" || typeof graph._buildSeries !== "function") return 0;
+                const threshold = Math.max(0, Number(MEP.State?.frequencyThreshold) || 0);
+                const period = Math.max(1, Math.floor(Number(MEP.State?.frequencyPeriod) || 1));
+                const oldestFirst = graph._toOldestFirstNumbers();
+                const fullSeries = graph._buildSeries(oldestFirst, threshold, period);
+                const last = fullSeries.length ? Number(fullSeries[fullSeries.length - 1]) : 0;
+                return Number.isFinite(last) ? last : 0;
+            },
+
+            getCurrentStakePlayersValue() {
+                const src = Array.isArray(MEP.State?.roundPlayersCountHistory) ? MEP.State.roundPlayersCountHistory : [];
+                for (let i = src.length - 1; i >= 0; i--) {
+                    const n = Number(src[i]);
+                    if (Number.isFinite(n)) return n;
+                }
+                return 0;
+            },
+
+            getCurrentStakeBetValue() {
+                const src = Array.isArray(MEP.State?.roundBetSumHistory) ? MEP.State.roundBetSumHistory : [];
+                for (let i = src.length - 1; i >= 0; i--) {
+                    const n = Number(src[i]);
+                    if (Number.isFinite(n)) return n;
+                }
+                return 0;
+            },
+
             evaluateConditionBlocks(st = null) {
                 const state = st || this.getState();
                 const blocks = this.ensureConditionBlocks(state);
                 const out = [];
+
+                const strategyEnabled = !!state?.enabled;
+                out.push({
+                    key: "strategy_enabled",
+                    enabled: true,
+                    currentValue: strategyEnabled ? "on" : "off",
+                    result: strategyEnabled,
+                });
 
                 const charterAllowed = state?.charterCheck?.allowed !== false;
                 out.push({
@@ -5534,6 +5778,68 @@
                     enabled: !!blocks.diff_vector_state.enabled,
                     currentValue: this.getDiffVectorShortLabelByState(diffState),
                     result: !!diffResult,
+                });
+
+                const freqMode = (blocks?.frequency_vector_state?.params?.mode || "gt").toString();
+                const freqState = (MEP.State?.frequencyVectorState || "flat").toString().trim().toLowerCase();
+                const freqResult = freqMode === "lt" ? freqState === "down" : freqMode === "flat" ? freqState === "flat" : freqState === "up";
+                out.push({
+                    key: "frequency_vector_state",
+                    enabled: !!blocks.frequency_vector_state.enabled,
+                    currentValue: this.getFrequencyVectorShortLabelByState(freqState),
+                    result: !!freqResult,
+                });
+
+                const frequencyValue = this.getCurrentFrequencyValue();
+                const frequencyLineThreshold = Math.max(0, Math.floor(Number(blocks?.frequency_line_gt?.params?.threshold) || 0));
+                out.push({
+                    key: "frequency_line_gt",
+                    enabled: !!blocks.frequency_line_gt.enabled,
+                    currentValue: frequencyValue,
+                    result: frequencyValue > frequencyLineThreshold,
+                    resultText: `${frequencyValue} > ${frequencyLineThreshold}`,
+                });
+
+                const stakePlayersMode = (blocks?.stake_players_vector_state?.params?.mode || "gt").toString();
+                const stakePlayersState = (MEP.State?.stakePlayersVectorState || "flat").toString().trim().toLowerCase();
+                const stakePlayersResult =
+                    stakePlayersMode === "lt" ? stakePlayersState === "down" : stakePlayersMode === "flat" ? stakePlayersState === "flat" : stakePlayersState === "up";
+                out.push({
+                    key: "stake_players_vector_state",
+                    enabled: !!blocks.stake_players_vector_state.enabled,
+                    currentValue: this.getStakePlayersVectorShortLabelByState(stakePlayersState),
+                    result: !!stakePlayersResult,
+                });
+
+                const stakeBetMode = (blocks?.stake_bet_vector_state?.params?.mode || "gt").toString();
+                const stakeBetState = (MEP.State?.stakeBetVectorState || "flat").toString().trim().toLowerCase();
+                const stakeBetResult =
+                    stakeBetMode === "lt" ? stakeBetState === "down" : stakeBetMode === "flat" ? stakeBetState === "flat" : stakeBetState === "up";
+                out.push({
+                    key: "stake_bet_vector_state",
+                    enabled: !!blocks.stake_bet_vector_state.enabled,
+                    currentValue: this.getStakeBetVectorShortLabelByState(stakeBetState),
+                    result: !!stakeBetResult,
+                });
+
+                const currentPlayers = this.getCurrentStakePlayersValue();
+                const playersThreshold = Math.max(0, Number(blocks?.stake_players_line_gte?.params?.threshold) || 0);
+                out.push({
+                    key: "stake_players_line_gte",
+                    enabled: !!blocks.stake_players_line_gte.enabled,
+                    currentValue: currentPlayers,
+                    result: currentPlayers >= playersThreshold,
+                    resultText: `${currentPlayers} >= ${playersThreshold}`,
+                });
+
+                const currentBet = this.getCurrentStakeBetValue();
+                const betThreshold = Math.max(0, Number(blocks?.stake_bet_line_gte?.params?.threshold) || 0);
+                out.push({
+                    key: "stake_bet_line_gte",
+                    enabled: !!blocks.stake_bet_line_gte.enabled,
+                    currentValue: currentBet,
+                    result: currentBet >= betThreshold,
+                    resultText: `${currentBet} >= ${betThreshold}`,
                 });
 
                 return out;
@@ -8099,6 +8405,121 @@
                 MEP.Strategy1?.checkConditions?.();
             },
 
+            setStrategy1FrequencyMode(mode = "gt") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                const m = (mode || "").toString().trim().toLowerCase();
+                blocks.frequency_vector_state.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            setStrategy1FrequencyLineThreshold(value = 0) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                let threshold = Math.floor(Number(value));
+                if (!Number.isFinite(threshold) || threshold < 0) threshold = 0;
+                blocks.frequency_line_gt.params.threshold = threshold;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            setStrategy1StakePlayersMode(mode = "gt") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                const m = (mode || "").toString().trim().toLowerCase();
+                blocks.stake_players_vector_state.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            setStrategy1StakeBetMode(mode = "gt") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                const m = (mode || "").toString().trim().toLowerCase();
+                blocks.stake_bet_vector_state.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            setStrategy1StakePlayersThreshold(value = 0) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                let threshold = Number(value);
+                if (!Number.isFinite(threshold) || threshold < 0) threshold = 0;
+                blocks.stake_players_line_gte.params.threshold = threshold;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            setStrategy1StakeBetThreshold(value = 0) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                let threshold = Number(value);
+                if (!Number.isFinite(threshold) || threshold < 0) threshold = 0;
+                blocks.stake_bet_line_gte.params.threshold = threshold;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            calcStrategy1NextStakeByMode(baseStake = 0, st = null, stepIndex = 0) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!s) return 0;
+                const safeBase = Number(baseStake) || 0;
+                if (!(safeBase > 0)) return 0;
+                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0));
+                const growthMode = s.config?.stakeGrowthMode === "array" ? "array" : "factor";
+                if (growthMode === "array") {
+                    const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
+                    const growthArr = parse ? parse(s.config?.stakeGrowthArrayText) : [];
+                    if (!growthArr.length) return 0;
+                    const g = Number(growthArr[Math.min(idx, growthArr.length - 1)]) || 0;
+                    return g > 0 ? safeBase * g : 0;
+                }
+                const factor = Number(s.config?.stakeGrowthFactor);
+                if (!Number.isFinite(factor) || factor <= 0) return 0;
+                return safeBase * Math.pow(factor, idx);
+            },
+
+            getStrategy1StakeServiceData(st = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!s) return null;
+                const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
+                const currentBalance = Math.max(0, Number(MEP.UI.readCurrentBalanceFromDom().amount) || 0);
+                const riskPercent = Math.max(0, Number(cfg.riskPercent) || 0);
+                const fixedStart = Math.max(0, Number(cfg.startStakeValue) || 0);
+                const percentStart = Math.max(0, currentBalance * (riskPercent / 100));
+                const lossCount = Math.max(0, Math.floor(Number(s.cycle?.lossCount) || 0));
+                const nextStep = lossCount + 1;
+                return {
+                    mode: cfg.startStakeMode === "percent" ? "percent" : "fixed",
+                    riskPercent,
+                    lossCount,
+                    fixedStart,
+                    percentStart,
+                    nextFixed: MEP.UI.calcStrategy1NextStakeByMode(fixedStart, s, nextStep),
+                    nextPercent: MEP.UI.calcStrategy1NextStakeByMode(percentStart, s, nextStep),
+                };
+            },
+
+            setStrategy1StartStakeMode(mode = "fixed") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                const next = mode === "percent" ? "percent" : "fixed";
+                if (cfg.startStakeMode === next) return;
+                cfg.startStakeMode = next;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
@@ -8107,7 +8528,9 @@
                 const isEditingConditionControl =
                     !!activeEl &&
                     ui.strategy1CondListEl.contains(activeEl) &&
-                    (activeEl.classList.contains("mep-strategy1-cond-diff-mode") || activeEl.classList.contains("mep-strategy1-cond-threshold"));
+                    (activeEl.classList.contains("mep-strategy1-cond-vector-mode") ||
+                        activeEl.classList.contains("mep-strategy1-cond-threshold") ||
+                        activeEl.classList.contains("mep-strategy1-cond-frequency-line-threshold"));
                 if (isEditingConditionControl) return;
                 const blocks = MEP.UI.getStrategy1ConditionBlocks(s);
                 const evaluated = MEP.Strategy1?.evaluateConditionBlocks?.(s) || [];
@@ -8118,6 +8541,20 @@
                 const rows = [];
                 const threshold = Math.max(0, Math.floor(Number(blocks?.streak_lt?.params?.threshold) || 0));
                 const diffMode = (blocks?.diff_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const freqMode = (blocks?.frequency_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const freqLineThreshold = Math.max(0, Math.floor(Number(blocks?.frequency_line_gt?.params?.threshold) || 0));
+                const stakePlayersMode = (blocks?.stake_players_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const stakeBetMode = (blocks?.stake_bet_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const stakePlayersLineThreshold = Math.max(0, Number(blocks?.stake_players_line_gte?.params?.threshold) || 0);
+                const stakeBetLineThreshold = Math.max(0, Number(blocks?.stake_bet_line_gte?.params?.threshold) || 0);
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-system">
+<span class="mep-strategy1-cond-toggle-wrap is-locked"><span class="mep-strategy1-cond-lock-indicator ${byKey?.strategy_enabled?.result ? "is-on" : "is-off"}"></span></span>
+<span class="mep-strategy1-cond-text">Вкл/Откл</span>
+<span class="mep-strategy1-cond-current">${byKey?.strategy_enabled?.currentValue ?? "off"}</span>
+<span class="mep-strategy1-cond-result ${byKey?.strategy_enabled?.result ? "is-true" : "is-false"}">${byKey?.strategy_enabled?.result ? "true" : "false"}</span>
+</div>`
+                );
                 rows.push(
                     `<div class="mep-strategy1-condition-row">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="charter" ${blocks?.charter?.enabled ? "checked" : ""} /></span>
@@ -8138,9 +8575,60 @@
                     `<div class="mep-strategy1-condition-row is-diff">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="diff_vector_state" ${blocks?.diff_vector_state?.enabled ? "checked" : ""} /></span>
 <span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Diff</span></span>
-<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>flat</option></select></span>
 <span class="mep-strategy1-cond-current">${byKey?.diff_vector_state?.currentValue ?? "flat"}</span>
 <span class="mep-strategy1-cond-result ${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-diff">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="frequency_vector_state" ${blocks?.frequency_vector_state?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Freq</span></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-frequency-mode"><option value="gt" ${freqMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${freqMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${freqMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-current">${byKey?.frequency_vector_state?.currentValue ?? "flat"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.frequency_vector_state?.enabled ? (byKey?.frequency_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.frequency_vector_state?.enabled ? (byKey?.frequency_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="frequency_line_gt" ${blocks?.frequency_line_gt?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Freq</span><span class="mep-strategy1-cond-inline">f &gt;</span><input class="mep-strategy1-cond-threshold mep-strategy1-cond-frequency-line-threshold" type="number" min="0" step="1" value="${freqLineThreshold}" /></span>
+<span class="mep-strategy1-cond-current">${byKey?.frequency_line_gt?.currentValue ?? 0}</span>
+<span class="mep-strategy1-cond-result ${blocks?.frequency_line_gt?.enabled ? (byKey?.frequency_line_gt?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.frequency_line_gt?.enabled ? (byKey?.frequency_line_gt?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-diff">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="stake_players_vector_state" ${blocks?.stake_players_vector_state?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Clients</span></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-stake-players-mode"><option value="gt" ${stakePlayersMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${stakePlayersMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${stakePlayersMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-current">${byKey?.stake_players_vector_state?.currentValue ?? "flat"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.stake_players_vector_state?.enabled ? (byKey?.stake_players_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_players_vector_state?.enabled ? (byKey?.stake_players_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-diff">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="stake_bet_vector_state" ${blocks?.stake_bet_vector_state?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Bet</span></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-stake-bet-mode"><option value="gt" ${stakeBetMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${stakeBetMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${stakeBetMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-current">${byKey?.stake_bet_vector_state?.currentValue ?? "flat"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.stake_bet_vector_state?.enabled ? (byKey?.stake_bet_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_bet_vector_state?.enabled ? (byKey?.stake_bet_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="stake_players_line_gte" ${blocks?.stake_players_line_gte?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Clients</span><span class="mep-strategy1-cond-inline">c &gt;=</span><input class="mep-strategy1-cond-threshold mep-strategy1-cond-stake-players-threshold" type="number" min="0" step="1" value="${stakePlayersLineThreshold}" /></span>
+<span class="mep-strategy1-cond-current">${byKey?.stake_players_line_gte?.currentValue ?? 0}</span>
+<span class="mep-strategy1-cond-result ${blocks?.stake_players_line_gte?.enabled ? (byKey?.stake_players_line_gte?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_players_line_gte?.enabled ? (byKey?.stake_players_line_gte?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="stake_bet_line_gte" ${blocks?.stake_bet_line_gte?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Bet</span><span class="mep-strategy1-cond-inline">b &gt;=</span><input class="mep-strategy1-cond-threshold mep-strategy1-cond-stake-bet-threshold" type="number" min="0" step="0.01" value="${stakeBetLineThreshold}" /></span>
+<span class="mep-strategy1-cond-current">${byKey?.stake_bet_line_gte?.currentValue ?? 0}</span>
+<span class="mep-strategy1-cond-result ${blocks?.stake_bet_line_gte?.enabled ? (byKey?.stake_bet_line_gte?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_bet_line_gte?.enabled ? (byKey?.stake_bet_line_gte?.result ? "true" : "false") : "not use"}</span>
 </div>`
                 );
                 ui.strategy1CondListEl.innerHTML = rows.join("");
@@ -8159,6 +8647,31 @@
                 ui.strategy1CondSummaryEl.textContent = summaryText;
                 ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false", "is-idle");
                 ui.strategy1CondSummaryEl.classList.add(summaryClass);
+
+                let stakeServiceWrapEl = ui.strategy1CondWrapEl?.querySelector?.(".mep-strategy1-stake-service-wrap") || null;
+                if (!stakeServiceWrapEl && ui.strategy1CondSummaryEl?.parentNode) {
+                    stakeServiceWrapEl = document.createElement("div");
+                    stakeServiceWrapEl.className = "mep-strategy1-stake-service-wrap";
+                    ui.strategy1CondSummaryEl.insertAdjacentElement("afterend", stakeServiceWrapEl);
+                }
+                const serviceData = MEP.UI.getStrategy1StakeServiceData(s);
+                if (stakeServiceWrapEl && serviceData) {
+                    stakeServiceWrapEl.innerHTML = `
+<div class="mep-strategy1-stake-row ${serviceData.mode === "fixed" ? "is-active" : "is-inactive"}">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-stake-mode-toggle mep-strategy1-stake-mode-fixed" type="checkbox" ${serviceData.mode === "fixed" ? "checked" : ""} /></span>
+<span class="mep-strategy1-stake-col label">Ставка фикс.</span>
+<span class="mep-strategy1-stake-col start">${MEP.UI.formatCoinValue(serviceData.fixedStart)}</span>
+<span class="mep-strategy1-stake-col loss">${serviceData.lossCount}</span>
+<span class="mep-strategy1-stake-col next">${MEP.UI.formatCoinValue(serviceData.nextFixed)}</span>
+</div>
+<div class="mep-strategy1-stake-row ${serviceData.mode === "percent" ? "is-active" : "is-inactive"}">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-stake-mode-toggle mep-strategy1-stake-mode-percent" type="checkbox" ${serviceData.mode === "percent" ? "checked" : ""} /></span>
+<span class="mep-strategy1-stake-col label">Ставка ${serviceData.riskPercent}%</span>
+<span class="mep-strategy1-stake-col start">${MEP.UI.formatCoinValue(serviceData.percentStart)}</span>
+<span class="mep-strategy1-stake-col loss">${serviceData.lossCount}</span>
+<span class="mep-strategy1-stake-col next">${MEP.UI.formatCoinValue(serviceData.nextPercent)}</span>
+</div>`;
+                }
             },
 
             renderStrategyBalanceRow(strategyId = "strategy1") {
@@ -8603,9 +9116,13 @@
         </div>
     </div>
     <div class="mep-divider"></div>
+    <div class="mep-tracking-wrap">
     <div class="mep-section-head">
         <div class="mep-section-title">Отслеживание</div>
-        <input class="mep-track-count" type="number" min="1" step="1" />
+        <div class="mep-track-head-controls">
+            <input class="mep-track-count" type="number" min="1" step="1" />
+            <button class="mep-track-collapse" type="button" title="Свернуть параметры">▲</button>
+        </div>
     </div>
     <div class="mep-track-wrap">
         <table class="mep-track-table">
@@ -8661,6 +9178,7 @@
                 </tr>
             </tbody>
         </table>
+    </div>
     </div>
 </div>
 <div class="mep-diff-wrap">
@@ -8768,6 +9286,8 @@
             <label class="mep-stake-sync-label"><input class="mep-stake-auto-height" type="checkbox" /><span>Автовысота</span></label>
             <label class="mep-stake-density-label">Клиенты масштаб<input class="mep-stake-scale-players" type="number" min="0" step="0.1" value="1" /></label>
             <label class="mep-stake-density-label">Ставки масштаб<input class="mep-stake-scale-bet" type="number" min="0" step="0.1" value="10" /></label>
+            <label class="mep-stake-density-label">Клиенты цвет<input class="mep-stake-color-players" type="color" value="#52d56a" /></label>
+            <label class="mep-stake-density-label">Ставка цвет<input class="mep-stake-color-bet" type="color" value="#ffad3c" /></label>
         </div>
         <div class="mep-stake-vector-row">
             <label class="mep-stake-vector-label"><input class="mep-stake-players-vector-enabled" type="checkbox" checked /><span>Клиенты вектор</span></label>
@@ -9287,8 +9807,12 @@
                     stakeAutoHeightInput: panel.querySelector("input.mep-stake-auto-height"),
                     stakePlayersScaleInput: panel.querySelector("input.mep-stake-scale-players"),
                     stakeBetScaleInput: panel.querySelector("input.mep-stake-scale-bet"),
+                    stakePlayersColorInput: panel.querySelector("input.mep-stake-color-players"),
+                    stakeBetColorInput: panel.querySelector("input.mep-stake-color-bet"),
                     stakeShowPlayersInput: panel.querySelector("input.mep-stake-show-players"),
                     stakeShowBetInput: panel.querySelector("input.mep-stake-show-bet"),
+                    stakeLegendPlayersLine: panel.querySelector(".mep-stake-legend-line.mep-stake-legend-players"),
+                    stakeLegendBetLine: panel.querySelector(".mep-stake-legend-line.mep-stake-legend-bets"),
                     stakePlayersVectorEnabledInput: panel.querySelector("input.mep-stake-players-vector-enabled"),
                     stakePlayersVectorPeriodInput: panel.querySelector("input.mep-stake-players-vector-period"),
                     stakePlayersVectorShiftInput: panel.querySelector("input.mep-stake-players-vector-shift"),
@@ -9311,6 +9835,8 @@
                     soundSelects: [...panel.querySelectorAll("select.mep-soundkey")],
 
                     trackCountInput: panel.querySelector(".mep-track-count"),
+                    trackingWrap: panel.querySelector(".mep-tracking-wrap"),
+                    trackCollapseBtn: panel.querySelector("button.mep-track-collapse"),
 
                     historyBtn: panel.querySelector("button.mep-history-load"),
                     historySteps: panel.querySelector("input.mep-history-steps"),
@@ -9544,7 +10070,26 @@
                         const val = Number(ui.strategy1RiskAmountEl.dataset.value) || 0;
                         s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
                         s1.runtime.copiedRiskAmount = val;
+                        const cfg = s1.config && typeof s1.config === "object" ? s1.config : (s1.config = {});
+                        cfg.startStakeValue = Math.max(0, val);
+                        MEP.Storage.save();
+                        MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                         MEP.UI.setStrategy1InfoMessage("Сумма риска скопирована в стартовую позицию");
+                    });
+                }
+                if (ui.strategy1CondWrapEl && s1) {
+                    ui.strategy1CondWrapEl.addEventListener("change", (e) => {
+                        const fixedToggle = e.target?.closest?.("input.mep-strategy1-stake-mode-fixed");
+                        if (fixedToggle) {
+                            fixedToggle.checked = true;
+                            MEP.UI.setStrategy1StartStakeMode("fixed");
+                            return;
+                        }
+                        const percentToggle = e.target?.closest?.("input.mep-strategy1-stake-mode-percent");
+                        if (percentToggle) {
+                            percentToggle.checked = true;
+                            MEP.UI.setStrategy1StartStakeMode("percent");
+                        }
                     });
                 }
                 if (ui.strategy1CondListEl && s1) {
@@ -9562,13 +10107,46 @@
                         }
                         const thresholdInput = e.target?.closest?.("input.mep-strategy1-cond-threshold");
                         if (thresholdInput) {
+                            if (thresholdInput.classList.contains("mep-strategy1-cond-frequency-line-threshold")) {
+                                MEP.UI.setStrategy1FrequencyLineThreshold(thresholdInput.value);
+                                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                                return;
+                            }
+                            if (thresholdInput.classList.contains("mep-strategy1-cond-stake-players-threshold")) {
+                                MEP.UI.setStrategy1StakePlayersThreshold(thresholdInput.value);
+                                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                                return;
+                            }
+                            if (thresholdInput.classList.contains("mep-strategy1-cond-stake-bet-threshold")) {
+                                MEP.UI.setStrategy1StakeBetThreshold(thresholdInput.value);
+                                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                                return;
+                            }
                             MEP.UI.setStrategy1StreakThreshold(thresholdInput.value);
                             MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                             return;
                         }
-                        const modeSelect = e.target?.closest?.("select.mep-strategy1-cond-diff-mode");
-                        if (modeSelect) {
-                            MEP.UI.setStrategy1DiffMode(modeSelect.value);
+                        const diffModeSelect = e.target?.closest?.("select.mep-strategy1-cond-diff-mode");
+                        if (diffModeSelect) {
+                            MEP.UI.setStrategy1DiffMode(diffModeSelect.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
+                        const frequencyModeSelect = e.target?.closest?.("select.mep-strategy1-cond-frequency-mode");
+                        if (frequencyModeSelect) {
+                            MEP.UI.setStrategy1FrequencyMode(frequencyModeSelect.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
+                        const stakePlayersModeSelect = e.target?.closest?.("select.mep-strategy1-cond-stake-players-mode");
+                        if (stakePlayersModeSelect) {
+                            MEP.UI.setStrategy1StakePlayersMode(stakePlayersModeSelect.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
+                        const stakeBetModeSelect = e.target?.closest?.("select.mep-strategy1-cond-stake-bet-mode");
+                        if (stakeBetModeSelect) {
+                            MEP.UI.setStrategy1StakeBetMode(stakeBetModeSelect.value);
                             MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                             return;
                         }
@@ -9859,6 +10437,35 @@
                     });
                 }
 
+                const normalizeStakeColor = (value, fallback) => {
+                    const raw = (value || "").toString().trim();
+                    return /^#[0-9a-fA-F]{6}$/.test(raw) ? raw : fallback;
+                };
+                if (ui.stakePlayersColorInput) {
+                    const current = normalizeStakeColor(MEP.State.stakeGraphPlayersColor, "#52d56a");
+                    MEP.State.stakeGraphPlayersColor = current;
+                    ui.stakePlayersColorInput.value = current;
+                    ui.stakePlayersColorInput.addEventListener("input", () => {
+                        const v = normalizeStakeColor(ui.stakePlayersColorInput.value, "#52d56a");
+                        MEP.State.stakeGraphPlayersColor = v;
+                        ui.stakePlayersColorInput.value = v;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakeBetColorInput) {
+                    const current = normalizeStakeColor(MEP.State.stakeGraphBetColor, "#ffad3c");
+                    MEP.State.stakeGraphBetColor = current;
+                    ui.stakeBetColorInput.value = current;
+                    ui.stakeBetColorInput.addEventListener("input", () => {
+                        const v = normalizeStakeColor(ui.stakeBetColorInput.value, "#ffad3c");
+                        MEP.State.stakeGraphBetColor = v;
+                        ui.stakeBetColorInput.value = v;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
                 if (ui.stakeShowPlayersInput) {
                     ui.stakeShowPlayersInput.checked = MEP.State.stakeGraphShowPlayers !== false;
                     ui.stakeShowPlayersInput.addEventListener("change", () => {
@@ -10006,6 +10613,22 @@
                 MEP.FrequencyGraph?.init?.(ui);
                 MEP.StakeGraph?.init?.(ui);
                 MEP.BalanceGraph?.init?.(ui);
+
+                const applyTrackingCollapse = () => {
+                    if (!ui.trackingWrap || !ui.trackCollapseBtn) return;
+                    const collapsed = !!MEP.State.trackingCollapsed;
+                    ui.trackingWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.trackCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.trackCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyTrackingCollapse();
+                if (ui.trackCollapseBtn) {
+                    ui.trackCollapseBtn.addEventListener("click", () => {
+                        MEP.State.trackingCollapsed = !MEP.State.trackingCollapsed;
+                        MEP.Storage.save();
+                        applyTrackingCollapse();
+                    });
+                }
 
                 const applyFrequencyParamsCollapse = () => {
                     if (!ui.frequencyWrap || !ui.frequencyCollapseBtn) return;
