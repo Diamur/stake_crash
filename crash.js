@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.96";
+		MEP.ver = "0.1.5.97";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -1800,6 +1800,7 @@
 				padding:12px;
 				border:1px dashed rgba(255,255,255,0.22);
 				background: rgba(255,255,255,0.03);
+				padding-top:0px;
 				}
 				#${PANEL_ID} .mep-game-tab-panel.is-active{
 				display:block;

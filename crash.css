@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.96 ==*/
+/*== CSS ver 0.1.5.97 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -31,6 +31,18 @@
   border-color:rgba(0,255,87,.85);
   box-shadow:0 0 12px rgba(0,255,87,.48), inset 0 0 8px rgba(0,255,87,.12);
   text-shadow:0 0 6px rgba(0,255,87,.55);
+}
+
+#mep-control-panel .mep-game-tab-panel{
+  display:none;
+  padding:12px;
+  border:1px dashed rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.03);
+  padding-top: 0px;
+}
+
+#mep-control-panel .mep-game-tab-panel.is-active{
+  display:block;
 }
 
 #mep-control-panel .mep-section-title{
