@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.79";
+		MEP.ver = "0.1.5.80";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8592,7 +8592,7 @@
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!ui || !s || !ui.strategy1CondListEl || !ui.strategy1CondSummaryEl) return;
                 const activeEl = document.activeElement;
-                const stakeServiceWrapEl = ui.strategy1CondWrapEl?.querySelector?.(".mep-strategy1-stake-service-wrap") || null;
+                let stakeServiceWrapEl = ui.strategy1CondWrapEl?.querySelector?.(".mep-strategy1-stake-service-wrap") || null;
                 const isEditingConditionControl =
                     !!activeEl &&
                     ui.strategy1CondListEl.contains(activeEl) &&
