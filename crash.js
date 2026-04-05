@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.82";
+		MEP.ver = "0.1.5.83";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8825,7 +8825,7 @@
 <div class="mep-strategy1-stake-row is-inactive">
 <span class="mep-strategy1-cond-toggle-wrap"><span class="mep-strategy1-service-array-spacer"></span></span>
 <span class="mep-strategy1-stake-col label">Цел.коэф.</span>
-<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-target-base-input" type="text" value="${MEP.UI.formatStrategyTargetValue(serviceData.targetBaseValue)}" placeholder="2" /></span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-target-base-input" type="number" min="0" step="0.01" value="${MEP.UI.formatStrategyTargetValue(serviceData.targetBaseValue)}" placeholder="2" /></span>
 <span class="mep-strategy1-stake-col loss">${serviceData.targetLossCount}</span>
 <span class="mep-strategy1-stake-col next">${MEP.UI.formatStrategyTargetValue(serviceData.targetNextValue)}</span>
 </div>`;

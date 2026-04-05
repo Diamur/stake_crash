@@ -425,3 +425,6 @@
 - В guard `renderStrategy1ConditionBridge()` добавлен класс `mep-strategy1-target-base-input` (без потери фокуса при вводе).
 - В bind добавлено сохранение по `change` и commit по Enter для нового input.
 - Версии повышены: `crash.js 0.1.5.82` (header + `MEP.ver`) и `crash.css 0.1.5.82`.
+- 2026-04-05: Для `Цел.коэф.` input переведён на `type=number` (нумератор) с `min=0` и `step=0.01`.
+- Поведение сохранения/guard оставлено прежним: change/Enter -> save + rerender.
+- Версии повышены: `crash.js 0.1.5.83` (header + `MEP.ver`) и `crash.css 0.1.5.83`.
