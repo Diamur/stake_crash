@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.95";
+		MEP.ver = "0.1.5.96";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -1770,6 +1770,31 @@
 				gap:8px;
 				margin-bottom:10px;
 				}
+				#${PANEL_ID} .mep-game-phase-row{
+				display:grid;
+				grid-template-columns:1fr 1fr 1fr;
+				gap:8px;
+				margin-bottom:10px;
+				}
+				#${PANEL_ID} .mep-game-phase-cell{
+				border:1px solid rgba(255,255,255,.25);
+				border-radius:6px;
+				height:26px;
+				display:flex;
+				align-items:center;
+				justify-content:center;
+				font-size:12px;
+				color:#d7dde5;
+				background:rgba(255,255,255,.08);
+				transition:all .15s ease;
+				}
+				#${PANEL_ID} .mep-game-phase-cell.is-active{
+				color:#d9ffe5;
+				background:rgba(0,255,87,.22);
+				border-color:rgba(0,255,87,.85);
+				box-shadow:0 0 12px rgba(0,255,87,.48), inset 0 0 8px rgba(0,255,87,.12);
+				text-shadow:0 0 6px rgba(0,255,87,.55);
+				}
 				#${PANEL_ID} .mep-game-tab-panel{
 				display:none;
 				padding:12px;
@@ -3463,6 +3488,7 @@
             // данные статистики
             map: MEP.map || new Map(),
             list: MEP.list || [], // newest-first, clean values
+            gamePhase: typeof MEP.gamePhase === "string" ? MEP.gamePhase : "",
             maxItems: MEP.maxItems ?? MEP.Config.MAX_ITEMS_DEFAULT,
             graphMax: typeof MEP.graphMax === "number" ? MEP.graphMax : 10,
             graphDensity: typeof MEP.graphDensity === "number" ? MEP.graphDensity : 100,
@@ -8801,6 +8827,55 @@
                 };
             },
 
+            getGameBetButton() {
+                const s1 = MEP.Strategy1;
+                const root = s1?.findSidebarRoot?.() || document;
+                return (
+                    s1?.findBetButton?.(root) ||
+                    root.querySelector?.('button[data-testid="bet-button"]') ||
+                    root.querySelector?.(".game-sidebar button") ||
+                    null
+                );
+            },
+
+            normalizeGameBetButtonText(text = "") {
+                return (text || "").toString().replace(/\s+/g, " ").trim();
+            },
+
+            getGameBetButtonText() {
+                const btn = MEP.UI.getGameBetButton();
+                if (!btn) return "";
+                return MEP.UI.normalizeGameBetButtonText(btn.innerText || btn.textContent || "");
+            },
+
+            resolveGamePhaseFromBetButtonText(text = "") {
+                const t = MEP.UI.normalizeGameBetButtonText(text).toLowerCase();
+                if (!t) return "";
+                if (t.includes("сделать ставку") && t.includes("след")) return "game";
+                if (t.includes("начинается")) return "launch";
+                if (t === "ставка") return "bet";
+                return "";
+            },
+
+            updateGamePhaseFromDom() {
+                const text = MEP.UI.getGameBetButtonText();
+                const phase = MEP.UI.resolveGamePhaseFromBetButtonText(text);
+                MEP.State.gamePhase = phase;
+                return phase;
+            },
+
+            renderGamePhaseRow() {
+                const ui = MEP.UI.ui;
+                if (!ui || !ui.gamePhaseRowEl) return;
+                const phase = MEP.UI.updateGamePhaseFromDom();
+                const cells = [ui.gamePhaseCellGameEl, ui.gamePhaseCellLaunchEl, ui.gamePhaseCellBetEl];
+                for (const cell of cells) {
+                    if (!cell) continue;
+                    const key = (cell.dataset.phase || "").toString();
+                    cell.classList.toggle("is-active", !!phase && phase === key);
+                }
+            },
+
             getGameAmountInput() {
                 const s1 = MEP.Strategy1;
                 const root = s1?.findSidebarRoot?.() || document;
@@ -9333,6 +9408,7 @@
             },
 
             renderStrategyMinimalUi() {
+                MEP.UI.renderGamePhaseRow();
                 MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                 MEP.UI.renderStrategy2MinimalUi(MEP.UI.getStrategyState("strategy2"));
             },
@@ -10050,6 +10126,11 @@
     <button class="mep-game-tab-btn" type="button" data-tab="strategy1">Стратегия1</button>
     <button class="mep-game-tab-btn" type="button" data-tab="strategy2">Стратегия2</button>
 </div>
+<div class="mep-game-phase-row">
+    <div class="mep-game-phase-cell mep-game-phase-cell-game" data-phase="game">Игра</div>
+    <div class="mep-game-phase-cell mep-game-phase-cell-launch" data-phase="launch">Запуск</div>
+    <div class="mep-game-phase-cell mep-game-phase-cell-bet" data-phase="bet">Ставка</div>
+</div>
 <div class="mep-game-tab-panel mep-game-tab-panel-charter is-active">
     <div class="mep-charter-note">0 = без ограничений</div>
     <div class="mep-charter-sections">
@@ -10185,6 +10266,10 @@
                     mainPanel: panel.querySelector(".mep-tab-panel-main"),
                     gamePanel: panel.querySelector(".mep-tab-panel-game"),
                     gameTabButtons: [...panel.querySelectorAll("button.mep-game-tab-btn")],
+                    gamePhaseRowEl: panel.querySelector(".mep-game-phase-row"),
+                    gamePhaseCellGameEl: panel.querySelector(".mep-game-phase-cell-game"),
+                    gamePhaseCellLaunchEl: panel.querySelector(".mep-game-phase-cell-launch"),
+                    gamePhaseCellBetEl: panel.querySelector(".mep-game-phase-cell-bet"),
                     charterPanel: panel.querySelector(".mep-game-tab-panel-charter"),
                     strategy1Panel: panel.querySelector(".mep-game-tab-panel-strategy1"),
                     strategy2Panel: panel.querySelector(".mep-game-tab-panel-strategy2"),

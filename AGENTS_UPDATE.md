@@ -489,3 +489,9 @@
 - `.is-false` и `.is-idle` оставлены в спокойной тёмной основе с текущими цветовыми акцентами текста.
 - Стили обновлены и в inline-style `crash.js`, и в `crash.css` (`#mep-control-panel .mep-strategy1-cond-summary*`).
 - Версии повышены: `crash.js 0.1.5.95` (header + `MEP.ver`) и `crash.css 0.1.5.95`.
+- 2026-04-05: Под верхними табами Game добавлена новая трёхблочная status-row: `Игра | Запуск | Ставка` (между `Главная/Игра` и `Устав/Стратегия1/Стратегия2`).
+- Добавлены helper'ы UI: `getGameBetButton`, `normalizeGameBetButtonText`, `getGameBetButtonText`, `resolveGamePhaseFromBetButtonText`, `updateGamePhaseFromDom`, `renderGamePhaseRow`.
+- Источник кнопки ставки: приоритетно `button[data-testid=\"bet-button\"]` (с fallback через существующие sidebar/кнопочные селекторы).
+- Маппинг фаз: `Сделать ставку (след. раунд)` -> `game`, `Начинается...` -> `launch`, `Ставка` -> `bet`; неизвестный/пустой текст -> `\"\"` (idle без подсветки).
+- Состояние хранится в `MEP.State.gamePhase`, обновление фазы встроено в `renderStrategyMinimalUi()` (регулярный UI ticker).
+- Версии повышены: `crash.js 0.1.5.96` (header + `MEP.ver`) и `crash.css 0.1.5.96`.
