@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.98";
+		MEP.ver = "0.1.5.99";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -1794,6 +1794,20 @@
 				border-color:rgba(0,255,87,.85);
 				box-shadow:0 0 12px rgba(0,255,87,.48), inset 0 0 8px rgba(0,255,87,.12);
 				text-shadow:0 0 6px rgba(0,255,87,.55);
+				}
+				#${PANEL_ID} .mep-game-phase-cell-game.is-active{
+				color:#ffd9d9;
+				background:rgba(255,34,34,.22);
+				border-color:rgba(255,34,34,.9);
+				box-shadow:0 0 12px rgba(255,34,34,.5), inset 0 0 8px rgba(255,34,34,.14);
+				text-shadow:0 0 6px rgba(255,34,34,.55);
+				}
+				#${PANEL_ID} .mep-game-phase-cell-launch.is-active{
+				color:#ffe8cf;
+				background:rgba(255,136,0,.24);
+				border-color:rgba(255,136,0,.92);
+				box-shadow:0 0 12px rgba(255,136,0,.52), inset 0 0 8px rgba(255,136,0,.14);
+				text-shadow:0 0 6px rgba(255,136,0,.55);
 				}
 				#${PANEL_ID} .mep-game-tab-panel{
 				display:none;
