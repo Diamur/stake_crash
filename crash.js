@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.90";
+		MEP.ver = "0.1.5.91";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -10315,6 +10315,9 @@
                         s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
                         s1.runtime.startBalanceSnapshot = MEP.UI.readCurrentBalanceFromDom().amount || 0;
                     }
+                    if (s1.enabled && !s1.cycle?.isActive) {
+                        MEP.Strategy1?.startNewCycle?.();
+                    }
                     if (ui.strategy1EnabledToggle) {
                         ui.strategy1EnabledToggle.checked = !!s1.enabled;
                         ui.strategy1EnabledToggle.addEventListener("change", () => {
@@ -10331,6 +10334,7 @@
                                 s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
                                 s1.runtime.startBalanceSnapshot = MEP.UI.readCurrentBalanceFromDom().amount || 0;
                                 MEP.State.activeStrategyId = "strategy1";
+                                MEP.Strategy1?.startNewCycle?.();
                             } else {
                                 if (!s1.timers || typeof s1.timers !== "object") s1.timers = {};
                                 s1.timers.enabledAtTs = 0;

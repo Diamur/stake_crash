@@ -465,3 +465,7 @@
 - При выключении Strategy1 через toggle теперь сбрасываются `cycle.isActive=false`, `cycleNumber=0`, `roundCount=0`, `betCount=0`, `lossCount=0` (чтобы инфо-строка не показывала старые значения).
 - В `getStrategy1StakeServiceData()` добавлена выдача `cycleNumber`; при `strategy1.enabled === false` все cycle-счётчики (`cycleNumber/roundCount/betCount/lossCount`) принудительно отдаются как `0`.
 - Версии повышены: `crash.js 0.1.5.90` (header + `MEP.ver`) и `crash.css 0.1.5.90`.
+- 2026-04-05: При включении Strategy1 теперь сразу запускается `startNewCycle()` (через toggle handler), поэтому `Циклов` сразу становится `1` вместо `0`.
+- Добавлен авто-старт цикла и при init UI, если стратегия уже включена из сохранённого состояния и `cycle.isActive === false`.
+- Это обеспечивает корректный подсчёт раундов без ставок: `Tracker.addNewest -> updateAfterRound(dom_cycle_round)` теперь работает сразу после включения стратегии, т.к. цикл активен.
+- Версии повышены: `crash.js 0.1.5.91` (header + `MEP.ver`) и `crash.css 0.1.5.91`.
