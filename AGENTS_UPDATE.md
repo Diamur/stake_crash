@@ -437,3 +437,9 @@
 - При `startCycle()` значение `betCount` сбрасывается в `0` вместе с `roundCount/lossCount`.
 - `getStrategy1StakeServiceData()` расширен полями `cycleRoundCount`, `cycleBetCount`, `cycleLossCount`.
 - Версии повышены: `crash.js 0.1.5.85` (header + `MEP.ver`) и `crash.css 0.1.5.85`.
+- 2026-04-05: Добавлен сервисный `СтопМинус` input в конец Strategy1 service-блока (после `Цел.коэф.`).
+- В `Strategy1.config` добавлено поле `stopMinusCount` (default `0`, где `0` = отключено).
+- Проверка `lossCount >= stopMinusCount` встроена в `updateAfterRound()`; при срабатывании цикл завершается с `stop_minus_reached` и сразу запускается новый `startCycle()`.
+- В `startCycle()` инициализирован reset счётчиков цикла (в т.ч. `roundCount/betCount/lossCount`), `betCount` инкрементится только при `onExecutionAccepted()`.
+- Изменён стиль `.mep-strategy1-control-row` на `padding: 0px 0px 0;`.
+- Версии повышены: `crash.js 0.1.5.86` (header + `MEP.ver`) и `crash.css 0.1.5.86`.

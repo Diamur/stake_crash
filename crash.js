@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.85";
+		MEP.ver = "0.1.5.86";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -140,6 +140,7 @@
                 targetMode: "fixed",
                 targetMultiplierValue: 2,
                 targetMultiplierArrayText: "",
+                stopMinusCount: 0,
                 maxLosses: 0,
                 firstCondLt2StreakEnabled: true,
                 firstCondDiffVectorEnabled: true,
@@ -2939,7 +2940,7 @@
         display:flex;
         align-items:center;
         gap:10px;
-        padding:8px 10px 0;
+        padding:0px 0px 0;
         }
         .mep-strategy1-control-label,.mep-strategy1-work-timer{
         color:#f4f7fb;
@@ -7248,6 +7249,7 @@
                 const finishCodeMap = {
                     profit_reached: this.EVENT_CODES.CYCLE_FINISHED_PROFIT,
                     max_losses_reached: this.EVENT_CODES.CYCLE_FINISHED_MAX_LOSSES,
+                    stop_minus_reached: this.EVENT_CODES.CYCLE_FINISHED_MAX_LOSSES,
                     manual_stop: this.EVENT_CODES.CYCLE_FINISHED_MANUAL,
                     hard_exit: this.EVENT_CODES.CYCLE_FINISHED_HARD_EXIT,
                 };
@@ -7257,13 +7259,19 @@
                     reason: st.cycle.endReason,
                     cycleId: st.cycle.cycleId,
                 });
-                if (st.cycle.endReason === "profit_reached" || st.cycle.endReason === "max_losses_reached") {
+                if (
+                    st.cycle.endReason === "profit_reached" ||
+                    st.cycle.endReason === "max_losses_reached" ||
+                    st.cycle.endReason === "stop_minus_reached"
+                ) {
                     this.pushSystemMessage({
                         level: "ok",
                         action: "finishCycle",
                         text:
                             st.cycle.endReason === "profit_reached"
                                 ? "Цикл завершён: достигнут профит"
+                                : st.cycle.endReason === "stop_minus_reached"
+                                ? "Цикл завершён: достигнут СтопМинус"
                                 : "Цикл завершён: достигнут лимит проигрышей",
                         code: "cycle_finished",
                         stage: "post_round_finish",
@@ -7917,10 +7925,23 @@
                 let finishReason = "";
                 if (this.isProfitReached()) finishReason = "profit_reached";
                 else if (this.isMaxLossesReached()) finishReason = "max_losses_reached";
+                else {
+                    const stopMinusCount = Math.max(0, Math.floor(Number(st.config?.stopMinusCount) || 0));
+                    if (stopMinusCount > 0 && Number(st.cycle.lossCount) >= stopMinusCount) {
+                        finishReason = "stop_minus_reached";
+                    }
+                }
 
                 let finished = false;
-                if (finishReason === "profit_reached" || finishReason === "max_losses_reached") {
+                if (
+                    finishReason === "profit_reached" ||
+                    finishReason === "max_losses_reached" ||
+                    finishReason === "stop_minus_reached"
+                ) {
                     this.finishCycle(finishReason);
+                    if (finishReason === "stop_minus_reached" && st.enabled) {
+                        this.startCycle();
+                    }
                     finished = true;
                 }
 
@@ -8666,6 +8687,17 @@
                 MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
             },
 
+            setStrategy1StopMinusCount(value = "") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                let v = Math.floor(Number((value ?? "").toString().replace(",", ".")));
+                if (!Number.isFinite(v) || v < 0) v = 0;
+                cfg.stopMinusCount = v;
+                MEP.Storage.save();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
@@ -8685,6 +8717,7 @@
                     (activeEl.classList.contains("mep-strategy1-stake-growth-array-input") ||
                         activeEl.classList.contains("mep-strategy1-target-multiplier-array-input") ||
                         activeEl.classList.contains("mep-strategy1-target-base-input") ||
+                        activeEl.classList.contains("mep-strategy1-stop-minus-input") ||
                         activeEl.classList.contains("mep-strategy1-service-array-input"));
                 if (isEditingConditionControl || isEditingServiceArrayControl) return;
                 const blocks = MEP.UI.getStrategy1ConditionBlocks(s);
@@ -8859,6 +8892,12 @@
 <span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-target-base-input" type="number" min="0" step="0.01" value="${MEP.UI.formatStrategyTargetValue(serviceData.targetBaseValue)}" placeholder="2" /></span>
 <span class="mep-strategy1-stake-col loss">${serviceData.targetLossCount}</span>
 <span class="mep-strategy1-stake-col next">${MEP.UI.formatStrategyTargetValue(serviceData.targetNextValue)}</span>
+</div>
+<div class="mep-strategy1-service-array-row">
+<span class="mep-strategy1-service-array-spacer"></span>
+<span class="mep-strategy1-stake-col label">СтопМинус</span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-stop-minus-input" type="number" min="0" step="1" value="${Math.max(0, Math.floor(Number(s.config?.stopMinusCount) || 0))}" placeholder="0" /></span>
+<span class="mep-strategy1-stake-col active"></span>
 </div>`;
                 }
             },
@@ -10293,11 +10332,16 @@
                         const targetBaseInput = e.target?.closest?.("input.mep-strategy1-target-base-input");
                         if (targetBaseInput) {
                             MEP.UI.setStrategy1TargetBaseValue(targetBaseInput.value);
+                            return;
+                        }
+                        const stopMinusInput = e.target?.closest?.("input.mep-strategy1-stop-minus-input");
+                        if (stopMinusInput) {
+                            MEP.UI.setStrategy1StopMinusCount(stopMinusInput.value);
                         }
                     });
                     ui.strategy1CondWrapEl.addEventListener("keydown", (e) => {
                         const arrayInput = e.target?.closest?.(
-                            "input.mep-strategy1-stake-growth-array-input, input.mep-strategy1-target-multiplier-array-input, input.mep-strategy1-target-base-input"
+                            "input.mep-strategy1-stake-growth-array-input, input.mep-strategy1-target-multiplier-array-input, input.mep-strategy1-target-base-input, input.mep-strategy1-stop-minus-input"
                         );
                         if (!arrayInput) return;
                         if (e.key === "Enter") {
