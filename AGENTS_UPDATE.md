@@ -388,3 +388,9 @@
 - В `renderStrategy1ConditionBridge` добавлены строки `ClientsL` (`c >=`) и `BetL` (`b >=`) после `Clients`/`Bet`.
 - Добавлены setter'ы `setStrategy1StakePlayersThreshold()` / `setStrategy1StakeBetThreshold()` и bind для новых threshold input.
 - Версии повышены: `crash.js 0.1.5.75` (header + `MEP.ver`) и `crash.css 0.1.5.75`.
+- 2026-04-04: В Strategy1 minimal UI после `Пул условий` добавлены service-строки `Ставка фикс.` и `Ставка X%` (вне condition-pool).
+- Добавлено вычисление start/loss/next для fixed и percent режимов; `next` считается как шаг `lossCount + 1` через текущие growth-настройки.
+- Добавлены toggles режимов старта: `startStakeMode` переключается между `fixed` и `percent` с save + checkConditions + rerender.
+- Клик по `.mep-strategy1-risk-amount` теперь копирует значение и в `Strategy1.config.startStakeValue` (с сохранением и ререндером).
+- Добавлены стили service-строк в `crash.js` (inline style block) и `crash.css`.
+- Версии повышены: `crash.js 0.1.5.76` (header + `MEP.ver`) и `crash.css 0.1.5.76`.
