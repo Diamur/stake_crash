@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.93";
+		MEP.ver = "0.1.5.94";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -5763,6 +5763,19 @@
                 };
             },
 
+            getRuntimeActiveBranch(st = null, plusPool = null, minusPool = null) {
+                const state = st || this.getState();
+                if (!state || !state.enabled) return "";
+                const lossCount = Math.max(0, Math.floor(Number(state.cycle?.lossCount) || 0));
+                if (lossCount === 0) return "plus";
+                const route = this.routeBranch();
+                if (route?.branch === "first") return "plus";
+                if (route?.branch === "second") return "minus";
+                if (plusPool?.result) return "plus";
+                if (minusPool?.result) return "minus";
+                return "minus";
+            },
+
             getDiffVectorShortLabelByState(state = "") {
                 const s = (state || "").toString().trim().toLowerCase();
                 if (s === "up") return "mEMA > sEMA";
@@ -7707,7 +7720,7 @@
                     st.conditions.lastResult.shouldEndCycle = false;
                     st.conditions.lastResult.reason = (result.reason || "").toString();
                 }
-                st.runtime.activeBranch = st.enabled ? (plusPool.result ? "plus" : minusPool.result ? "minus" : "") : "";
+                st.runtime.activeBranch = this.getRuntimeActiveBranch(st, plusPool, minusPool);
                 st.runtime.lastConditionBranchResults = { plus: plusPool, minus: minusPool };
                 st.runtime.lastConditionResult = result;
                 st.runtime.lastCycleAction = "checkConditions";
@@ -8943,7 +8956,7 @@
                 for (const it of evaluated) byKey[it.key] = it;
                 const plusPool = MEP.Strategy1?.getConditionBranchPoolState?.(evaluatedPlus) || { activeCount: 0, hasFalse: false, result: false };
                 const minusPool = MEP.Strategy1?.getConditionBranchPoolState?.(evaluatedMinus) || { activeCount: 0, hasFalse: false, result: false };
-                const activeBranch = s.enabled ? (plusPool.result ? "plus" : minusPool.result ? "minus" : "") : "";
+                const activeBranch = MEP.Strategy1?.getRuntimeActiveBranch?.(s, plusPool, minusPool) || "";
                 s.runtime = s.runtime && typeof s.runtime === "object" ? s.runtime : {};
                 s.runtime.activeBranch = activeBranch;
                 const currentPool = selectedBranch === "minus" ? minusPool : plusPool;

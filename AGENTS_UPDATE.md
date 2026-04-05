@@ -480,3 +480,7 @@
 - Реализован раздельный evaluate: `evaluateConditionBlocks(st, branch)` + расчёт pool-state по каждой ветке (`plus/minus`) и `runtime.activeBranch` для runtime-подсветки вкладок.
 - Для обратной совместимости `config.conditionBlocks` поддерживается как зеркало ветки `plus`.
 - Версии повышены: `crash.js 0.1.5.93` (header + `MEP.ver`) и `crash.css 0.1.5.93`.
+- 2026-04-05: Исправлен выбор `runtime.activeBranch` для вкладок `ПЛЮС/МИНУС`: при `lossCount === 0` активной веткой всегда принудительно считается `plus`.
+- Добавлен helper `getRuntimeActiveBranch(st, plusPool, minusPool)`; он использует приоритет `plus` на старте цикла и далее опирается на `routeBranch()` при `lossCount > 0`.
+- Это убирает баг ранней неон-подсветки `МИНУС` при нулевых минусах в начале цикла.
+- Версии повышены: `crash.js 0.1.5.94` (header + `MEP.ver`) и `crash.css 0.1.5.94`.
