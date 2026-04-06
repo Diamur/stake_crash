@@ -562,3 +562,8 @@
 - Версии повышены: `crash.js 0.1.5.111` (header + `MEP.ver`) и `crash.css 0.1.5.111`.
 
 - В `startCycle()` добавлен явный reset execution-временных полей (`preCycleBalance/postBetBalance/balanceAfterRound/waitingRoundResult/pendingExecutionPayload/executionState`) при старте нового цикла.
+
+- 2026-04-06: Исправлен цикл/зацикливание тикера при включении Strategy1: `processGamePhaseExecution()` переведён с `evaluateDecisionState()` на `evaluateBetPermission()` (без внутреннего re-render).
+- Добавлен re-entrancy guard `runtime.phaseMachineBusy`, чтобы phase-machine не входила сама в себя при UI тиках.
+- Это устраняет зависание бегущей строки на пол-фразе и ложные визуальные дергания статуса `Вкл/Откл` в пуле условий.
+- Версии повышены: `crash.js 0.1.5.112` (header + `MEP.ver`) и `crash.css 0.1.5.112`.

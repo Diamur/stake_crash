@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.111";
+		MEP.ver = "0.1.5.112";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -306,6 +306,7 @@
                 balanceAfterRound: 0,
                 betAcceptedInFlight: false,
                 lastGamePhase: "",
+                phaseMachineBusy: false,
                 lastDomSyncAtTs: 0,
                 startBalanceSnapshot: 0,
                 copiedRiskAmount: 0,
@@ -6631,16 +6632,19 @@
             processGamePhaseExecution() {
                 const st = this.getState();
                 if (!st || !st.enabled) return;
-                const phase = (MEP.State?.gamePhase || "").toString();
-                const prevPhase = (st.runtime.lastGamePhase || "").toString();
-                st.runtime.lastGamePhase = phase;
+                if (st.runtime.phaseMachineBusy) return;
+                st.runtime.phaseMachineBusy = true;
+                try {
+                    const phase = (MEP.State?.gamePhase || "").toString();
+                    const prevPhase = (st.runtime.lastGamePhase || "").toString();
+                    st.runtime.lastGamePhase = phase;
 
-                const execState = (st.runtime.executionState || "idle").toString();
-                const sinceTs = Number(st.runtime.executionPhaseSinceTs) || 0;
-                const elapsed = sinceTs > 0 ? Date.now() - sinceTs : 0;
+                    const execState = (st.runtime.executionState || "idle").toString();
+                    const sinceTs = Number(st.runtime.executionPhaseSinceTs) || 0;
+                    const elapsed = sinceTs > 0 ? Date.now() - sinceTs : 0;
 
-                if ((execState === "idle" || execState === "bet_error" || execState === "round_resolved") && !st.runtime.waitingRoundResult) {
-                    const permission = this.evaluateDecisionState();
+                    if ((execState === "idle" || execState === "bet_error" || execState === "round_resolved") && !st.runtime.waitingRoundResult) {
+                        const permission = this.evaluateBetPermission();
                     if (permission?.allowed && phase === "bet") {
                         if ((Number(st.cycle?.lossCount) || 0) === 0 && !(Number(st.runtime.preCycleBalance) > 0)) {
                             st.runtime.preCycleBalance = Number(this.getCurrentBalance()) || 0;
@@ -6699,6 +6703,9 @@
                 if (execState === "waiting_round_finish" && prevPhase === "in_game" && phase === "game") {
                     // round finish will be finalized by DOM bridge; this only marks transition
                     this.setExecutionState("round_resolved", "phase_game_returned");
+                }
+                } finally {
+                    st.runtime.phaseMachineBusy = false;
                 }
             },
 
