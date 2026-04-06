@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.109";
+		MEP.ver = "0.1.5.110";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8952,7 +8952,7 @@
                 const ui = MEP.UI.ui;
                 if (!ui || !ui.gamePhaseRowEl) return;
                 const phase = MEP.UI.updateGamePhaseFromDom();
-                const cells = [ui.gamePhaseCellGameEl, ui.gamePhaseCellLaunchEl, ui.gamePhaseCellBetEl, ui.gamePhaseCellPlacedEl, ui.gamePhaseCellInGameEl];
+                const cells = [ui.gamePhaseCellGameEl, ui.gamePhaseCellBetEl, ui.gamePhaseCellPlacedEl, ui.gamePhaseCellLaunchEl, ui.gamePhaseCellInGameEl];
                 for (const cell of cells) {
                     if (!cell) continue;
                     const key = (cell.dataset.phase || "").toString();
@@ -10212,9 +10212,9 @@
 </div>
 <div class="mep-game-phase-row">
     <div class="mep-game-phase-cell mep-game-phase-cell-game" data-phase="game">Игра</div>
-    <div class="mep-game-phase-cell mep-game-phase-cell-launch" data-phase="launch">Запуск</div>
     <div class="mep-game-phase-cell mep-game-phase-cell-bet" data-phase="bet">Ставка</div>
     <div class="mep-game-phase-cell mep-game-phase-cell-placed" data-phase="placed">Поставили</div>
+    <div class="mep-game-phase-cell mep-game-phase-cell-launch" data-phase="launch">Запуск</div>
     <div class="mep-game-phase-cell mep-game-phase-cell-in-game" data-phase="in_game">В игре</div>
 </div>
 <div class="mep-game-tab-panel mep-game-tab-panel-charter is-active">
