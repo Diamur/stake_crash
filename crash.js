@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.110";
+		MEP.ver = "0.1.5.111";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -300,6 +300,12 @@
                 pendingBetAmount: 0,
                 pendingTargetMultiplier: 0,
                 pendingExecutionPayload: null,
+                executionPhaseSinceTs: 0,
+                preCycleBalance: 0,
+                postBetBalance: 0,
+                balanceAfterRound: 0,
+                betAcceptedInFlight: false,
+                lastGamePhase: "",
                 lastDomSyncAtTs: 0,
                 startBalanceSnapshot: 0,
                 copiedRiskAmount: 0,
@@ -6448,10 +6454,12 @@
                     stepIndex: Number(st.cycle?.stepIndex) || 0,
                 };
                 st.runtime.lastExecutionRoundId = "";
-                st.runtime.waitingRoundResult = true;
+                st.runtime.waitingRoundResult = false;
+                st.runtime.executionState = "waiting_placed";
+                st.runtime.executionPhaseSinceTs = now;
+                st.runtime.betAcceptedInFlight = false;
                 st.cycle.lastStake = Number(p.betAmount) || 0;
                 st.cycle.lastTargetMultiplier = Number(p.targetMultiplier) || 0;
-                st.cycle.betCount = (Number(st.cycle.betCount) || 0) + 1;
                 st.counters.lastStake = Number(p.betAmount) || 0;
                 this.executionDebug("[MEP][Strategy1][execution accepted]", {
                     betAmount: Number(p.betAmount) || 0,
@@ -6478,7 +6486,7 @@
                 return {
                     applied: true,
                     reason: "",
-                    stage: "awaiting_round_result",
+                    stage: "waiting_placed",
                     betAmount: Number(p.betAmount) || 0,
                     targetMultiplier: Number(p.targetMultiplier) || 0,
                 };
@@ -6612,6 +6620,88 @@
                 return accepted;
             },
 
+            setExecutionState(next = "idle", reason = "") {
+                const st = this.getState();
+                if (!st) return;
+                st.runtime.executionState = (next || "idle").toString();
+                st.runtime.executionPhaseSinceTs = Date.now();
+                if (reason) st.runtime.lastExecutionReason = (reason || "").toString();
+            },
+
+            processGamePhaseExecution() {
+                const st = this.getState();
+                if (!st || !st.enabled) return;
+                const phase = (MEP.State?.gamePhase || "").toString();
+                const prevPhase = (st.runtime.lastGamePhase || "").toString();
+                st.runtime.lastGamePhase = phase;
+
+                const execState = (st.runtime.executionState || "idle").toString();
+                const sinceTs = Number(st.runtime.executionPhaseSinceTs) || 0;
+                const elapsed = sinceTs > 0 ? Date.now() - sinceTs : 0;
+
+                if ((execState === "idle" || execState === "bet_error" || execState === "round_resolved") && !st.runtime.waitingRoundResult) {
+                    const permission = this.evaluateDecisionState();
+                    if (permission?.allowed && phase === "bet") {
+                        if ((Number(st.cycle?.lossCount) || 0) === 0 && !(Number(st.runtime.preCycleBalance) > 0)) {
+                            st.runtime.preCycleBalance = Number(this.getCurrentBalance()) || 0;
+                        }
+                        this.setExecutionState("ready_to_bet", "ready_to_bet");
+                        this.setExecutionState("clicking_bet", "clicking_bet");
+                        const out = this.executeBet();
+                        if (!out?.applied) {
+                            this.setExecutionState("bet_error", "bet_click_failed");
+                            MEP.UI?.setStrategy1InfoMessage?.("Ошибка ставки...", { force: true });
+                            this.setExecutionState("idle", "bet_error_idle");
+                        }
+                    }
+                    return;
+                }
+
+                if (execState === "waiting_placed") {
+                    if (phase === "placed") {
+                        st.runtime.postBetBalance = Number(this.getCurrentBalance()) || 0;
+                        st.runtime.waitingRoundResult = true;
+                        this.setExecutionState("waiting_in_game", "placed_confirmed");
+                    } else if (phase === "in_game") {
+                        st.runtime.postBetBalance = Number(this.getCurrentBalance()) || Number(st.runtime.postBetBalance) || 0;
+                        st.runtime.waitingRoundResult = true;
+                        if (!st.runtime.betAcceptedInFlight) {
+                            st.runtime.betAcceptedInFlight = true;
+                            st.cycle.betCount = (Number(st.cycle.betCount) || 0) + 1;
+                        }
+                        MEP.UI?.setStrategy1InfoMessage?.("Ставка сделана...", { force: true });
+                        this.setExecutionState("waiting_round_finish", "in_game_direct");
+                    } else if (elapsed > 10000 && phase !== "bet") {
+                        st.runtime.waitingRoundResult = false;
+                        this.setExecutionState("bet_error", "placed_not_reached");
+                        MEP.UI?.setStrategy1InfoMessage?.("Ошибка ставки...", { force: true });
+                        this.setExecutionState("idle", "bet_error_idle");
+                    }
+                    return;
+                }
+
+                if (execState === "waiting_in_game") {
+                    if (phase === "in_game") {
+                        if (!st.runtime.betAcceptedInFlight) {
+                            st.runtime.betAcceptedInFlight = true;
+                            st.cycle.betCount = (Number(st.cycle.betCount) || 0) + 1;
+                        }
+                        MEP.UI?.setStrategy1InfoMessage?.("Ставка сделана...", { force: true });
+                        this.setExecutionState("waiting_round_finish", "in_game_reached");
+                    } else if (elapsed > 15000 && phase !== "placed") {
+                        st.runtime.waitingRoundResult = false;
+                        this.setExecutionState("bet_error", "in_game_not_reached");
+                        MEP.UI?.setStrategy1InfoMessage?.("Ошибка ставки...", { force: true });
+                        this.setExecutionState("idle", "bet_error_idle");
+                    }
+                }
+
+                if (execState === "waiting_round_finish" && prevPhase === "in_game" && phase === "game") {
+                    // round finish will be finalized by DOM bridge; this only marks transition
+                    this.setExecutionState("round_resolved", "phase_game_returned");
+                }
+            },
+
             handleRoundFinishedForExecution(payload = {}) {
                 const st = this.getState();
                 this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution called]", {
@@ -6647,11 +6737,28 @@
                 this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution updateAfterRound]", updated);
                 st.runtime.lastExecutionRoundId = result.roundId;
                 st.runtime.lastExecutionResult = updated?.applied ? "round_processed" : "round_apply_failed";
+                const balanceAfterRound = Number(result.balance) || Number(this.getCurrentBalance()) || 0;
+                st.runtime.balanceAfterRound = balanceAfterRound;
+                const postBetBalance = Number(st.runtime.postBetBalance) || balanceAfterRound;
+                const preCycleBalance = Number(st.runtime.preCycleBalance) || Number(st.cycle?.startBalance) || balanceAfterRound;
+                const stakeProfit = balanceAfterRound - postBetBalance;
+                if (stakeProfit > 0) {
+                    MEP.UI?.setStrategy1InfoMessage?.(`Профит ставки ${stakeProfit.toFixed(8)}...`, { force: true });
+                } else {
+                    MEP.UI?.setStrategy1InfoMessage?.(`Минус ${Number(st.cycle?.lossCount) || 0}...`, { force: true });
+                }
+                const cycleProfit = balanceAfterRound - preCycleBalance;
+                if (cycleProfit > 0) {
+                    MEP.UI?.setStrategy1InfoMessage?.(`Профит цикла ${cycleProfit.toFixed(8)}...`, { force: true });
+                }
                 st.runtime.executionState = "idle";
                 st.runtime.pendingExecutionPayload = null;
                 st.runtime.pendingBetAmount = 0;
                 st.runtime.pendingTargetMultiplier = 0;
                 st.runtime.waitingRoundResult = false;
+                st.runtime.betAcceptedInFlight = false;
+                st.runtime.postBetBalance = 0;
+                st.runtime.balanceAfterRound = 0;
                 st.executionLocked = false;
                 this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution final]", {
                     executionLocked: !!st.executionLocked,
@@ -7394,6 +7501,15 @@
                 st.timers.cycleStartedAtTs = now;
                 st.timers.cycleFinishedAtTs = 0;
                 st.timers.cycleDurationMs = 0;
+                st.runtime.preCycleBalance = currentBalanceNow;
+                st.runtime.postBetBalance = 0;
+                st.runtime.balanceAfterRound = 0;
+                st.runtime.betAcceptedInFlight = false;
+                st.runtime.waitingRoundResult = false;
+                st.runtime.pendingExecutionPayload = null;
+                st.runtime.pendingBetAmount = 0;
+                st.runtime.pendingTargetMultiplier = 0;
+                st.runtime.executionState = "idle";
                 this.pushEvent("cycle_start", now);
                 st.runtime.lastCycleAction = "startCycle";
                 st.runtime.lastAnnouncedCycleState = "active";
@@ -9464,6 +9580,7 @@
                 const blocked = !enabled && !MEP.UI.canEnableStrategy("strategy1");
                 if (ui.strategy1EnabledToggle) ui.strategy1EnabledToggle.disabled = blocked;
                 MEP.UI.renderStrategyBalanceRow("strategy1");
+                MEP.Strategy1?.processGamePhaseExecution?.();
                 MEP.UI.renderStrategy1ConditionBridge(st);
             },
 

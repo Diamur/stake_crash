@@ -555,3 +555,10 @@
 - 2026-04-06: В строке фаз Game изменён визуальный порядок: `Запуск` перенесён после `Поставили`.
 - Новый порядок: `Игра | Ставка | Поставили | Запуск | В игре` (фазовые ключи и логика распознавания не изменены).
 - Версии повышены: `crash.js 0.1.5.110` (header + `MEP.ver`) и `crash.css 0.1.5.110`.
+
+- 2026-04-06: Добавлен execution state-machine слой для Strategy1, привязанный к `gamePhase` (`ready_to_bet -> clicking_bet -> waiting_placed -> waiting_in_game -> waiting_round_finish -> round_resolved/idle`).
+- Введён button-aware runtime flow для цепочки `Ставка -> Поставили -> В игре`, с обработкой технической ошибки постановки (`Ошибка ставки...`) при нарушении переходов по таймауту.
+- `betCount` теперь увеличивается при входе в `in_game`, а не в момент клика; добавлена фиксация `preCycleBalance/postBetBalance/balanceAfterRound` и сообщения: `Ставка сделана...`, `Профит ставки ...`, `Профит цикла ...`, `Минус ...`.
+- Версии повышены: `crash.js 0.1.5.111` (header + `MEP.ver`) и `crash.css 0.1.5.111`.
+
+- В `startCycle()` добавлен явный reset execution-временных полей (`preCycleBalance/postBetBalance/balanceAfterRound/waitingRoundResult/pendingExecutionPayload/executionState`) при старте нового цикла.
