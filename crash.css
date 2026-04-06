@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.114 ==*/
+/*== CSS ver 0.1.5.115 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -1077,3 +1077,19 @@ body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
 }
 #mep-control-panel .mep-strategy1-service-array-input:focus{border-color:rgba(0,255,87,.55);}
 #mep-control-panel .mep-strategy1-stake-col.active{color:#f7e7a2;text-align:right;}
+#mep-control-panel .mep-strategy1-live-debug-box{
+  margin-top:4px;
+  border:1px dashed rgba(255,255,255,.25);
+  background:rgba(7,10,14,.75);
+  color:#d7e4ff;
+  font-size:11px;
+  padding:6px 8px;
+  line-height:1.35;
+}
+#mep-control-panel .mep-strategy1-live-debug-title{
+  color:#9ec8ff;
+  font-size:10px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  margin-bottom:2px;
+}

@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.114";
+		MEP.ver = "0.1.5.115";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -308,6 +308,12 @@
                 lastGamePhase: "",
                 phaseMachineBusy: false,
                 lastDomSyncAtTs: 0,
+                lastExecutionDebugCode: "",
+                lastExecutionDebugText: "",
+                lastExecutionDebugStage: "",
+                lastExecutionDebugMeta: null,
+                lastLiveDebugSignature: "",
+                lastLiveDebugTs: 0,
                 startBalanceSnapshot: 0,
                 copiedRiskAmount: 0,
                 systemMessages: [],
@@ -6182,6 +6188,124 @@
                 } catch (e) {}
             },
 
+            setExecutionDebugState(code = "", stage = "", text = "", meta = null) {
+                const st = this.getState();
+                if (!st?.runtime) return;
+                const c = (code || "").toString().trim();
+                const s = (stage || "").toString().trim();
+                const t = (text || c || "").toString().trim();
+                st.runtime.lastExecutionDebugCode = c;
+                st.runtime.lastExecutionDebugStage = s;
+                st.runtime.lastExecutionDebugText = t;
+                st.runtime.lastExecutionDebugMeta = meta && typeof meta === "object" ? { ...meta } : null;
+            },
+
+            setExecutionRejectInfo(reason = "", stage = "", textPrefix = "Ошибка ставки") {
+                const code = (reason || "execution_rejected").toString();
+                const phase = (MEP.State?.gamePhase || "").toString();
+                const message = `${textPrefix}: ${code}`;
+                this.setExecutionDebugState(code, stage || "execution", message, { phase });
+                if (phase === "bet") MEP.UI?.setStrategy1InfoMessage?.(message, { force: true });
+            },
+
+            buildLiveBetDebugSummary(input = {}) {
+                const st = this.getState();
+                const runtime = st?.runtime || {};
+                const cycle = st?.cycle || {};
+                const permission = input?.permission || runtime.lastBetPermissionResult || {};
+                const plan = input?.plan || runtime.lastStakePlanResult || {};
+                const domSync = input?.domSync || runtime.lastDomSyncResult || null;
+                const click = input?.click || runtime.lastClickResult || null;
+                const phase = (input?.phase ?? MEP.State?.gamePhase ?? "").toString();
+                const executionState = (input?.executionState ?? runtime.executionState ?? "idle").toString();
+                const reason = (input?.reason || runtime.lastExecutionDebugCode || runtime.lastExecutionReason || "").toString();
+                const stage = (input?.stage || runtime.lastExecutionDebugStage || "").toString();
+                const status = (input?.status || (reason ? "blocked" : "info")).toString();
+                const missingRequirement = (input?.missingRequirement || reason || "none").toString();
+                const signatureObj = {
+                    phase,
+                    executionState,
+                    permissionAllowed: !!permission?.allowed,
+                    permissionReason: (permission?.reason || "").toString(),
+                    cycleIsActive: !!cycle?.isActive,
+                    planReady: !!plan?.ready,
+                    reason,
+                    stage,
+                };
+                const signature = JSON.stringify(signatureObj);
+                return {
+                    phase,
+                    strategyEnabled: !!st?.enabled,
+                    executionState,
+                    cycleIsActive: !!cycle?.isActive,
+                    waitingRoundResult: !!runtime.waitingRoundResult,
+                    executionLocked: !!st?.executionLocked,
+                    manualPauseActive: !!runtime.manualPauseActive,
+                    waitingBalanceRecoveryActive: !!runtime.waitingBalanceRecoveryActive,
+                    permissionAllowed: !!permission?.allowed,
+                    permissionReason: (permission?.reason || "").toString(),
+                    branch: (permission?.branch || runtime.activeBranch || "").toString(),
+                    poolResult: permission?.poolResult ?? null,
+                    stakePlanReady: !!plan?.ready,
+                    stakePlanInvalidReason: (plan?.invalidReason || "").toString(),
+                    stakePlanBetAmount: Number(plan?.betAmount) || 0,
+                    stakePlanTargetMultiplier: Number(plan?.targetMultiplier) || 0,
+                    domSync,
+                    click,
+                    status,
+                    stage,
+                    reason,
+                    missingRequirement,
+                    signature,
+                };
+            },
+
+            logLiveBetConsole(summary = {}, force = false) {
+                if (!this.isExecutionDebugEnabled()) return;
+                const st = this.getState();
+                if (!st?.runtime) return;
+                if ((summary?.phase || "") !== "bet" && !force) return;
+                if (!force && st.runtime.lastLiveDebugSignature === summary.signature) return;
+                st.runtime.lastLiveDebugSignature = summary.signature;
+                st.runtime.lastLiveDebugTs = Date.now();
+                try {
+                    console.groupCollapsed("[MEP][Strategy1][LIVE][BET]");
+                    console.log("A.input", {
+                        gamePhase: summary.phase,
+                        strategyEnabled: summary.strategyEnabled,
+                        executionState: summary.executionState,
+                        cycleIsActive: summary.cycleIsActive,
+                        waitingRoundResult: summary.waitingRoundResult,
+                        executionLocked: summary.executionLocked,
+                        manualPauseActive: summary.manualPauseActive,
+                        waitingBalanceRecoveryActive: summary.waitingBalanceRecoveryActive,
+                    });
+                    console.log("B.permission", {
+                        allowed: summary.permissionAllowed,
+                        reason: summary.permissionReason,
+                        activeBranch: summary.branch,
+                        poolResult: summary.poolResult,
+                    });
+                    console.log("C.plan", {
+                        ready: summary.stakePlanReady,
+                        invalidReason: summary.stakePlanInvalidReason,
+                        betAmount: summary.stakePlanBetAmount,
+                        targetMultiplier: summary.stakePlanTargetMultiplier,
+                    });
+                    console.log("F.dom_sync", summary.domSync || null);
+                    console.log("G.click", summary.click || null);
+                    console.log("H.final", {
+                        status: summary.status,
+                        stage: summary.stage,
+                        reason: summary.reason,
+                        missingRequirement: summary.missingRequirement,
+                    });
+                    const finalLine = summary.status === "ok" ? "LIVE BET ready: all requirements passed" : `LIVE BET blocked: ${summary.missingRequirement || "unknown_reason"}`;
+                    console.log(finalLine);
+                    console.groupEnd();
+                } catch (e) {}
+            },
+
             formatDomNumber(v, fallback = "0") {
                 const n = Number(v);
                 if (!Number.isFinite(n) || n < 0) return fallback;
@@ -6295,51 +6419,90 @@
             },
 
             async syncBetInputsToDom(plan = {}) {
+                const st = this.getState();
+                const debugSync = {
+                    entered: true,
+                    stage: "enter",
+                    reason: "",
+                    amountInputFound: false,
+                    targetInputFound: false,
+                    betButtonFound: false,
+                    amountValuePlanned: this.formatDomNumber(plan?.betAmount, "0"),
+                    targetValuePlanned: this.formatDomNumber(plan?.targetMultiplier, "2"),
+                    amountValueApplied: "",
+                    targetValueApplied: "",
+                    amountAppliedOk: false,
+                    targetAppliedOk: false,
+                };
                 const root = this.findSidebarRoot();
                 this.executionDebug("[MEP][Strategy1][sync] root found", { found: !!root });
                 if (!root) {
-                    const out = { applied: false, reason: "sidebar_not_found", stage: "find_dom" };
+                    debugSync.stage = "find_dom";
+                    debugSync.reason = "sidebar_not_found";
+                    const out = { applied: false, reason: "sidebar_not_found", stage: "find_dom", debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
                 const manual = await this.ensureManualMode(root);
                 this.executionDebug("[MEP][Strategy1][sync] manual mode ensured", manual);
                 if (!manual?.applied) {
-                    const out = { applied: false, reason: manual?.reason || "manual_mode_unavailable", stage: "manual_mode" };
+                    debugSync.stage = "manual_mode";
+                    debugSync.reason = manual?.reason || "manual_mode_unavailable";
+                    const out = { applied: false, reason: manual?.reason || "manual_mode_unavailable", stage: "manual_mode", debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
                 const betInput = this.findBetAmountInput(root);
                 const targetInput = this.findTargetMultiplierInput(root);
+                const betBtn = MEP.UI.getGameBetButton();
+                debugSync.amountInputFound = !!betInput;
+                debugSync.targetInputFound = !!targetInput;
+                debugSync.betButtonFound = !!betBtn;
                 this.executionDebug("[MEP][Strategy1][sync] bet input found", { found: !!betInput });
                 this.executionDebug("[MEP][Strategy1][sync] target input found", { found: !!targetInput });
                 if (!betInput) {
-                    const out = { applied: false, reason: "amount_input_not_found", stage: "find_dom" };
+                    debugSync.stage = "find_dom";
+                    debugSync.reason = "amount_input_not_found";
+                    const out = { applied: false, reason: "amount_input_not_found", stage: "find_dom", debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
                 if (!targetInput) {
-                    const out = { applied: false, reason: "target_input_not_found", stage: "find_dom" };
+                    debugSync.stage = "find_dom";
+                    debugSync.reason = "target_input_not_found";
+                    const out = { applied: false, reason: "target_input_not_found", stage: "find_dom", debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
-                const betValue = this.formatDomNumber(plan?.betAmount, "0");
-                const targetValue = this.formatDomNumber(plan?.targetMultiplier, "2");
+                const betValue = debugSync.amountValuePlanned;
+                const targetValue = debugSync.targetValuePlanned;
                 this.executionDebug("[MEP][Strategy1][sync] set values", { betValue, targetValue });
                 const betOk = MEP.UI.applyGameAmountValue(betValue) || this.setNativeInputValue(betInput, betValue);
                 if (!betOk) {
-                    const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "set_dom", betValue };
+                    debugSync.stage = "set_dom";
+                    debugSync.reason = "bet_amount_value_not_applied";
+                    const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "set_dom", betValue, debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
                 const targetOk = MEP.UI.applyGameTargetValue(targetValue) || this.setNativeInputValue(targetInput, targetValue);
                 if (!targetOk) {
-                    const out = { applied: false, reason: "target_value_not_applied", stage: "set_dom", targetValue };
+                    debugSync.stage = "set_dom";
+                    debugSync.reason = "target_value_not_applied";
+                    const out = { applied: false, reason: "target_value_not_applied", stage: "set_dom", targetValue, debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
                 const betApplied = (betInput.value || "").toString().trim();
                 const targetApplied = (targetInput.value || "").toString().trim();
+                debugSync.amountValueApplied = betApplied;
+                debugSync.targetValueApplied = targetApplied;
                 this.executionDebug("[MEP][Strategy1][sync] verify values", { betApplied, targetApplied });
                 const betExpectedNum = Number(MEP.Utils.cleanToNum(betValue));
                 const betAppliedNum = Number(MEP.Utils.cleanToNum(betApplied));
@@ -6347,42 +6510,71 @@
                 const targetAppliedNum = Number(MEP.Utils.cleanToNum(targetApplied));
                 const betMatches = Number.isFinite(betExpectedNum) && Number.isFinite(betAppliedNum) && Math.abs(betExpectedNum - betAppliedNum) <= 1e-8;
                 const targetMatches = Number.isFinite(targetExpectedNum) && Number.isFinite(targetAppliedNum) && Math.abs(targetExpectedNum - targetAppliedNum) <= 1e-6;
+                debugSync.amountAppliedOk = !!betMatches;
+                debugSync.targetAppliedOk = !!targetMatches;
                 if (!betMatches) {
-                    const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "verify_dom", betValue, betApplied };
+                    debugSync.stage = "verify_dom";
+                    debugSync.reason = "bet_amount_value_not_applied";
+                    const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "verify_dom", betValue, betApplied, debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
                 if (!targetMatches) {
-                    const out = { applied: false, reason: "target_value_not_applied", stage: "verify_dom", targetValue, targetApplied };
+                    debugSync.stage = "verify_dom";
+                    debugSync.reason = "target_value_not_applied";
+                    const out = { applied: false, reason: "target_value_not_applied", stage: "verify_dom", targetValue, targetApplied, debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
-                const st = this.getState();
                 if (st?.runtime) st.runtime.lastDomSyncAtTs = Date.now();
-                const out = { applied: true, reason: "", stage: "dom_synced", betValue, targetValue };
+                debugSync.stage = "dom_synced";
+                const out = { applied: true, reason: "", stage: "dom_synced", betValue, targetValue, debugSync };
+                if (st?.runtime) st.runtime.lastDomSyncResult = out;
                 this.executionDebug("[MEP][Strategy1][sync] result", out);
                 return out;
             },
 
             clickBetButton() {
+                const st = this.getState();
                 const btn = MEP.UI.getGameBetButton();
                 if (!btn) {
-                    const out = { applied: false, reason: "bet_button_not_found", stage: "click" };
+                    const out = {
+                        applied: false,
+                        reason: "bet_button_not_found",
+                        stage: "click",
+                        debugClick: { entered: true, buttonFound: false, phase: "", disabled: true, clickPerformed: false, buttonText: "" },
+                    };
+                    if (st?.runtime) st.runtime.lastClickResult = out;
                     this.executionWarn("[MEP][Strategy1][clickBetButton state]", out);
                     return out;
                 }
                 const phase = MEP.UI.resolveGamePhaseFromBetButton(btn);
                 const disabled = !!btn.disabled || btn.getAttribute?.("aria-disabled") === "true";
-                this.executionDebug("[MEP][Strategy1][clickBetButton state]", { phase, disabled });
-                if (phase !== "bet") return { applied: false, reason: "bet_phase_not_active", stage: "click" };
-                if (disabled) return { applied: false, reason: "bet_button_disabled", stage: "click" };
+                const text = (MEP.UI.getGameBetButtonText(btn) || btn.textContent || "").toString().trim();
+                const debugClick = { entered: true, buttonFound: true, phase, disabled, clickPerformed: false, buttonText: text };
+                this.executionDebug("[MEP][Strategy1][clickBetButton state]", { phase, disabled, text });
+                if (phase !== "bet") {
+                    const out = { applied: false, reason: "bet_phase_not_active", stage: "click", debugClick };
+                    if (st?.runtime) st.runtime.lastClickResult = out;
+                    return out;
+                }
+                if (disabled) {
+                    const out = { applied: false, reason: "bet_button_disabled", stage: "click", debugClick };
+                    if (st?.runtime) st.runtime.lastClickResult = out;
+                    return out;
+                }
                 try {
                     btn.click();
-                    const out = { applied: true, reason: "", stage: "clicked" };
+                    debugClick.clickPerformed = true;
+                    const out = { applied: true, reason: "", stage: "clicked", debugClick };
+                    if (st?.runtime) st.runtime.lastClickResult = out;
                     this.executionDebug("[MEP][Strategy1][clickBetButton result]", out);
                     return out;
                 } catch (e) {
-                    const out = { applied: false, reason: "dom_click_failed", stage: "click" };
+                    const out = { applied: false, reason: "dom_click_failed", stage: "click", debugClick };
+                    if (st?.runtime) st.runtime.lastClickResult = out;
                     this.executionWarn("[MEP][Strategy1][clickBetButton result]", out);
                     return out;
                 }
@@ -6410,8 +6602,11 @@
             onExecutionRejected(reason = "execution_rejected", extra = {}) {
                 const st = this.getState();
                 if (!st) return { applied: false, reason: "strategy1_not_found", stage: "reject" };
+                const rejectReason = (reason || "").toString();
+                const rejectStage = (extra?.stage || "reject").toString();
+                this.setExecutionRejectInfo(rejectReason, rejectStage, "Ошибка ставки");
                 this.executionWarn("[MEP][Strategy1][execution rejected]", {
-                    reason: (reason || "").toString(),
+                    reason: rejectReason,
                     extra: extra && typeof extra === "object" ? { ...extra } : {},
                     state: {
                         cycleIsActive: !!st.cycle?.isActive,
@@ -6421,23 +6616,23 @@
                     },
                 });
                 st.runtime.lastExecutionAtTs = Date.now();
-                st.runtime.lastExecutionReason = (reason || "").toString();
+                st.runtime.lastExecutionReason = rejectReason;
                 st.runtime.lastExecutionResult = "rejected";
                 st.runtime.executionState = "rejected";
                 this.pushSystemMessage({
                     level: "warn",
                     action: "executeBet",
-                    text: `Ставка не выполнена: ${reason}`,
+                    text: `Ставка не выполнена: ${rejectReason}`,
                     code: "execution_rejected",
                     stage: "execution",
-                    reason: (reason || "").toString(),
+                    reason: rejectReason,
                     payload: extra && typeof extra === "object" ? { ...extra } : {},
                 });
                 this.announceStateTransition("execution", this.EVENT_CODES.EXECUTION_REJECTED, {
-                    reason: (reason || "").toString(),
+                    reason: rejectReason,
                 });
                 this.updateUiCounters();
-                return { applied: false, reason: (reason || "").toString(), stage: "reject" };
+                return { applied: false, reason: rejectReason, stage: "reject" };
             },
 
             onExecutionAccepted(payload = {}) {
@@ -6464,6 +6659,10 @@
                 st.runtime.executionState = "waiting_placed";
                 st.runtime.executionPhaseSinceTs = now;
                 st.runtime.betAcceptedInFlight = false;
+                this.setExecutionDebugState("waiting_placed", "accept", "Ставка отправлена: waiting_placed", {
+                    betAmount: Number(p.betAmount) || 0,
+                    targetMultiplier: Number(p.targetMultiplier) || 0,
+                });
                 st.cycle.lastStake = Number(p.betAmount) || 0;
                 st.cycle.lastTargetMultiplier = Number(p.targetMultiplier) || 0;
                 st.counters.lastStake = Number(p.betAmount) || 0;
@@ -6500,6 +6699,7 @@
 
             executeBet() {
                 const st = this.getState();
+                this.setExecutionDebugState("execute_enter", "execute_enter", "executeBet entered");
                 if (this.isExecutionDebugEnabled()) {
                     try {
                         console.groupCollapsed("[MEP][Strategy1][executeBet]");
@@ -6525,36 +6725,47 @@
                     activeStrategyId: (MEP.State?.activeStrategyId || "").toString(),
                 });
                 if (st.enabled !== true) {
+                    this.setExecutionDebugState("strategy_disabled", "guard", "executeBet blocked: strategy_disabled");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "strategy_disabled" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("strategy_disabled");
                 }
                 if (st.executionLocked) {
+                    this.setExecutionDebugState("execution_locked", "guard", "executeBet blocked: execution_locked");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "execution_locked" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("execution_locked");
                 }
                 if (!st.cycle?.isActive) {
+                    this.setExecutionDebugState("cycle_inactive", "guard", "executeBet blocked: cycle_inactive");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "cycle_inactive" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("cycle_inactive");
                 }
                 if (st.runtime?.manualPauseActive) {
+                    this.setExecutionDebugState("manual_pause_active", "guard", "executeBet blocked: manual_pause_active");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "manual_pause_active" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("manual_pause_active");
                 }
                 if (st.runtime?.waitingBalanceRecoveryActive) {
+                    this.setExecutionDebugState(
+                        "waiting_balance_recovery_active",
+                        "guard",
+                        "executeBet blocked: waiting_balance_recovery_active"
+                    );
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "waiting_balance_recovery_active" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("waiting_balance_recovery_active");
                 }
                 if (st.runtime?.waitingRoundResult) {
+                    this.setExecutionDebugState("waiting_round_result", "guard", "executeBet blocked: waiting_round_result");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "waiting_round_result" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("waiting_round_result");
                 }
                 if ((st.runtime?.executionState || "") === "awaiting_round_result") {
+                    this.setExecutionDebugState("already_executing", "guard", "executeBet blocked: already_executing");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "already_executing" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("already_executing");
@@ -6563,6 +6774,12 @@
                 const permission = this.evaluateBetPermission();
                 this.executionDebug("[MEP][Strategy1][permission]", permission);
                 if (!permission?.allowed) {
+                    this.setExecutionDebugState(
+                        permission?.reason || "permission_denied",
+                        "permission",
+                        `executeBet blocked: ${permission?.reason || "permission_denied"}`,
+                        { permission: permission || null }
+                    );
                     this.executionWarn("[MEP][Strategy1][permission reject]", {
                         reason: permission?.reason || "permission_denied",
                         stage: permission?.stage || "",
@@ -6574,6 +6791,7 @@
                     return this.onExecutionRejected(permission?.reason || "permission_denied", { stage: permission?.stage || "" });
                 }
                 if (permission?.shouldEndCycle) {
+                    this.setExecutionDebugState("cycle_should_end", "permission", "executeBet blocked: cycle_should_end", { permission: permission || null });
                     this.executionWarn("[MEP][Strategy1][permission reject]", {
                         reason: "cycle_should_end",
                         stage: permission?.stage || "",
@@ -6586,6 +6804,12 @@
                 }
 
                 const plan = this.buildStakePlan();
+                this.setExecutionDebugState(
+                    plan?.ready ? "stakeplan_ready" : "stakeplan_invalid",
+                    "stake_plan",
+                    plan?.ready ? "stakePlan ready" : `stakePlan invalid: ${plan?.invalidReason || "stake_plan_invalid"}`,
+                    { plan: plan || null }
+                );
                 this.executionDebug("[MEP][Strategy1][plan]", {
                     ready: plan?.ready,
                     invalidReason: plan?.invalidReason,
@@ -6603,8 +6827,26 @@
                     return this.onExecutionRejected(plan?.invalidReason || "stake_plan_invalid");
                 }
 
-                const sync = this.syncBetInputsToDom(plan);
-                this.executionDebug("[MEP][Strategy1][sync result raw]", sync);
+                const syncRaw = this.syncBetInputsToDom(plan);
+                const isSyncPromise = !!syncRaw && typeof syncRaw.then === "function";
+                this.executionDebug("[MEP][Strategy1][sync result raw]", { isPromise: isSyncPromise, value: syncRaw });
+                if (isSyncPromise) {
+                    this.setExecutionDebugState("dom_sync_async_pending", "sync", "syncBetInputsToDom returned Promise", { async: true });
+                    try {
+                        syncRaw.then((resolved) => {
+                            this.executionDebug("[MEP][Strategy1][sync async resolved]", resolved);
+                        });
+                    } catch (e) {}
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return this.onExecutionRejected("dom_sync_async_pending", { stage: "sync" });
+                }
+                const sync = syncRaw;
+                this.setExecutionDebugState(
+                    sync?.applied ? "dom_sync_ok" : sync?.reason || "dom_sync_failed",
+                    "sync",
+                    sync?.applied ? "syncBetInputsToDom applied" : `syncBetInputsToDom failed: ${sync?.reason || "dom_sync_failed"}`,
+                    sync || null
+                );
                 if (!sync?.applied) {
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected(sync?.reason || "dom_sync_failed", sync || {});
@@ -6612,6 +6854,12 @@
 
                 const click = this.clickBetButton();
                 this.executionDebug("[MEP][Strategy1][click result]", click);
+                this.setExecutionDebugState(
+                    click?.applied ? "dom_click_ok" : click?.reason || "dom_click_failed",
+                    "click",
+                    click?.applied ? "clickBetButton applied" : `clickBetButton failed: ${click?.reason || "dom_click_failed"}`,
+                    click || null
+                );
                 if (!click?.applied) {
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected(click?.reason || "dom_click_failed", click || {});
@@ -6622,6 +6870,12 @@
                     targetMultiplier: plan.targetMultiplier,
                     branch: permission?.branch || "",
                 });
+                this.setExecutionDebugState(
+                    accepted?.applied ? "bet_sent" : accepted?.reason || "bet_send_failed",
+                    "final",
+                    accepted?.applied ? "executeBet applied" : `executeBet failed: ${accepted?.reason || "bet_send_failed"}`,
+                    accepted || null
+                );
                 if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                 return accepted;
             },
@@ -6647,33 +6901,113 @@
                     const execState = (st.runtime.executionState || "idle").toString();
                     const sinceTs = Number(st.runtime.executionPhaseSinceTs) || 0;
                     const elapsed = sinceTs > 0 ? Date.now() - sinceTs : 0;
+                    this.setExecutionDebugState("exec_enter", "phase_machine", "processGamePhaseExecution entered", {
+                        phase,
+                        executionState: execState,
+                    });
+                    this.logLiveBetConsole(
+                        this.buildLiveBetDebugSummary({
+                            phase,
+                            executionState: execState,
+                            status: "info",
+                            stage: "A",
+                            reason: "exec_enter",
+                            missingRequirement: "collecting_requirements",
+                        })
+                    );
 
                     if ((execState === "idle" || execState === "bet_error" || execState === "round_resolved") && !st.runtime.waitingRoundResult) {
                         const permission = this.evaluateBetPermission();
-                    if (permission?.allowed && phase === "bet") {
-                        if (st.cycle?.isActive !== true) {
-                            const started = !!this.startCycle();
-                            if (!started || st.cycle?.isActive !== true) {
-                                this.setExecutionState("bet_error", "start_cycle_failed");
-                                MEP.UI?.setStrategy1InfoMessage?.("Ошибка запуска цикла...", { force: true });
+                        if (phase === "bet" && !permission?.allowed) {
+                            const reasonCode = permission?.reason || "permission_denied";
+                            this.setExecutionRejectInfo(reasonCode, "permission", "Нет боевого режима");
+                            this.logLiveBetConsole(
+                                this.buildLiveBetDebugSummary({
+                                    phase,
+                                    executionState: execState,
+                                    permission,
+                                    status: "blocked",
+                                    stage: "B",
+                                    reason: reasonCode,
+                                    missingRequirement: `permission.allowed=false (${reasonCode})`,
+                                }),
+                                true
+                            );
+                        }
+                        if (permission?.allowed && phase === "bet") {
+                            if (st.cycle?.isActive !== true) {
+                                const started = !!this.startCycle();
+                                this.setExecutionDebugState(started ? "cycle_started" : "cycle_start_failed", "cycle", started ? "startCycle done" : "startCycle failed");
+                                if (!started || st.cycle?.isActive !== true) {
+                                    this.setExecutionState("bet_error", "start_cycle_failed");
+                                    this.setExecutionRejectInfo("start_cycle_failed", "cycle", "Ошибка ставки");
+                                    this.setExecutionState("idle", "bet_error_idle");
+                                    this.logLiveBetConsole(
+                                        this.buildLiveBetDebugSummary({
+                                            phase,
+                                            executionState: execState,
+                                            permission,
+                                            status: "blocked",
+                                            stage: "D",
+                                            reason: "start_cycle_failed",
+                                            missingRequirement: "cycle.isActive=false",
+                                        }),
+                                        true
+                                    );
+                                    return;
+                                }
+                            } else {
+                                this.setExecutionDebugState("cycle_skipped", "cycle", "startCycle skipped (already active)");
+                            }
+                            if ((Number(st.cycle?.lossCount) || 0) === 0 && !(Number(st.runtime.preCycleBalance) > 0)) {
+                                st.runtime.preCycleBalance = Number(this.getCurrentBalance()) || 0;
+                            }
+                            this.setExecutionState("ready_to_bet", "ready_to_bet");
+                            this.setExecutionDebugState("permission_ok", "permission", "permission ok");
+                            this.setExecutionState("clicking_bet", "clicking_bet");
+                            this.setExecutionDebugState("execute_enter", "execution", "executeBet entered");
+                            const out = this.executeBet();
+                            if (!out?.applied) {
+                                const reasonCode = out?.reason || st.runtime.lastExecutionDebugCode || "bet_click_failed";
+                                this.setExecutionState("bet_error", reasonCode);
+                                this.setExecutionRejectInfo(reasonCode, out?.stage || "execution", "Ошибка ставки");
                                 this.setExecutionState("idle", "bet_error_idle");
-                                return;
+                                this.logLiveBetConsole(
+                                    this.buildLiveBetDebugSummary({
+                                        phase,
+                                        executionState: "clicking_bet",
+                                        permission,
+                                        plan: st.runtime.lastStakePlanResult || null,
+                                        domSync: st.runtime.lastDomSyncResult || null,
+                                        click: st.runtime.lastClickResult || null,
+                                        status: "blocked",
+                                        stage: out?.stage || st.runtime.lastExecutionDebugStage || "execution",
+                                        reason: reasonCode,
+                                        missingRequirement: reasonCode,
+                                    }),
+                                    true
+                                );
+                            } else {
+                                this.setExecutionDebugState("waiting_placed", "execution", "waiting_placed started");
+                                this.logLiveBetConsole(
+                                    this.buildLiveBetDebugSummary({
+                                        phase,
+                                        executionState: "waiting_placed",
+                                        permission,
+                                        plan: st.runtime.lastStakePlanResult || null,
+                                        domSync: st.runtime.lastDomSyncResult || null,
+                                        click: st.runtime.lastClickResult || null,
+                                        status: "ok",
+                                        stage: "I",
+                                        reason: "waiting_placed",
+                                        missingRequirement: "none",
+                                    }),
+                                    true
+                                );
                             }
                         }
-                        if ((Number(st.cycle?.lossCount) || 0) === 0 && !(Number(st.runtime.preCycleBalance) > 0)) {
-                            st.runtime.preCycleBalance = Number(this.getCurrentBalance()) || 0;
-                        }
-                        this.setExecutionState("ready_to_bet", "ready_to_bet");
-                        this.setExecutionState("clicking_bet", "clicking_bet");
-                        const out = this.executeBet();
-                        if (!out?.applied) {
-                            this.setExecutionState("bet_error", "bet_click_failed");
-                            MEP.UI?.setStrategy1InfoMessage?.("Ошибка ставки...", { force: true });
-                            this.setExecutionState("idle", "bet_error_idle");
-                        }
+                        return;
                     }
-                    return;
-                }
 
                 if (execState === "waiting_placed") {
                     if (phase === "placed") {
@@ -7531,6 +7865,11 @@
                 st.runtime.pendingBetAmount = 0;
                 st.runtime.pendingTargetMultiplier = 0;
                 st.runtime.executionState = "idle";
+                st.runtime.lastExecutionDebugCode = "cycle_started";
+                st.runtime.lastExecutionDebugStage = "startCycle";
+                st.runtime.lastExecutionDebugText = "startCycle done";
+                st.runtime.lastExecutionDebugMeta = null;
+                st.runtime.lastLiveDebugSignature = "";
                 this.pushEvent("cycle_start", now);
                 st.runtime.lastCycleAction = "startCycle";
                 st.runtime.lastAnnouncedCycleState = "active";
@@ -9414,6 +9753,10 @@
                         .replace(/\"/g, "&quot;")
                         .replace(/</g, "&lt;")
                         .replace(/>/g, "&gt;");
+                    const liveDebugPhase = (MEP.State?.gamePhase || "—").toString();
+                    const liveDebugExec = (s.runtime?.executionState || "idle").toString();
+                    const liveDebugReason = (s.runtime?.lastExecutionDebugCode || s.runtime?.lastExecutionReason || "—").toString();
+                    const liveDebugStage = (s.runtime?.lastExecutionDebugStage || "—").toString();
                     stakeServiceWrapEl.innerHTML = `
 <div class="mep-strategy1-cycle-info-row">
 <span class="mep-strategy1-cycle-info-cell">Циклов: <b>${serviceData.cycleNumber}</b></span>
@@ -9459,6 +9802,13 @@
 <span class="mep-strategy1-stake-col label">СтопМинус</span>
 <span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-stop-minus-input" type="number" min="0" step="1" value="${Math.max(0, Math.floor(Number(s.config?.stopMinusCount) || 0))}" placeholder="0" /></span>
 <span class="mep-strategy1-stake-col active"></span>
+</div>
+<div class="mep-strategy1-live-debug-box">
+<div class="mep-strategy1-live-debug-title">LIVE debug</div>
+<div>phase: <b>${liveDebugPhase}</b></div>
+<div>exec: <b>${liveDebugExec}</b></div>
+<div>reason: <b>${liveDebugReason}</b></div>
+<div>stage: <b>${liveDebugStage}</b></div>
 </div>`;
                 }
             },

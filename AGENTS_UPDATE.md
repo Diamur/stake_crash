@@ -577,3 +577,9 @@
 - Если запуск цикла не удался, ставка не отправляется и в тикер выводится `Ошибка запуска цикла...`; `executeBet()` в этом случае не вызывается.
 - Guard `cycle_inactive` внутри `executeBet()` оставлен без изменений.
 - Версии повышены: `crash.js 0.1.5.114` (header + `MEP.ver`) и `crash.css 0.1.5.114`.
+
+- 2026-04-06: Добавлена диагностическая трассировка Strategy1 live execution для фазы `bet`: коды/стадии/причины шагов (`exec_enter`, `permission_*`, `stakeplan_*`, `dom_sync_*`, `dom_click_*`, `waiting_placed`).
+- В runtime добавлены debug-поля (`lastExecutionDebugCode/Text/Stage`, `lastExecutionDebugMeta`, `lastLiveDebugSignature/Ts`) + антидубль console-group `[MEP][Strategy1][LIVE][BET]`.
+- В info-bar теперь выводится точная причина отказа в формате `Ошибка ставки: <code>` / `Нет боевого режима: <code>`.
+- Добавлен временный UI-блок `LIVE debug` под service-частью Strategy1 (phase/exec/reason/stage).
+- Версии повышены: `crash.js 0.1.5.115` (header + `MEP.ver`) и `crash.css 0.1.5.115`.
