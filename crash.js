@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.112";
+		MEP.ver = "0.1.5.113";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -6326,13 +6326,13 @@
                 const betValue = this.formatDomNumber(plan?.betAmount, "0");
                 const targetValue = this.formatDomNumber(plan?.targetMultiplier, "2");
                 this.executionDebug("[MEP][Strategy1][sync] set values", { betValue, targetValue });
-                const betOk = this.setNativeInputValue(betInput, betValue);
+                const betOk = MEP.UI.applyGameAmountValue(betValue) || this.setNativeInputValue(betInput, betValue);
                 if (!betOk) {
                     const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "set_dom", betValue };
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
-                const targetOk = this.setNativeInputValue(targetInput, targetValue);
+                const targetOk = MEP.UI.applyGameTargetValue(targetValue) || this.setNativeInputValue(targetInput, targetValue);
                 if (!targetOk) {
                     const out = { applied: false, reason: "target_value_not_applied", stage: "set_dom", targetValue };
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
@@ -6341,12 +6341,18 @@
                 const betApplied = (betInput.value || "").toString().trim();
                 const targetApplied = (targetInput.value || "").toString().trim();
                 this.executionDebug("[MEP][Strategy1][sync] verify values", { betApplied, targetApplied });
-                if (!betApplied || betApplied !== betValue) {
+                const betExpectedNum = Number(MEP.Utils.cleanToNum(betValue));
+                const betAppliedNum = Number(MEP.Utils.cleanToNum(betApplied));
+                const targetExpectedNum = Number(MEP.Utils.cleanToNum(targetValue));
+                const targetAppliedNum = Number(MEP.Utils.cleanToNum(targetApplied));
+                const betMatches = Number.isFinite(betExpectedNum) && Number.isFinite(betAppliedNum) && Math.abs(betExpectedNum - betAppliedNum) <= 1e-8;
+                const targetMatches = Number.isFinite(targetExpectedNum) && Number.isFinite(targetAppliedNum) && Math.abs(targetExpectedNum - targetAppliedNum) <= 1e-6;
+                if (!betMatches) {
                     const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "verify_dom", betValue, betApplied };
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
-                if (!targetApplied || targetApplied !== targetValue) {
+                if (!targetMatches) {
                     const out = { applied: false, reason: "target_value_not_applied", stage: "verify_dom", targetValue, targetApplied };
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
@@ -6359,18 +6365,17 @@
             },
 
             clickBetButton() {
-                const root = this.findSidebarRoot();
-                if (!root) {
-                    const out = { applied: false, reason: "sidebar_not_found", stage: "click" };
-                    this.executionWarn("[MEP][Strategy1][clickBetButton state]", { ...out, found: false });
+                const btn = MEP.UI.getGameBetButton();
+                if (!btn) {
+                    const out = { applied: false, reason: "bet_button_not_found", stage: "click" };
+                    this.executionWarn("[MEP][Strategy1][clickBetButton state]", out);
                     return out;
                 }
-                const btn = this.findBetButton(root);
-                const state = this.readBetButtonState(btn);
-                this.executionDebug("[MEP][Strategy1][clickBetButton state]", state);
-                if (!state.found) return { applied: false, reason: "bet_button_not_found", stage: "click" };
-                if (state.disabled) return { applied: false, reason: "bet_button_disabled", stage: "click" };
-                if (!state.canClick) return { applied: false, reason: "bet_button_unavailable_state", stage: "click" };
+                const phase = MEP.UI.resolveGamePhaseFromBetButton(btn);
+                const disabled = !!btn.disabled || btn.getAttribute?.("aria-disabled") === "true";
+                this.executionDebug("[MEP][Strategy1][clickBetButton state]", { phase, disabled });
+                if (phase !== "bet") return { applied: false, reason: "bet_phase_not_active", stage: "click" };
+                if (disabled) return { applied: false, reason: "bet_button_disabled", stage: "click" };
                 try {
                     btn.click();
                     const out = { applied: true, reason: "", stage: "clicked" };

@@ -567,3 +567,8 @@
 - Добавлен re-entrancy guard `runtime.phaseMachineBusy`, чтобы phase-machine не входила сама в себя при UI тиках.
 - Это устраняет зависание бегущей строки на пол-фразе и ложные визуальные дергания статуса `Вкл/Откл` в пуле условий.
 - Версии повышены: `crash.js 0.1.5.112` (header + `MEP.ver`) и `crash.css 0.1.5.112`.
+
+- 2026-04-06: Починен боевой execute flow Strategy1: `syncBetInputsToDom()` переведён на `MEP.UI.applyGameAmountValue/applyGameTargetValue` (с fallback) и numeric-tolerance verify вместо жёсткого строкового равенства.
+- `clickBetButton()` переведён на `MEP.UI.getGameBetButton()` + проверку `phase === bet` и `!disabled`; убрана жёсткая зависимость от `readBetButtonState(data-test-action-*)`.
+- Это исправляет кейс, когда пул зелёный, но ставка/коэффициент не применяются и клик по `Ставка` не уходит.
+- Версии повышены: `crash.js 0.1.5.113` (header + `MEP.ver`) и `crash.css 0.1.5.113`.
