@@ -588,3 +588,9 @@
 - Добавлен прозрачный mapping в permission-details (`pool.activeBranch`, `pool.result`, `pool.conditions`, `failedCondition`) и console-log `[permission mapping]`.
 - Усилен `buildStakePlan()` для debug риска: fallback источники баланса (`dom/cycle/counters/runtime`), `riskDebug` (balance/risk/cap/compare), и явный лог причин `max_stake_not_allowed/max_stake_exceeded`.
 - Версии повышены: `crash.js 0.1.5.116` (header + `MEP.ver`) и `crash.css 0.1.5.116`.
+
+- 2026-04-06: Добавлен armed/latch-state для Strategy1 live execution: `armedToBet` + snapshot (`armedBranch/AtTs/PoolConditions/BetAmount/Target/SourcePhase/Permission/Plan`) с timeout 5000ms.
+- В фазе `bet` execute-flow может использовать зафиксированное разрешение (`useArmedPermission`) вместо мгновенного пересчёта pool, чтобы кратковременный сигнал не протухал до клика.
+- Добавлены сбросы armed-state на `bet_sent`, ошибке execution, рестарте/финише цикла и timeout (`Armed timeout...` / `Сигнал протух...`).
+- Расширены LIVE debug-логи/box полями armed (`usingArmedPermission`, `armedToBet`, `armedBranch`, `armedBetAmount`, `armedTargetMultiplier`, `armedSourcePhase`, `armedStillValid`).
+- Версии повышены: `crash.js 0.1.5.117` (header + `MEP.ver`) и `crash.css 0.1.5.117`.

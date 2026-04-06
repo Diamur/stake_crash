@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.116";
+		MEP.ver = "0.1.5.117";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -314,6 +314,16 @@
                 lastExecutionDebugMeta: null,
                 lastLiveDebugSignature: "",
                 lastLiveDebugTs: 0,
+                armedToBet: false,
+                armedAtTs: 0,
+                armedBranch: "",
+                armedReason: "",
+                armedPoolConditions: [],
+                armedBetAmount: 0,
+                armedTargetMultiplier: 0,
+                armedSourcePhase: "",
+                armedPermissionSnapshot: null,
+                armedPlanSnapshot: null,
                 startBalanceSnapshot: 0,
                 copiedRiskAmount: 0,
                 systemMessages: [],
@@ -6208,6 +6218,84 @@
                 if (phase === "bet") MEP.UI?.setStrategy1InfoMessage?.(message, { force: true });
             },
 
+            getArmedTimeoutMs() {
+                return 5000;
+            },
+
+            clearArmedPermission(reason = "armed_cleared", opts = {}) {
+                const st = this.getState();
+                if (!st?.runtime) return;
+                const hadArmed = !!st.runtime.armedToBet;
+                st.runtime.armedToBet = false;
+                st.runtime.armedAtTs = 0;
+                st.runtime.armedBranch = "";
+                st.runtime.armedReason = (reason || "").toString();
+                st.runtime.armedPoolConditions = [];
+                st.runtime.armedBetAmount = 0;
+                st.runtime.armedTargetMultiplier = 0;
+                st.runtime.armedSourcePhase = "";
+                st.runtime.armedPermissionSnapshot = null;
+                st.runtime.armedPlanSnapshot = null;
+                if (hadArmed && opts?.notify) {
+                    const text = (opts?.message || "").toString().trim();
+                    if (text) MEP.UI?.setStrategy1InfoMessage?.(text, { force: true });
+                }
+            },
+
+            armBetPermission(permission = null, plan = null, sourcePhase = "") {
+                const st = this.getState();
+                if (!st?.runtime) return false;
+                if (!permission?.allowed || !plan?.ready) return false;
+                const branch = (permission.poolBranch || permission.branch || "").toString();
+                st.runtime.armedToBet = true;
+                st.runtime.armedAtTs = Date.now();
+                st.runtime.armedBranch = branch;
+                st.runtime.armedReason = "";
+                st.runtime.armedPoolConditions = Array.isArray(permission?.details?.pool?.conditions)
+                    ? permission.details.pool.conditions.map((it) => ({
+                          key: (it?.key || "").toString(),
+                          enabled: !!it?.enabled,
+                          result: !!it?.result,
+                          currentValue: it?.currentValue,
+                      }))
+                    : [];
+                st.runtime.armedBetAmount = Number(plan.betAmount) || 0;
+                st.runtime.armedTargetMultiplier = Number(plan.targetMultiplier) || 0;
+                st.runtime.armedSourcePhase = (sourcePhase || MEP.State?.gamePhase || "").toString();
+                st.runtime.armedPermissionSnapshot = permission && typeof permission === "object" ? { ...permission } : null;
+                st.runtime.armedPlanSnapshot = plan && typeof plan === "object" ? { ...plan } : null;
+                return true;
+            },
+
+            getArmedPermissionSnapshot(sourcePhase = "") {
+                const st = this.getState();
+                if (!st?.runtime?.armedToBet) return null;
+                const now = Date.now();
+                const timeoutMs = this.getArmedTimeoutMs();
+                const armedAtTs = Number(st.runtime.armedAtTs) || 0;
+                const ageMs = armedAtTs > 0 ? now - armedAtTs : Number.MAX_SAFE_INTEGER;
+                const timedOut = ageMs > timeoutMs;
+                const branchStillValid = ((st.runtime.armedBranch || "").toString() || "plus") === ((this.getRuntimeActiveBranch(st) || "plus").toString());
+                if (!st.enabled || timedOut || !branchStillValid) {
+                    const reason = !st.enabled ? "armed_strategy_disabled" : timedOut ? "armed_timeout" : "armed_branch_changed";
+                    const msg = timedOut ? "Armed timeout..." : reason === "armed_branch_changed" ? "Сигнал протух..." : "";
+                    this.clearArmedPermission(reason, { notify: !!msg, message: msg });
+                    return null;
+                }
+                return {
+                    valid: true,
+                    ageMs,
+                    timeoutMs,
+                    branch: (st.runtime.armedBranch || "").toString(),
+                    betAmount: Number(st.runtime.armedBetAmount) || 0,
+                    targetMultiplier: Number(st.runtime.armedTargetMultiplier) || 0,
+                    sourcePhase: (st.runtime.armedSourcePhase || "").toString(),
+                    permission: st.runtime.armedPermissionSnapshot ? { ...st.runtime.armedPermissionSnapshot } : null,
+                    plan: st.runtime.armedPlanSnapshot ? { ...st.runtime.armedPlanSnapshot } : null,
+                    poolConditions: Array.isArray(st.runtime.armedPoolConditions) ? [...st.runtime.armedPoolConditions] : [],
+                };
+            },
+
             buildLiveBetDebugSummary(input = {}) {
                 const st = this.getState();
                 const runtime = st?.runtime || {};
@@ -6217,6 +6305,7 @@
                 const domSync = input?.domSync || runtime.lastDomSyncResult || null;
                 const click = input?.click || runtime.lastClickResult || null;
                 const phase = (input?.phase ?? MEP.State?.gamePhase ?? "").toString();
+                const armed = this.getArmedPermissionSnapshot(phase) || null;
                 const executionState = (input?.executionState ?? runtime.executionState ?? "idle").toString();
                 const reason = (input?.reason || runtime.lastExecutionDebugCode || runtime.lastExecutionReason || "").toString();
                 const stage = (input?.stage || runtime.lastExecutionDebugStage || "").toString();
@@ -6248,6 +6337,14 @@
                     poolResult: permission?.poolResult ?? null,
                     poolBranch: (permission?.poolBranch || permission?.details?.pool?.activeBranch || "").toString(),
                     poolConditions: Array.isArray(permission?.details?.pool?.conditions) ? permission.details.pool.conditions : [],
+                    usingArmedPermission: !!input?.usingArmedPermission,
+                    armedToBet: !!runtime.armedToBet,
+                    armedAtTs: Number(runtime.armedAtTs) || 0,
+                    armedBranch: (runtime.armedBranch || "").toString(),
+                    armedBetAmount: Number(runtime.armedBetAmount) || 0,
+                    armedTargetMultiplier: Number(runtime.armedTargetMultiplier) || 0,
+                    armedSourcePhase: (runtime.armedSourcePhase || "").toString(),
+                    armedStillValid: !!armed?.valid,
                     stakePlanReady: !!plan?.ready,
                     stakePlanInvalidReason: (plan?.invalidReason || "").toString(),
                     stakePlanBetAmount: Number(plan?.betAmount) || 0,
@@ -6289,6 +6386,14 @@
                         poolBranch: summary.poolBranch,
                         poolResult: summary.poolResult,
                         poolConditions: summary.poolConditions,
+                        usingArmedPermission: summary.usingArmedPermission,
+                        armedToBet: summary.armedToBet,
+                        armedStillValid: summary.armedStillValid,
+                        armedAtTs: summary.armedAtTs,
+                        armedBranch: summary.armedBranch,
+                        armedBetAmount: summary.armedBetAmount,
+                        armedTargetMultiplier: summary.armedTargetMultiplier,
+                        armedSourcePhase: summary.armedSourcePhase,
                     });
                     console.log("C.plan", {
                         ready: summary.stakePlanReady,
@@ -6609,6 +6714,7 @@
                 const rejectReason = (reason || "").toString();
                 const rejectStage = (extra?.stage || "reject").toString();
                 this.setExecutionRejectInfo(rejectReason, rejectStage, "Ошибка ставки");
+                this.clearArmedPermission("armed_rejected");
                 this.executionWarn("[MEP][Strategy1][execution rejected]", {
                     reason: rejectReason,
                     extra: extra && typeof extra === "object" ? { ...extra } : {},
@@ -6644,6 +6750,7 @@
                 if (!st) return { applied: false, reason: "strategy1_not_found", stage: "accept" };
                 const p = payload && typeof payload === "object" ? payload : {};
                 const now = Date.now();
+                this.clearArmedPermission("armed_bet_sent");
                 this.lockExecution("bet_sent");
                 st.runtime.lastExecutionAtTs = now;
                 st.runtime.lastExecutionReason = "bet_sent";
@@ -6701,8 +6808,11 @@
                 };
             },
 
-            executeBet() {
+            executeBet(opts = {}) {
                 const st = this.getState();
+                const useArmedPermission = !!opts?.useArmedPermission;
+                const permissionOverride = opts?.permissionOverride && typeof opts.permissionOverride === "object" ? opts.permissionOverride : null;
+                const planOverride = opts?.planOverride && typeof opts.planOverride === "object" ? opts.planOverride : null;
                 this.setExecutionDebugState("execute_enter", "execute_enter", "executeBet entered");
                 if (this.isExecutionDebugEnabled()) {
                     try {
@@ -6775,7 +6885,7 @@
                     return this.onExecutionRejected("already_executing");
                 }
 
-                const permission = this.evaluateBetPermission();
+                const permission = useArmedPermission && permissionOverride ? permissionOverride : this.evaluateBetPermission();
                 this.executionDebug("[MEP][Strategy1][permission]", permission);
                 if (!permission?.allowed) {
                     this.setExecutionDebugState(
@@ -6807,7 +6917,7 @@
                     return this.onExecutionRejected("cycle_should_end");
                 }
 
-                const plan = this.buildStakePlan();
+                const plan = useArmedPermission && planOverride ? { ...planOverride } : this.buildStakePlan();
                 this.setExecutionDebugState(
                     plan?.ready ? "stakeplan_ready" : "stakeplan_invalid",
                     "stake_plan",
@@ -6876,7 +6986,7 @@
                 const accepted = this.onExecutionAccepted({
                     betAmount: plan.betAmount,
                     targetMultiplier: plan.targetMultiplier,
-                    branch: permission?.branch || "",
+                    branch: permission?.branch || permission?.poolBranch || "",
                 });
                 this.setExecutionDebugState(
                     accepted?.applied ? "bet_sent" : accepted?.reason || "bet_send_failed",
@@ -6898,7 +7008,11 @@
 
             processGamePhaseExecution() {
                 const st = this.getState();
-                if (!st || !st.enabled) return;
+                if (!st) return;
+                if (!st.enabled) {
+                    this.clearArmedPermission("armed_strategy_disabled");
+                    return;
+                }
                 if (st.runtime.phaseMachineBusy) return;
                 st.runtime.phaseMachineBusy = true;
                 try {
@@ -6926,7 +7040,19 @@
 
                     if ((execState === "idle" || execState === "bet_error" || execState === "round_resolved") && !st.runtime.waitingRoundResult) {
                         const permission = this.evaluateBetPermission();
-                        if (phase === "bet" && !permission?.allowed) {
+                        const planCandidate = permission?.allowed ? this.buildStakePlan() : null;
+                        const planReady = !!planCandidate?.ready;
+                        const armedBefore = this.getArmedPermissionSnapshot(phase);
+                        if (!armedBefore && permission?.allowed && planReady) {
+                            const armed = this.armBetPermission(permission, planCandidate, phase);
+                            if (armed) {
+                                this.setExecutionDebugState("signal_armed", "arm", "Сигнал зафиксирован...");
+                                MEP.UI?.setStrategy1InfoMessage?.("Сигнал зафиксирован...", { force: true });
+                            }
+                        }
+                        const armed = this.getArmedPermissionSnapshot(phase);
+                        const canUseArmed = !!armed?.valid;
+                        if (phase === "bet" && !canUseArmed && !permission?.allowed) {
                             const reasonCode = permission?.reason || "permission_denied";
                             this.setExecutionRejectInfo(reasonCode, "permission", "Нет боевого режима");
                             this.logLiveBetConsole(
@@ -6934,6 +7060,8 @@
                                     phase,
                                     executionState: execState,
                                     permission,
+                                    plan: planCandidate || null,
+                                    usingArmedPermission: false,
                                     status: "blocked",
                                     stage: "B",
                                     reason: reasonCode,
@@ -6942,7 +7070,7 @@
                                 true
                             );
                         }
-                        if (permission?.allowed && phase === "bet") {
+                        if (phase === "bet" && (canUseArmed || permission?.allowed)) {
                             if (st.cycle?.isActive !== true) {
                                 const started = !!this.startCycle();
                                 this.setExecutionDebugState(started ? "cycle_started" : "cycle_start_failed", "cycle", started ? "startCycle done" : "startCycle failed");
@@ -6970,11 +7098,24 @@
                             if ((Number(st.cycle?.lossCount) || 0) === 0 && !(Number(st.runtime.preCycleBalance) > 0)) {
                                 st.runtime.preCycleBalance = Number(this.getCurrentBalance()) || 0;
                             }
+                            const permissionForExecute = canUseArmed
+                                ? { ...(armed.permission || permission), allowed: true, reason: "", stage: "armed_ready" }
+                                : permission;
+                            const planForExecute = canUseArmed ? armed.plan || planCandidate : planCandidate;
                             this.setExecutionState("ready_to_bet", "ready_to_bet");
-                            this.setExecutionDebugState("permission_ok", "permission", "permission ok");
+                            this.setExecutionDebugState(
+                                canUseArmed ? "permission_ok_armed" : "permission_ok",
+                                "permission",
+                                canUseArmed ? "Вход в ставку по зафиксированному сигналу..." : "permission ok"
+                            );
+                            if (canUseArmed) MEP.UI?.setStrategy1InfoMessage?.("Вход в ставку по зафиксированному сигналу...", { force: true });
                             this.setExecutionState("clicking_bet", "clicking_bet");
                             this.setExecutionDebugState("execute_enter", "execution", "executeBet entered");
-                            const out = this.executeBet();
+                            const out = this.executeBet({
+                                useArmedPermission: canUseArmed,
+                                permissionOverride: permissionForExecute,
+                                planOverride: planForExecute,
+                            });
                             if (!out?.applied) {
                                 const reasonCode = out?.reason || st.runtime.lastExecutionDebugCode || "bet_click_failed";
                                 this.setExecutionState("bet_error", reasonCode);
@@ -6984,10 +7125,11 @@
                                     this.buildLiveBetDebugSummary({
                                         phase,
                                         executionState: "clicking_bet",
-                                        permission,
-                                        plan: st.runtime.lastStakePlanResult || null,
+                                        permission: permissionForExecute,
+                                        plan: planForExecute || st.runtime.lastStakePlanResult || null,
                                         domSync: st.runtime.lastDomSyncResult || null,
                                         click: st.runtime.lastClickResult || null,
+                                        usingArmedPermission: canUseArmed,
                                         status: "blocked",
                                         stage: out?.stage || st.runtime.lastExecutionDebugStage || "execution",
                                         reason: reasonCode,
@@ -7001,10 +7143,11 @@
                                     this.buildLiveBetDebugSummary({
                                         phase,
                                         executionState: "waiting_placed",
-                                        permission,
-                                        plan: st.runtime.lastStakePlanResult || null,
+                                        permission: permissionForExecute,
+                                        plan: planForExecute || st.runtime.lastStakePlanResult || null,
                                         domSync: st.runtime.lastDomSyncResult || null,
                                         click: st.runtime.lastClickResult || null,
+                                        usingArmedPermission: canUseArmed,
                                         status: "ok",
                                         stage: "I",
                                         reason: "waiting_placed",
@@ -7912,6 +8055,7 @@
                 st.runtime.lastExecutionDebugText = "startCycle done";
                 st.runtime.lastExecutionDebugMeta = null;
                 st.runtime.lastLiveDebugSignature = "";
+                this.clearArmedPermission("armed_cycle_restart");
                 this.pushEvent("cycle_start", now);
                 st.runtime.lastCycleAction = "startCycle";
                 st.runtime.lastAnnouncedCycleState = "active";
@@ -7945,6 +8089,7 @@
                 if (MEP.State.activeStrategyId === st.id) MEP.State.activeStrategyId = null;
                 this.pushEvent("cycle_finish", now);
                 st.runtime.lastCycleAction = "finishCycle";
+                this.clearArmedPermission("armed_cycle_finished");
                 const finishCodeMap = {
                     profit_reached: this.EVENT_CODES.CYCLE_FINISHED_PROFIT,
                     max_losses_reached: this.EVENT_CODES.CYCLE_FINISHED_MAX_LOSSES,
@@ -9892,6 +10037,8 @@
                     const liveDebugExec = (s.runtime?.executionState || "idle").toString();
                     const liveDebugReason = (s.runtime?.lastExecutionDebugCode || s.runtime?.lastExecutionReason || "—").toString();
                     const liveDebugStage = (s.runtime?.lastExecutionDebugStage || "—").toString();
+                    const liveDebugArmed = !!s.runtime?.armedToBet;
+                    const liveDebugArmedBranch = (s.runtime?.armedBranch || "—").toString();
                     stakeServiceWrapEl.innerHTML = `
 <div class="mep-strategy1-cycle-info-row">
 <span class="mep-strategy1-cycle-info-cell">Циклов: <b>${serviceData.cycleNumber}</b></span>
@@ -9944,6 +10091,8 @@
 <div>exec: <b>${liveDebugExec}</b></div>
 <div>reason: <b>${liveDebugReason}</b></div>
 <div>stage: <b>${liveDebugStage}</b></div>
+<div>armed: <b>${liveDebugArmed ? "true" : "false"}</b></div>
+<div>armedBranch: <b>${liveDebugArmedBranch}</b></div>
 </div>`;
                 }
             },
