@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.108";
+		MEP.ver = "0.1.5.109";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -8869,6 +8869,8 @@
                     let bestRank = 0;
                     for (const btn of btnList) {
                         if (!btn) continue;
+                        const isVisible = !!(btn.offsetParent || btn.getClientRects?.().length);
+                        if (!isVisible) continue;
                         const txt = MEP.UI.normalizeGameBetButtonText(
                             btn.getAttribute?.("aria-label") || btn.innerText || btn.textContent || ""
                         );
@@ -8924,10 +8926,7 @@
                 if (byText !== "bet") return byText;
 
                 const disabled = !!btn.disabled || btn.getAttribute?.("aria-disabled") === "true";
-                const actionEnabled = (btn.getAttribute?.("data-test-action-enabled") || "").toString().toLowerCase();
-                const actionBet = (btn.getAttribute?.("data-test-action-bet") || "").toString().toLowerCase();
-                const betNext = (btn.getAttribute?.("data-test-bet-next") || "").toString().toLowerCase();
-                if (disabled || actionEnabled === "false" || actionBet === "disabled" || betNext === "false") return "placed";
+                if (disabled) return "placed";
                 return "bet";
             },
 

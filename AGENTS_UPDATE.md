@@ -546,3 +546,8 @@
 - Для `Ставка` введено правило: если кнопка disabled/`data-test-action-enabled=false`/`data-test-action-bet=disabled`/`data-test-bet-next=false`, фаза считается `placed`; иначе `bet`.
 - `getGameBetButton()` и `updateGamePhaseFromDom()` переведены на `resolveGamePhaseFromBetButton(btn)`.
 - Версии повышены: `crash.js 0.1.5.108` (header + `MEP.ver`) и `crash.css 0.1.5.108`.
+
+- 2026-04-06: Смягчено правило `Ставка -> placed`: теперь для текста `Ставка` фаза `placed` выставляется только когда кнопка реально disabled/aria-disabled.
+- Убрана зависимость от `data-test-action-*`, т.к. эти атрибуты могут иметь `false/disabled` и в активном кликабельном режиме, что давало ложный `placed`.
+- В `getGameBetButton()` добавлен фильтр видимости кандидата (`offsetParent/getClientRects`) для отсечения скрытых дублей кнопок.
+- Версии повышены: `crash.js 0.1.5.109` (header + `MEP.ver`) и `crash.css 0.1.5.109`.
