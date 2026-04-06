@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.115";
+		MEP.ver = "0.1.5.116";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -6246,6 +6246,8 @@
                     permissionReason: (permission?.reason || "").toString(),
                     branch: (permission?.branch || runtime.activeBranch || "").toString(),
                     poolResult: permission?.poolResult ?? null,
+                    poolBranch: (permission?.poolBranch || permission?.details?.pool?.activeBranch || "").toString(),
+                    poolConditions: Array.isArray(permission?.details?.pool?.conditions) ? permission.details.pool.conditions : [],
                     stakePlanReady: !!plan?.ready,
                     stakePlanInvalidReason: (plan?.invalidReason || "").toString(),
                     stakePlanBetAmount: Number(plan?.betAmount) || 0,
@@ -6284,7 +6286,9 @@
                         allowed: summary.permissionAllowed,
                         reason: summary.permissionReason,
                         activeBranch: summary.branch,
+                        poolBranch: summary.poolBranch,
                         poolResult: summary.poolResult,
+                        poolConditions: summary.poolConditions,
                     });
                     console.log("C.plan", {
                         ready: summary.stakePlanReady,
@@ -6815,11 +6819,15 @@
                     invalidReason: plan?.invalidReason,
                     betAmount: plan?.betAmount,
                     targetMultiplier: plan?.targetMultiplier,
+                    currentBalance: plan?.currentBalance,
+                    balanceSource: plan?.balanceSource,
+                    riskPercent: plan?.riskPercent,
                     riskCap: plan?.riskCap,
                     maxAllowedStake: plan?.maxAllowedStake,
                     allowedByRisk: plan?.allowedByRisk,
                     calcMode: plan?.calcMode,
                     sourceStep: plan?.sourceStep,
+                    riskDebug: plan?.riskDebug || null,
                 });
                 if (!plan?.ready) {
                     this.executionWarn("[MEP][Strategy1][plan reject]", plan);
@@ -7490,6 +7498,40 @@
                 if (branchInfo.branch === "second") return "Цикл продолжается после минусов — используется вторая ветка";
                 if (branchInfo.reason === "cycle_inactive") return "Цикл не активен — ветка не выбрана";
                 return "Ветка стратегии не выбрана";
+            },
+
+            getPermissionPoolEvaluation(st = null) {
+                const state = st || this.getState();
+                if (!state) {
+                    return {
+                        plusEvaluated: [],
+                        minusEvaluated: [],
+                        plusPool: { activeCount: 0, hasFalse: false, result: false },
+                        minusPool: { activeCount: 0, hasFalse: false, result: false },
+                        activePoolBranch: "",
+                        activePool: { activeCount: 0, hasFalse: false, result: false },
+                        activeEvaluated: [],
+                        failedCondition: null,
+                    };
+                }
+                const plusEvaluated = this.evaluateConditionBlocks(state, "plus") || [];
+                const minusEvaluated = this.evaluateConditionBlocks(state, "minus") || [];
+                const plusPool = this.getConditionBranchPoolState(plusEvaluated);
+                const minusPool = this.getConditionBranchPoolState(minusEvaluated);
+                const activePoolBranch = this.getRuntimeActiveBranch(state, plusPool, minusPool) || "plus";
+                const activeEvaluated = activePoolBranch === "minus" ? minusEvaluated : plusEvaluated;
+                const activePool = activePoolBranch === "minus" ? minusPool : plusPool;
+                const failedCondition = (activeEvaluated || []).find((it) => it.enabled && !it.result) || null;
+                return {
+                    plusEvaluated,
+                    minusEvaluated,
+                    plusPool,
+                    minusPool,
+                    activePoolBranch,
+                    activePool,
+                    activeEvaluated,
+                    failedCondition,
+                };
             },
 
             getLt2Streak() {
@@ -8330,7 +8372,22 @@
                         invalidReason: "strategy1_not_found",
                     };
                 }
-                const currentBalance = Math.max(0, Number(this.getCurrentBalance()) || 0);
+                const balanceCandidates = [
+                    { source: "dom_live", value: Number(this.getCurrentBalance()) || 0 },
+                    { source: "cycle_current_balance", value: Number(st.cycle?.currentBalance) || 0 },
+                    { source: "counters_after_round", value: Number(st.counters?.currentBalanceAfterRound) || 0 },
+                    { source: "runtime_after_round", value: Number(st.runtime?.balanceAfterRound) || 0 },
+                ];
+                let currentBalance = 0;
+                let balanceSource = "none";
+                for (const item of balanceCandidates) {
+                    const n = Number(item?.value);
+                    if (Number.isFinite(n) && n > 0) {
+                        currentBalance = n;
+                        balanceSource = (item.source || "unknown").toString();
+                        break;
+                    }
+                }
                 const lossCount = Math.max(0, Math.floor(Number(st.cycle?.lossCount) || 0));
                 const stepIndex = lossCount;
                 const sourceStep = `step_${stepIndex}`;
@@ -8344,6 +8401,11 @@
                     maxAllowedStake: 0,
                     riskCap: 0,
                     allowedByRisk: false,
+                    currentBalance,
+                    balanceSource,
+                    riskPercent: Number(st.config?.riskPercent) || 0,
+                    charterMaxStakePercent: Number(MEP.State?.charterMaxStakePercent) || 0,
+                    charterCap: 0,
                     sourceStep,
                     calcMode: `${startMode}:${growthMode}`,
                     ready: false,
@@ -8357,13 +8419,13 @@
                     const riskCap = currentBalance * (riskPercent / 100);
                     plan.riskCap = Number.isFinite(riskCap) && riskCap > 0 ? riskCap : 0;
                     const charterMaxStakePercent = Number(MEP.State?.charterMaxStakePercent) || 0;
-                    const charterCap =
-                        charterMaxStakePercent > 0 ? currentBalance * (charterMaxStakePercent / 100) : 0;
+                    const charterCap = charterMaxStakePercent > 0 ? currentBalance * (charterMaxStakePercent / 100) : 0;
+                    plan.charterCap = Number.isFinite(charterCap) && charterCap > 0 ? charterCap : 0;
                     const hasRiskCap = plan.riskCap > 0;
-                    const hasCharterCap = charterCap > 0;
-                    if (hasRiskCap && hasCharterCap) plan.maxAllowedStake = Math.min(plan.riskCap, charterCap);
+                    const hasCharterCap = plan.charterCap > 0;
+                    if (hasRiskCap && hasCharterCap) plan.maxAllowedStake = Math.min(plan.riskCap, plan.charterCap);
                     else if (hasRiskCap) plan.maxAllowedStake = plan.riskCap;
-                    else if (hasCharterCap) plan.maxAllowedStake = charterCap;
+                    else if (hasCharterCap) plan.maxAllowedStake = plan.charterCap;
                     else plan.maxAllowedStake = 0;
                     plan.allowedByRisk = plan.maxAllowedStake > 0;
                 }
@@ -8425,6 +8487,24 @@
                 }
 
                 plan.ready = !plan.invalidReason;
+                plan.riskDebug = {
+                    currentBalance: Number(currentBalance) || 0,
+                    balanceSource,
+                    riskPercent: Number(riskPercent) || 0,
+                    riskCap: Number(plan.riskCap) || 0,
+                    charterMaxStakePercent: Number(plan.charterMaxStakePercent) || 0,
+                    charterCap: Number(plan.charterCap) || 0,
+                    maxAllowedStake: Number(plan.maxAllowedStake) || 0,
+                    plannedBetAmount: Number(plan.betAmount) || 0,
+                    allowedByRisk: !!plan.allowedByRisk,
+                    compareOk: Number(plan.betAmount) <= Number(plan.maxAllowedStake),
+                    invalidReason: (plan.invalidReason || "").toString(),
+                };
+                if (plan.invalidReason === "max_stake_not_allowed" || plan.invalidReason === "max_stake_exceeded") {
+                    this.executionWarn("[MEP][Strategy1][stakePlan risk check]", plan.riskDebug);
+                } else {
+                    this.executionDebug("[MEP][Strategy1][stakePlan risk check]", plan.riskDebug);
+                }
 
                 st.stakePlan = {
                     ...st.stakePlan,
@@ -8671,6 +8751,8 @@
                     allowed: !!safe.allowed,
                     shouldEndCycle: !!safe.shouldEndCycle,
                     branch: branchRaw === "first" || branchRaw === "second" ? branchRaw : "",
+                    poolBranch: ((safe.poolBranch || "").toString().trim().toLowerCase() === "minus" ? "minus" : "plus"),
+                    poolResult: !!safe.poolResult,
                     stage: (safe.stage || "init").toString(),
                     reason: (safe.reason || "").toString(),
                     statusCode: statusCodeRaw || this.DECISION_STATUS.IDLE,
@@ -8771,90 +8853,133 @@
                             });
                         } else {
                             const branchInfo = this.routeBranch();
-                            const branch = (branchInfo?.branch || "").toString();
-                            if (!branch) {
+                            const poolEval = this.getPermissionPoolEvaluation(st);
+                            const activePoolBranch = poolEval.activePoolBranch === "minus" ? "minus" : "plus";
+                            const branch = activePoolBranch === "minus" ? "second" : "first";
+                            const activePool = poolEval.activePool || { activeCount: 0, hasFalse: false, result: false };
+                            const activeConditions = Array.isArray(poolEval.activeEvaluated)
+                                ? poolEval.activeEvaluated.filter((it) => it && it.enabled)
+                                : [];
+                            const failedCondition = poolEval.failedCondition || null;
+                            if (!branchInfo?.branch) {
                                 result = this.normalizeDecisionResult({
                                     ...result,
+                                    branch: "",
+                                    poolBranch: activePoolBranch,
+                                    poolResult: !!activePool.result,
                                     stage: "routing",
                                     reason: (branchInfo?.reason || "branch_not_selected").toString(),
                                     statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
                                     statusText: this.getBranchStatusText(branchInfo),
-                                    details: { branchInfo: { ...(branchInfo || {}) } },
+                                    details: {
+                                        branchInfo: { ...(branchInfo || {}) },
+                                        pool: {
+                                            activeBranch: activePoolBranch,
+                                            plus: { ...(poolEval.plusPool || {}) },
+                                            minus: { ...(poolEval.minusPool || {}) },
+                                            active: { ...(activePool || {}) },
+                                            conditions: activeConditions.map((it) => ({
+                                                key: (it.key || "").toString(),
+                                                enabled: !!it.enabled,
+                                                result: !!it.result,
+                                                currentValue: it.currentValue,
+                                            })),
+                                        },
+                                    },
                                 });
-                            } else if (branch === "first") {
-                                const first = this.checkFirstBranch();
-                                if (!first?.passed) {
-                                    result = this.normalizeDecisionResult({
-                                        ...result,
-                                        branch: "first",
-                                        stage: "first_branch",
-                                        reason: (first?.failedAt || "").toString(),
-                                        statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                                        statusText: (first?.statusText || "Раунд пропускаем — ждём сигнал первой ветки").toString(),
-                                        details: { firstBranch: { ...(first || {}) } },
-                                    });
-                                } else {
-                                    const plan = this.buildStakePlan();
-                                    if (!plan?.ready) {
-                                        result = this.normalizeDecisionResult({
-                                            ...result,
-                                            branch: "first",
-                                            stage: "stake_plan",
-                                            reason: (plan?.invalidReason || "stake_plan_invalid").toString(),
-                                            statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                                            statusText: this.getStakePlanStatusText(plan),
-                                            details: { stakePlan: { ...(plan || {}) } },
-                                        });
-                                    } else {
-                                        result = this.normalizeDecisionResult({
-                                            ...result,
-                                            allowed: true,
-                                            branch: "first",
-                                            stage: "ready",
-                                            reason: "",
-                                            statusCode: this.DECISION_STATUS.BET_ALLOWED,
-                                            statusText: "Первая ветка пройдена — план ставки готов",
-                                            details: { firstBranch: { ...(first || {}) }, stakePlan: { ...(plan || {}) } },
-                                        });
-                                    }
-                                }
+                            } else if (!activePool.result) {
+                                const failKey = (failedCondition?.key || "condition_pool_false").toString();
+                                result = this.normalizeDecisionResult({
+                                    ...result,
+                                    allowed: false,
+                                    shouldEndCycle: false,
+                                    branch,
+                                    poolBranch: activePoolBranch,
+                                    poolResult: false,
+                                    stage: "condition_pool",
+                                    reason: failKey,
+                                    statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                                    statusText: `Пул условий (${activePoolBranch}) не пройден`,
+                                    details: {
+                                        branchInfo: { ...(branchInfo || {}) },
+                                        failedCondition: failedCondition
+                                            ? {
+                                                  key: (failedCondition.key || "").toString(),
+                                                  currentValue: failedCondition.currentValue,
+                                                  result: !!failedCondition.result,
+                                              }
+                                            : null,
+                                        pool: {
+                                            activeBranch: activePoolBranch,
+                                            plus: { ...(poolEval.plusPool || {}) },
+                                            minus: { ...(poolEval.minusPool || {}) },
+                                            active: { ...(activePool || {}) },
+                                            conditions: activeConditions.map((it) => ({
+                                                key: (it.key || "").toString(),
+                                                enabled: !!it.enabled,
+                                                result: !!it.result,
+                                                currentValue: it.currentValue,
+                                            })),
+                                        },
+                                    },
+                                });
                             } else {
-                                const second = this.checkSecondBranch();
-                                if (!second?.passed && second?.shouldEndCycle) {
+                                const plan = this.buildStakePlan();
+                                if (!plan?.ready) {
                                     result = this.normalizeDecisionResult({
                                         ...result,
-                                        allowed: false,
-                                        shouldEndCycle: true,
-                                        branch: "second",
-                                        stage: "second_branch",
-                                        reason: (second?.endReason || second?.failedAt || "").toString(),
-                                        statusCode: this.DECISION_STATUS.CYCLE_SHOULD_END,
-                                        statusText: (second?.statusText || "Цикл завершён — достигнут максимальный уровень ставки").toString(),
-                                        details: { secondBranch: { ...(second || {}) } },
-                                    });
-                                } else if (!second?.passed) {
-                                    result = this.normalizeDecisionResult({
-                                        ...result,
-                                        allowed: false,
-                                        shouldEndCycle: false,
-                                        branch: "second",
-                                        stage: "second_branch",
-                                        reason: (second?.failedAt || second?.waitReason || "").toString(),
+                                        branch,
+                                        poolBranch: activePoolBranch,
+                                        poolResult: true,
+                                        stage: "stake_plan",
+                                        reason: (plan?.invalidReason || "stake_plan_invalid").toString(),
                                         statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                                        statusText: (second?.statusText || "Раунд пропускаем — ждём сигнал второй ветки").toString(),
-                                        details: { secondBranch: { ...(second || {}) } },
+                                        statusText: this.getStakePlanStatusText(plan),
+                                        details: {
+                                            branchInfo: { ...(branchInfo || {}) },
+                                            pool: {
+                                                activeBranch: activePoolBranch,
+                                                plus: { ...(poolEval.plusPool || {}) },
+                                                minus: { ...(poolEval.minusPool || {}) },
+                                                active: { ...(activePool || {}) },
+                                                conditions: activeConditions.map((it) => ({
+                                                    key: (it.key || "").toString(),
+                                                    enabled: !!it.enabled,
+                                                    result: !!it.result,
+                                                    currentValue: it.currentValue,
+                                                })),
+                                            },
+                                            stakePlan: { ...(plan || {}) },
+                                        },
                                     });
                                 } else {
                                     result = this.normalizeDecisionResult({
                                         ...result,
                                         allowed: true,
                                         shouldEndCycle: false,
-                                        branch: "second",
+                                        branch,
+                                        poolBranch: activePoolBranch,
+                                        poolResult: true,
                                         stage: "ready",
                                         reason: "",
                                         statusCode: this.DECISION_STATUS.BET_ALLOWED,
-                                        statusText: "Вторая ветка пройдена — ставка разрешена",
-                                        details: { secondBranch: { ...(second || {}) } },
+                                        statusText: `Пул условий (${activePoolBranch}) пройден — ставка разрешена`,
+                                        details: {
+                                            branchInfo: { ...(branchInfo || {}) },
+                                            pool: {
+                                                activeBranch: activePoolBranch,
+                                                plus: { ...(poolEval.plusPool || {}) },
+                                                minus: { ...(poolEval.minusPool || {}) },
+                                                active: { ...(activePool || {}) },
+                                                conditions: activeConditions.map((it) => ({
+                                                    key: (it.key || "").toString(),
+                                                    enabled: !!it.enabled,
+                                                    result: !!it.result,
+                                                    currentValue: it.currentValue,
+                                                })),
+                                            },
+                                            stakePlan: { ...(plan || {}) },
+                                        },
                                     });
                                 }
                             }
@@ -8961,6 +9086,16 @@
                 if (!canBetNow && !lastPermissionState) {
                     st.runtime.lastAnnouncedPermissionReason = (result.reason || "").toString();
                 }
+                this.executionDebug("[MEP][Strategy1][permission mapping]", {
+                    branch: result.branch || "",
+                    poolBranch: result.poolBranch || "",
+                    poolResult: !!result.poolResult,
+                    allowed: !!result.allowed,
+                    reason: result.reason || "",
+                    stage: result.stage || "",
+                    pool: result?.details?.pool || null,
+                    failedCondition: result?.details?.failedCondition || null,
+                });
                 if (st.conditions?.lastResult) {
                     st.conditions.lastResult.canBet = !!result.allowed;
                     st.conditions.lastResult.shouldEndCycle = !!result.shouldEndCycle;

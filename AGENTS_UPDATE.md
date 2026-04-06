@@ -583,3 +583,8 @@
 - В info-bar теперь выводится точная причина отказа в формате `Ошибка ставки: <code>` / `Нет боевого режима: <code>`.
 - Добавлен временный UI-блок `LIVE debug` под service-частью Strategy1 (phase/exec/reason/stage).
 - Версии повышены: `crash.js 0.1.5.115` (header + `MEP.ver`) и `crash.css 0.1.5.115`.
+
+- 2026-04-06: Исправлен рассинхрон permission vs pool в Strategy1: `evaluateBetPermission()` теперь использует `evaluateConditionBlocks + getConditionBranchPoolState + getRuntimeActiveBranch` (active pool branch), а не legacy `checkFirstBranch/checkSecondBranch` для боевого допуска.
+- Добавлен прозрачный mapping в permission-details (`pool.activeBranch`, `pool.result`, `pool.conditions`, `failedCondition`) и console-log `[permission mapping]`.
+- Усилен `buildStakePlan()` для debug риска: fallback источники баланса (`dom/cycle/counters/runtime`), `riskDebug` (balance/risk/cap/compare), и явный лог причин `max_stake_not_allowed/max_stake_exceeded`.
+- Версии повышены: `crash.js 0.1.5.116` (header + `MEP.ver`) и `crash.css 0.1.5.116`.
