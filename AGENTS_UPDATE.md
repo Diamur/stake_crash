@@ -572,3 +572,8 @@
 - `clickBetButton()` переведён на `MEP.UI.getGameBetButton()` + проверку `phase === bet` и `!disabled`; убрана жёсткая зависимость от `readBetButtonState(data-test-action-*)`.
 - Это исправляет кейс, когда пул зелёный, но ставка/коэффициент не применяются и клик по `Ставка` не уходит.
 - Версии повышены: `crash.js 0.1.5.113` (header + `MEP.ver`) и `crash.css 0.1.5.113`.
+
+- 2026-04-06: Точечный фикс боевого execution Strategy1: в `processGamePhaseExecution()` перед `executeBet()` добавлен гарантированный `startCycle()` при `cycle.isActive !== true`.
+- Если запуск цикла не удался, ставка не отправляется и в тикер выводится `Ошибка запуска цикла...`; `executeBet()` в этом случае не вызывается.
+- Guard `cycle_inactive` внутри `executeBet()` оставлен без изменений.
+- Версии повышены: `crash.js 0.1.5.114` (header + `MEP.ver`) и `crash.css 0.1.5.114`.

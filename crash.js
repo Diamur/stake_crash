@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.113";
+		MEP.ver = "0.1.5.114";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -6651,6 +6651,15 @@
                     if ((execState === "idle" || execState === "bet_error" || execState === "round_resolved") && !st.runtime.waitingRoundResult) {
                         const permission = this.evaluateBetPermission();
                     if (permission?.allowed && phase === "bet") {
+                        if (st.cycle?.isActive !== true) {
+                            const started = !!this.startCycle();
+                            if (!started || st.cycle?.isActive !== true) {
+                                this.setExecutionState("bet_error", "start_cycle_failed");
+                                MEP.UI?.setStrategy1InfoMessage?.("Ошибка запуска цикла...", { force: true });
+                                this.setExecutionState("idle", "bet_error_idle");
+                                return;
+                            }
+                        }
                         if ((Number(st.cycle?.lossCount) || 0) === 0 && !(Number(st.runtime.preCycleBalance) > 0)) {
                             st.runtime.preCycleBalance = Number(this.getCurrentBalance()) || 0;
                         }
