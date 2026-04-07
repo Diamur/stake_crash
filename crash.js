@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.118";
+		MEP.ver = "0.1.5.119";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -7182,6 +7182,21 @@
                                 ? { ...(armed.permission || permission), allowed: true, reason: "", stage: "armed_ready" }
                                 : permission;
                             const planForExecute = canUseArmed ? armed.plan || planCandidate : planCandidate;
+                            const serviceData = MEP.UI?.getStrategy1StakeServiceData?.(st) || null;
+                            this.executionDebug("[MEP][Strategy1][stake parity]", {
+                                service: serviceData
+                                    ? {
+                                          mode: serviceData.mode,
+                                          nextFixed: Number(serviceData.nextFixed) || 0,
+                                          nextPercent: Number(serviceData.nextPercent) || 0,
+                                          targetNextValue: Number(serviceData.targetNextValue) || 0,
+                                      }
+                                    : null,
+                                real: {
+                                    betAmount: Number(planForExecute?.betAmount) || 0,
+                                    targetMultiplier: Number(planForExecute?.targetMultiplier) || 0,
+                                },
+                            });
                             this.setExecutionState("ready_to_bet", "ready_to_bet");
                             this.setExecutionDebugState(
                                 canUseArmed ? "permission_ok_armed" : "permission_ok",
@@ -7311,22 +7326,35 @@
                 const roundId = (p.roundId || "").toString();
                 const ts = Number(p.ts) || Date.now();
                 const currentBalance = Number(this.getCurrentBalance()) || 0;
+                const pendingStake = Number(st.runtime.pendingBetAmount) || 0;
+                const pendingTarget = Number(st.runtime.pendingTargetMultiplier) || 0;
+                const postBetBalance = Number(st.runtime.postBetBalance) || currentBalance;
+                const rawMultiplier = Number(p.rawMultiplier);
+                const inferredWon = p.won === true || (!Number.isNaN(rawMultiplier) && Number.isFinite(rawMultiplier) && pendingTarget > 1 && rawMultiplier >= pendingTarget);
+                const inferredLost = p.lost === true || (!Number.isNaN(rawMultiplier) && Number.isFinite(rawMultiplier) && pendingTarget > 1 && rawMultiplier < pendingTarget);
+                let resolvedBalance = Number.isFinite(Number(p.balance)) ? Number(p.balance) : currentBalance;
+                if (!(resolvedBalance > 0)) {
+                    if (inferredWon && pendingStake > 0 && pendingTarget > 1) resolvedBalance = postBetBalance + pendingStake * pendingTarget;
+                    else if (inferredLost) resolvedBalance = postBetBalance;
+                }
                 this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution payload]", {
                     roundId,
-                    balance: Number.isFinite(Number(p.balance)) ? Number(p.balance) : currentBalance,
+                    balance: resolvedBalance,
                     ts,
                 });
                 const result = {
-                    balance: Number.isFinite(Number(p.balance)) ? Number(p.balance) : currentBalance,
-                    stake: Number(st.runtime.pendingBetAmount) || 0,
-                    targetMultiplier: Number(st.runtime.pendingTargetMultiplier) || 0,
+                    balance: resolvedBalance,
+                    stake: pendingStake,
+                    targetMultiplier: pendingTarget,
                     roundId: roundId || `exec_${ts}`,
                     ts,
                     rawMultiplier: Number.isFinite(Number(p.rawMultiplier)) ? Number(p.rawMultiplier) : null,
-                    won: p.won === true,
-                    lost: p.lost === true,
+                    won: inferredWon,
+                    lost: inferredLost,
                     resultKind: "execution_bridge",
                 };
+                const lossCountBefore = Number(st.cycle?.lossCount) || 0;
+                const winCountBefore = Number(st.cycle?.winCount) || 0;
                 this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution normalized]", result);
                 const updated = this.updateAfterRound(result);
                 this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution updateAfterRound]", updated);
@@ -7334,7 +7362,6 @@
                 st.runtime.lastExecutionResult = updated?.applied ? "round_processed" : "round_apply_failed";
                 const balanceAfterRound = Number(result.balance) || Number(this.getCurrentBalance()) || 0;
                 st.runtime.balanceAfterRound = balanceAfterRound;
-                const postBetBalance = Number(st.runtime.postBetBalance) || balanceAfterRound;
                 const preCycleBalance = Number(st.runtime.preCycleBalance) || Number(st.cycle?.startBalance) || balanceAfterRound;
                 const stakeProfit = balanceAfterRound - postBetBalance;
                 if (stakeProfit > 0) {
@@ -7346,6 +7373,17 @@
                 if (cycleProfit > 0) {
                     MEP.UI?.setStrategy1InfoMessage?.(`Профит цикла ${cycleProfit.toFixed(8)}...`, { force: true });
                 }
+                this.executionDebug("[MEP][Strategy1][round cycle math]", {
+                    lossCountBefore,
+                    lossCountAfter: Number(st.cycle?.lossCount) || 0,
+                    winCountBefore,
+                    winCountAfter: Number(st.cycle?.winCount) || 0,
+                    preCycleBalance: Number(preCycleBalance) || 0,
+                    postBetBalance: Number(postBetBalance) || 0,
+                    balanceAfterRound: Number(balanceAfterRound) || 0,
+                    cycleProfit: Number(cycleProfit) || 0,
+                    finishReason: updated?.finishReason || "",
+                });
                 st.runtime.executionState = "idle";
                 st.runtime.pendingExecutionPayload = null;
                 st.runtime.pendingBetAmount = 0;
@@ -8593,6 +8631,44 @@
                 return map[reason] || "План ставки не готов";
             },
 
+            calcStakeGrowthByStep(cfg = {}, baseStake = 0, stepIndex = 0) {
+                const safeBase = Number(baseStake) || 0;
+                if (!(safeBase > 0)) return 0;
+                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0));
+                const growthMode = cfg?.stakeGrowthMode === "array" ? "array" : "factor";
+                if (growthMode === "array") {
+                    const growthArr = this.parseNumberArray(cfg?.stakeGrowthArrayText);
+                    if (!growthArr.length) return 0;
+                    if (growthArr.length === 1) {
+                        const g = Number(growthArr[0]) || 0;
+                        return g > 0 ? safeBase * Math.pow(g, idx) : 0;
+                    }
+                    const g = Number(growthArr[idx % growthArr.length]) || 0;
+                    return g > 0 ? safeBase * g : 0;
+                }
+                const factor = Number(cfg?.stakeGrowthFactor);
+                if (!Number.isFinite(factor) || factor <= 0) return 0;
+                return safeBase * Math.pow(factor, idx);
+            },
+
+            calcTargetByStep(cfg = {}, stepIndex = 0) {
+                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0));
+                const targetMode = cfg?.targetMode === "array" ? "array" : "fixed";
+                const base = Math.max(0, Number(cfg?.targetMultiplierValue) || 0);
+                if (!(base > 0)) return 0;
+                if (targetMode === "array") {
+                    const arr = this.parseNumberArray(cfg?.targetMultiplierArrayText);
+                    if (!arr.length) return 0;
+                    if (arr.length === 1) {
+                        const g = Number(arr[0]) || 0;
+                        return g > 0 ? base * Math.pow(g, idx) : 0;
+                    }
+                    const g = Number(arr[idx % arr.length]) || 0;
+                    return g > 0 ? base * g : 0;
+                }
+                return base;
+            },
+
             buildStakePlan() {
                 const st = this.getState();
                 if (!st) {
@@ -8627,9 +8703,10 @@
                 const lossCount = Math.max(0, Math.floor(Number(st.cycle?.lossCount) || 0));
                 const stepIndex = lossCount;
                 const sourceStep = `step_${stepIndex}`;
-                const startMode = st.config?.startStakeMode === "array" ? "array" : "fixed";
-                const growthMode = st.config?.stakeGrowthMode === "array" ? "array" : "factor";
-                const targetMode = st.config?.targetMode === "array" ? "array" : "fixed";
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                const startMode = cfg.startStakeMode === "percent" ? "percent" : "fixed";
+                const growthMode = cfg?.stakeGrowthMode === "array" ? "array" : "factor";
+                const targetMode = cfg?.targetMode === "array" ? "array" : "fixed";
 
                 const plan = {
                     betAmount: 0,
@@ -8639,7 +8716,7 @@
                     allowedByRisk: false,
                     currentBalance,
                     balanceSource,
-                    riskPercent: Number(st.config?.riskPercent) || 0,
+                    riskPercent: Number(cfg?.riskPercent) || 0,
                     charterMaxStakePercent: Number(MEP.State?.charterMaxStakePercent) || 0,
                     charterCap: 0,
                     sourceStep,
@@ -8648,7 +8725,7 @@
                     invalidReason: "",
                 };
 
-                const riskPercent = Number(st.config?.riskPercent) || 0;
+                const riskPercent = Number(cfg?.riskPercent) || 0;
                 if (!(riskPercent > 0)) {
                     plan.invalidReason = "risk_percent_not_set";
                 } else {
@@ -8666,49 +8743,24 @@
                     plan.allowedByRisk = plan.maxAllowedStake > 0;
                 }
 
-                let baseStake = 0;
+                const fixedStart = Math.max(0, Number(cfg?.startStakeValue) || 0);
+                const percentStart = Math.max(0, currentBalance * (riskPercent / 100));
+                let baseStake = startMode === "percent" ? percentStart : fixedStart;
                 if (!plan.invalidReason) {
-                    if (startMode === "array") {
-                        const startArr = this.parseNumberArray(st.config?.startStakeArrayText);
-                        if (!startArr.length) plan.invalidReason = "start_array_empty";
-                        else baseStake = this.getCycleArrayItem(startArr, stepIndex);
-                    } else {
-                        baseStake = Number(st.config?.startStakeValue) || 0;
-                        if (!(baseStake > 0)) plan.invalidReason = "start_stake_invalid";
+                    if (!(baseStake > 0)) plan.invalidReason = "start_stake_invalid";
+                }
+
+                if (!plan.invalidReason) {
+                    plan.betAmount = this.calcStakeGrowthByStep(cfg, baseStake, stepIndex);
+                    if (!(plan.betAmount > 0)) {
+                        plan.invalidReason = growthMode === "array" ? "growth_array_empty" : "growth_factor_invalid";
                     }
                 }
 
                 if (!plan.invalidReason) {
-                    if (growthMode === "array") {
-                        const growthArr = this.parseNumberArray(st.config?.stakeGrowthArrayText);
-                        if (!growthArr.length) {
-                            plan.invalidReason = "growth_array_empty";
-                        } else {
-                            const growthMultiplier = this.getCycleArrayItem(growthArr, stepIndex);
-                            plan.betAmount = baseStake * growthMultiplier;
-                        }
-                    } else {
-                        const factor = Number(st.config?.stakeGrowthFactor);
-                        if (!Number.isFinite(factor) || factor <= 0) {
-                            plan.invalidReason = "growth_factor_invalid";
-                        } else if (stepIndex === 0) {
-                            plan.betAmount = baseStake;
-                        } else {
-                            plan.betAmount = baseStake * Math.pow(factor, stepIndex);
-                        }
-                    }
-                }
-
-                if (!plan.invalidReason) {
-                    if (targetMode === "array") {
-                        const targetArr = this.parseNumberArray(st.config?.targetMultiplierArrayText);
-                        if (!targetArr.length) plan.invalidReason = "target_array_empty";
-                        else plan.targetMultiplier = this.getCycleArrayItem(targetArr, stepIndex);
-                    } else {
-                        plan.targetMultiplier = Number(st.config?.targetMultiplierValue) || 0;
-                    }
+                    plan.targetMultiplier = this.calcTargetByStep(cfg, stepIndex);
                     if (!plan.invalidReason && (!Number.isFinite(plan.targetMultiplier) || plan.targetMultiplier <= 1)) {
-                        plan.invalidReason = "target_invalid";
+                        plan.invalidReason = targetMode === "array" ? "target_array_empty" : "target_invalid";
                     }
                 }
 
@@ -9599,22 +9651,7 @@
             calcStrategy1NextStakeByMode(baseStake = 0, st = null, stepIndex = 0) {
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!s) return 0;
-                const safeBase = Number(baseStake) || 0;
-                if (!(safeBase > 0)) return 0;
-                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0));
-                const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
-                const growthArr = parse ? parse(s.config?.stakeGrowthArrayText) : [];
-                if (growthArr.length === 1) {
-                    const g = Number(growthArr[0]) || 0;
-                    return g > 0 ? safeBase * Math.pow(g, idx) : 0;
-                }
-                if (growthArr.length > 1) {
-                    const g = Number(growthArr[idx % growthArr.length]) || 0;
-                    return g > 0 ? safeBase * g : 0;
-                }
-                const factor = Number(s.config?.stakeGrowthFactor);
-                if (!Number.isFinite(factor) || factor <= 0) return 0;
-                return safeBase * Math.pow(factor, idx);
+                return Number(MEP.Strategy1?.calcStakeGrowthByStep?.(s.config || {}, baseStake, stepIndex)) || 0;
             },
 
             getStrategy1CycleArrayActiveValue(text = "", stepIndex = 0) {
@@ -9629,21 +9666,7 @@
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!s) return 0;
                 const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
-                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0));
-                const base = Math.max(0, Number(cfg.targetMultiplierValue) || 0);
-                if (!(base > 0)) return 0;
-                const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
-                const arr = parse ? parse(cfg.targetMultiplierArrayText) : [];
-                if (arr.length === 1) {
-                    const g = Number(arr[0]) || 0;
-                    return g > 0 ? base * Math.pow(g, idx) : 0;
-                }
-                if (arr.length > 1) {
-                    const g = Number(arr[idx % arr.length]) || 0;
-                    return g > 0 ? base * g : 0;
-                }
-                const fallback = Number(cfg.targetMultiplierValue) || 0;
-                return fallback > 0 ? fallback : 0;
+                return Number(MEP.Strategy1?.calcTargetByStep?.(cfg, stepIndex)) || 0;
             },
 
             getStrategy1TargetBaseValue(st = null) {

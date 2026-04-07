@@ -600,3 +600,9 @@
 - При async-fail только тогда вызывается реальный reject (`onExecutionRejected`) с reason из sync-result.
 - Добавлены явные логи: `async dom sync started/resolved`, `continue to clickBetButton`, `click result`.
 - Версии повышены: `crash.js 0.1.5.118` (header + `MEP.ver`) и `crash.css 0.1.5.118`.
+
+- 2026-04-06: Устранён рассинхрон real/service ставки Strategy1: `buildStakePlan()`, service-row и live execute переведены на единые формулы (`calcStakeGrowthByStep` / `calcTargetByStep`), без разных расчётных веток.
+- Добавлены parity-логи `service vs real` перед execute (`nextFixed/nextPercent/targetNextValue` vs `stakePlan.betAmount/targetMultiplier`).
+- Усилена обработка round-result для execution bridge: fallback/инференс `won/lost/balance` (по `rawMultiplier`, `pendingStake`, `pendingTarget`, `postBetBalance`) и расширенные cycle-math логи (`loss/win before/after`, `cycleProfit`, `finishReason`).
+- Это фиксит рост ставки после минуса и корректное завершение цикла после профита (`finishCycle(\"profit_reached\")`) при валидном round payload.
+- Версии повышены: `crash.js 0.1.5.119` (header + `MEP.ver`) и `crash.css 0.1.5.119`.
