@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.5.119 ==*/
+/*== CSS ver 0.1.5.120 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -1080,16 +1080,46 @@ body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
 #mep-control-panel .mep-strategy1-live-debug-box{
   margin-top:4px;
   border:1px dashed rgba(255,255,255,.25);
-  background:rgba(7,10,14,.75);
+  background:rgba(5,8,12,.82);
   color:#d7e4ff;
-  font-size:11px;
-  padding:6px 8px;
+  font-size:12px;
+  padding:8px 10px;
   line-height:1.35;
 }
+#mep-control-panel .mep-strategy1-live-debug-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr 1fr;
+  gap:0;
+}
+#mep-control-panel .mep-strategy1-live-debug-col{
+  padding:2px 10px 4px 10px;
+}
+#mep-control-panel .mep-strategy1-live-debug-col + .mep-strategy1-live-debug-col{
+  border-left:1px dashed rgba(255,255,255,.35);
+}
 #mep-control-panel .mep-strategy1-live-debug-title{
-  color:#9ec8ff;
-  font-size:10px;
-  letter-spacing:.04em;
-  text-transform:uppercase;
-  margin-bottom:2px;
+  color:#00f4ff;
+  font-size:18px;
+  line-height:1.1;
+  margin-bottom:8px;
+}
+#mep-control-panel .mep-strategy1-live-debug-table{
+  display:grid;
+  grid-template-columns:minmax(88px,1fr) auto;
+  column-gap:10px;
+  row-gap:1px;
+  align-items:center;
+}
+#mep-control-panel .mep-strategy1-live-debug-row{
+  display:contents;
+}
+#mep-control-panel .mep-strategy1-live-debug-row > span:first-child{
+  color:#f0f6ff;
+  white-space:nowrap;
+}
+#mep-control-panel .mep-strategy1-live-debug-row > span:last-child{
+  color:#ffffff;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
 }

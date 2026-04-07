@@ -606,3 +606,8 @@
 - Усилена обработка round-result для execution bridge: fallback/инференс `won/lost/balance` (по `rawMultiplier`, `pendingStake`, `pendingTarget`, `postBetBalance`) и расширенные cycle-math логи (`loss/win before/after`, `cycleProfit`, `finishReason`).
 - Это фиксит рост ставки после минуса и корректное завершение цикла после профита (`finishCycle(\"profit_reached\")`) при валидном round payload.
 - Версии повышены: `crash.js 0.1.5.119` (header + `MEP.ver`) и `crash.css 0.1.5.119`.
+
+- 2026-04-07: Полностью переработан UI debug-box Strategy1 в человеко-читаемую табличную сетку 4 колонки (`резерв | Ветка | События | Баланс`) с внутренними 2-колоночными мини-таблицами `параметр -> значение`.
+- Добавлены ровные вертикальные выравнивания значений через CSS grid (`minmax(...)/auto`), вертикальные dashed-разделители колонок, крупные cyan-заголовки и tabular-nums для чисел.
+- Старый dump-формат (`phase/exec/reason/stage/...`) заменён на структурированный блок по ТЗ; бизнес-логика execution/permission/cycle не менялась.
+- Версии повышены: `crash.js 0.1.5.120` (header + `MEP.ver`) и `crash.css 0.1.5.120`.

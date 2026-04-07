@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.119";
+		MEP.ver = "0.1.5.120";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -10147,12 +10147,17 @@
                         .replace(/\"/g, "&quot;")
                         .replace(/</g, "&lt;")
                         .replace(/>/g, "&gt;");
-                    const liveDebugPhase = (MEP.State?.gamePhase || "—").toString();
-                    const liveDebugExec = (s.runtime?.executionState || "idle").toString();
-                    const liveDebugReason = (s.runtime?.lastExecutionDebugCode || s.runtime?.lastExecutionReason || "—").toString();
-                    const liveDebugStage = (s.runtime?.lastExecutionDebugStage || "—").toString();
-                    const liveDebugArmed = !!s.runtime?.armedToBet;
-                    const liveDebugArmedBranch = (s.runtime?.armedBranch || "—").toString();
+                    const liveDebugPhase = (MEP.State?.gamePhase || "").toString();
+                    const liveDebugCurrentBalance = Number(MEP.UI.readCurrentBalanceFromDom()?.amount) || 0;
+                    const liveDebugPreCycleBalance = Number(s.runtime?.preCycleBalance) || 0;
+                    const liveDebugPostBetBalance = Number(s.runtime?.postBetBalance) || 0;
+                    const liveDebugAfterRound = Number(s.runtime?.balanceAfterRound) || 0;
+                    const liveDebugDiff = liveDebugAfterRound - liveDebugPreCycleBalance;
+                    const liveDebugPool = !!currentPool?.result;
+                    const liveDebugPlan = s.runtime?.lastStakePlanResult || null;
+                    const liveDebugClick = s.runtime?.lastClickResult || null;
+                    const fmtBool = (v) => (v ? "true" : "false");
+                    const fmtBal = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(8).replace(/\.?0+$/, "") : "—");
                     stakeServiceWrapEl.innerHTML = `
 <div class="mep-strategy1-cycle-info-row">
 <span class="mep-strategy1-cycle-info-cell">Циклов: <b>${serviceData.cycleNumber}</b></span>
@@ -10200,13 +10205,45 @@
 <span class="mep-strategy1-stake-col active"></span>
 </div>
 <div class="mep-strategy1-live-debug-box">
-<div class="mep-strategy1-live-debug-title">LIVE debug</div>
-<div>phase: <b>${liveDebugPhase}</b></div>
-<div>exec: <b>${liveDebugExec}</b></div>
-<div>reason: <b>${liveDebugReason}</b></div>
-<div>stage: <b>${liveDebugStage}</b></div>
-<div>armed: <b>${liveDebugArmed ? "true" : "false"}</b></div>
-<div>armedBranch: <b>${liveDebugArmedBranch}</b></div>
+<div class="mep-strategy1-live-debug-grid">
+<div class="mep-strategy1-live-debug-col">
+<div class="mep-strategy1-live-debug-title">резерв</div>
+<div class="mep-strategy1-live-debug-table">
+<div class="mep-strategy1-live-debug-row"><span>Фаза</span><span>${liveDebugPhase || "—"}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Armed</span><span>${fmtBool(!!s.runtime?.armedToBet)}</span></div>
+</div>
+</div>
+<div class="mep-strategy1-live-debug-col">
+<div class="mep-strategy1-live-debug-title">Ветка</div>
+<div class="mep-strategy1-live-debug-table">
+<div class="mep-strategy1-live-debug-row"><span>Плюс</span><span>${fmtBool(!!plusPool?.result)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Минус</span><span>${fmtBool(!!minusPool?.result)}</span></div>
+</div>
+</div>
+<div class="mep-strategy1-live-debug-col">
+<div class="mep-strategy1-live-debug-title">События</div>
+<div class="mep-strategy1-live-debug-table">
+<div class="mep-strategy1-live-debug-row"><span>Пул</span><span>${fmtBool(liveDebugPool)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Ставка число</span><span>${fmtBool((Number(liveDebugPlan?.betAmount) || 0) > 0)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Цел.коэф.</span><span>${fmtBool((Number(liveDebugPlan?.targetMultiplier) || 0) > 1)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Ставка кнопка</span><span>${fmtBool(!!liveDebugClick?.applied)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПослеСтав.Бал.</span><span>${fmtBool(liveDebugPostBetBalance > 0)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>запуск игры</span><span>${fmtBool(liveDebugPhase === "launch")}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>в игре</span><span>${fmtBool(liveDebugPhase === "in_game")}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Конец игры</span><span>${fmtBool(liveDebugPhase === "game")}</span></div>
+</div>
+</div>
+<div class="mep-strategy1-live-debug-col">
+<div class="mep-strategy1-live-debug-title">Баланс</div>
+<div class="mep-strategy1-live-debug-table">
+<div class="mep-strategy1-live-debug-row"><span>Текущий</span><span>${fmtBal(liveDebugCurrentBalance)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПредЦикл</span><span>${fmtBal(liveDebugPreCycleBalance)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПослеСтавка</span><span>${fmtBal(liveDebugPostBetBalance)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПослеРаунд</span><span>${fmtBal(liveDebugAfterRound)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>РазницаБПР</span><span>${fmtBal(liveDebugDiff)}</span></div>
+</div>
+</div>
+</div>
 </div>`;
                 }
             },
