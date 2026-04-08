@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.120";
+		MEP.ver = "0.1.5.121";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -10147,7 +10147,6 @@
                         .replace(/\"/g, "&quot;")
                         .replace(/</g, "&lt;")
                         .replace(/>/g, "&gt;");
-                    const liveDebugPhase = (MEP.State?.gamePhase || "").toString();
                     const liveDebugCurrentBalance = Number(MEP.UI.readCurrentBalanceFromDom()?.amount) || 0;
                     const liveDebugPreCycleBalance = Number(s.runtime?.preCycleBalance) || 0;
                     const liveDebugPostBetBalance = Number(s.runtime?.postBetBalance) || 0;
@@ -10206,13 +10205,6 @@
 </div>
 <div class="mep-strategy1-live-debug-box">
 <div class="mep-strategy1-live-debug-grid">
-<div class="mep-strategy1-live-debug-col">
-<div class="mep-strategy1-live-debug-title">резерв</div>
-<div class="mep-strategy1-live-debug-table">
-<div class="mep-strategy1-live-debug-row"><span>Фаза</span><span>${liveDebugPhase || "—"}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Armed</span><span>${fmtBool(!!s.runtime?.armedToBet)}</span></div>
-</div>
-</div>
 <div class="mep-strategy1-live-debug-col">
 <div class="mep-strategy1-live-debug-title">Ветка</div>
 <div class="mep-strategy1-live-debug-table">
