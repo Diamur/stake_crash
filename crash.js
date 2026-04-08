@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.121";
+		MEP.ver = "0.1.5.122";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -10147,6 +10147,7 @@
                         .replace(/\"/g, "&quot;")
                         .replace(/</g, "&lt;")
                         .replace(/>/g, "&gt;");
+                    const liveDebugPhase = (MEP.State?.gamePhase || "").toString();
                     const liveDebugCurrentBalance = Number(MEP.UI.readCurrentBalanceFromDom()?.amount) || 0;
                     const liveDebugPreCycleBalance = Number(s.runtime?.preCycleBalance) || 0;
                     const liveDebugPostBetBalance = Number(s.runtime?.postBetBalance) || 0;
