@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.5.66";
+		MEP.ver = "0.1.6.01";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -83,7 +83,56 @@
                 label: "Diff",
                 params: { mode: "gt" },
             },
+            frequency_vector_state: {
+                type: "frequency_vector_state",
+                enabled: false,
+                label: "Freq",
+                params: { mode: "gt" },
+            },
+            frequency_line_gt: {
+                type: "frequency_line_gt",
+                enabled: false,
+                label: "FreqL",
+                params: { threshold: 3 },
+            },
+            stake_players_vector_state: {
+                type: "stake_players_vector_state",
+                enabled: false,
+                label: "Clients",
+                params: { mode: "gt" },
+            },
+            stake_bet_vector_state: {
+                type: "stake_bet_vector_state",
+                enabled: false,
+                label: "Bet",
+                params: { mode: "gt" },
+            },
+            stake_players_line_gte: {
+                type: "stake_players_line_gte",
+                enabled: false,
+                label: "ClientsL",
+                params: { threshold: 300 },
+            },
+            stake_bet_line_gte: {
+                type: "stake_bet_line_gte",
+                enabled: false,
+                label: "BetL",
+                params: { threshold: 300 },
+            },
         });
+
+        const buildStrategy1ConditionBlocksDisabledDefault = () => {
+            const src = buildStrategy1ConditionBlocksDefault();
+            const out = {};
+            for (const k of Object.keys(src)) {
+                out[k] = {
+                    ...src[k],
+                    enabled: false,
+                    params: src[k]?.params && typeof src[k].params === "object" ? { ...src[k].params } : {},
+                };
+            }
+            return out;
+        };
 
         const buildStrategy1DefaultState = () => ({
             id: "strategy1",
@@ -95,6 +144,11 @@
                 riskPercent: 0,
                 conditionPoolIds: [],
                 conditionBlocks: buildStrategy1ConditionBlocksDefault(),
+                conditionBranches: {
+                    plus: buildStrategy1ConditionBlocksDefault(),
+                    minus: buildStrategy1ConditionBlocksDisabledDefault(),
+                },
+                conditionSelectedBranch: "plus",
                 startStakeMode: "fixed",
                 startStakeValue: 0,
                 startStakeArrayText: "",
@@ -104,6 +158,7 @@
                 targetMode: "fixed",
                 targetMultiplierValue: 2,
                 targetMultiplierArrayText: "",
+                stopMinusCount: 0,
                 maxLosses: 0,
                 firstCondLt2StreakEnabled: true,
                 firstCondDiffVectorEnabled: true,
@@ -136,11 +191,13 @@
             cycle: {
                 cycleId: "",
                 isActive: false,
+                cycleNumber: 0,
                 startBalance: 0,
                 currentBalance: 0,
                 cyclePnL: 0,
                 totalStakeSum: 0,
                 roundCount: 0,
+                betCount: 0,
                 lossCount: 0,
                 winCount: 0,
                 stepIndex: 0,
@@ -194,6 +251,8 @@
             runtime: {
                 lastSignal: "",
                 lastConditionResult: null,
+                lastConditionBranchResults: null,
+                activeBranch: "",
                 lastStakePlanResult: null,
                 lastProcessedRoundId: "",
                 lastProcessedBalanceTs: 0,
@@ -241,7 +300,31 @@
                 pendingBetAmount: 0,
                 pendingTargetMultiplier: 0,
                 pendingExecutionPayload: null,
+                executionPhaseSinceTs: 0,
+                preCycleBalance: 0,
+                postBetBalance: 0,
+                balanceAfterRound: 0,
+                betAcceptedInFlight: false,
+                lastGamePhase: "",
+                phaseMachineBusy: false,
                 lastDomSyncAtTs: 0,
+                lastExecutionDebugCode: "",
+                lastExecutionDebugText: "",
+                lastExecutionDebugStage: "",
+                lastExecutionDebugMeta: null,
+                lastLiveDebugSignature: "",
+                lastLiveDebugTs: 0,
+                armedToBet: false,
+                armedAtTs: 0,
+                armedBranch: "",
+                armedReason: "",
+                armedPoolConditions: [],
+                armedBetAmount: 0,
+                armedTargetMultiplier: 0,
+                armedSourcePhase: "",
+                armedPermissionSnapshot: null,
+                armedPlanSnapshot: null,
+                pendingDomSyncContext: null,
                 startBalanceSnapshot: 0,
                 copiedRiskAmount: 0,
                 systemMessages: [],
@@ -1082,6 +1165,7 @@
             save() {
                 const data = {
                     trackCount: MEP.State.trackCount,
+                    trackingCollapsed: MEP.State.trackingCollapsed,
                     track: MEP.State.track,
                     graphMax: MEP.State.graphMax,
                     graphDensity: MEP.State.graphDensity,
@@ -1090,6 +1174,8 @@
                     stakeGraphAutoHeight: MEP.State.stakeGraphAutoHeight,
                     stakeGraphPlayersScale: MEP.State.stakeGraphPlayersScale,
                     stakeGraphBetScale: MEP.State.stakeGraphBetScale,
+                    stakeGraphPlayersColor: MEP.State.stakeGraphPlayersColor,
+                    stakeGraphBetColor: MEP.State.stakeGraphBetColor,
                     stakeGraphShowPlayers: MEP.State.stakeGraphShowPlayers,
                     stakeGraphShowBet: MEP.State.stakeGraphShowBet,
                     stakePlayersVectorEnabled: MEP.State.stakePlayersVectorEnabled,
@@ -1182,6 +1268,7 @@
                     if (rawLS) {
                         const data = JSON.parse(rawLS);
                         if (typeof data.trackCount === "number") MEP.State.trackCount = data.trackCount;
+                        if (typeof data.trackingCollapsed === "boolean") MEP.State.trackingCollapsed = data.trackingCollapsed;
                         if (data.track && typeof data.track === "object") MEP.State.track = data.track;
                         if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                         if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
@@ -1190,6 +1277,8 @@
                         if (typeof data.stakeGraphAutoHeight === "boolean") MEP.State.stakeGraphAutoHeight = data.stakeGraphAutoHeight;
                         if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
                         if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
+                        if (typeof data.stakeGraphPlayersColor === "string") MEP.State.stakeGraphPlayersColor = data.stakeGraphPlayersColor;
+                        if (typeof data.stakeGraphBetColor === "string") MEP.State.stakeGraphBetColor = data.stakeGraphBetColor;
                         if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                         if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                         if (typeof data.stakePlayersVectorEnabled === "boolean") MEP.State.stakePlayersVectorEnabled = data.stakePlayersVectorEnabled;
@@ -1285,6 +1374,7 @@
 
                     const data = JSON.parse(decodeURIComponent(rawC));
                     if (typeof data.trackCount === "number") MEP.State.trackCount = data.trackCount;
+                    if (typeof data.trackingCollapsed === "boolean") MEP.State.trackingCollapsed = data.trackingCollapsed;
                     if (data.track && typeof data.track === "object") MEP.State.track = data.track;
                     if (typeof data.graphMax === "number") MEP.State.graphMax = data.graphMax;
                     if (typeof data.graphDensity === "number") MEP.State.graphDensity = data.graphDensity;
@@ -1293,6 +1383,8 @@
                     if (typeof data.stakeGraphAutoHeight === "boolean") MEP.State.stakeGraphAutoHeight = data.stakeGraphAutoHeight;
                     if (typeof data.stakeGraphPlayersScale === "number") MEP.State.stakeGraphPlayersScale = data.stakeGraphPlayersScale;
                     if (typeof data.stakeGraphBetScale === "number") MEP.State.stakeGraphBetScale = data.stakeGraphBetScale;
+                    if (typeof data.stakeGraphPlayersColor === "string") MEP.State.stakeGraphPlayersColor = data.stakeGraphPlayersColor;
+                    if (typeof data.stakeGraphBetColor === "string") MEP.State.stakeGraphBetColor = data.stakeGraphBetColor;
                     if (typeof data.stakeGraphShowPlayers === "boolean") MEP.State.stakeGraphShowPlayers = data.stakeGraphShowPlayers;
                     if (typeof data.stakeGraphShowBet === "boolean") MEP.State.stakeGraphShowBet = data.stakeGraphShowBet;
                     if (typeof data.stakePlayersVectorEnabled === "boolean") MEP.State.stakePlayersVectorEnabled = data.stakePlayersVectorEnabled;
@@ -1604,6 +1696,8 @@
             PANEL_ID: "mep-control-panel",
             STYLE_ID: "mep-control-style-min",
             SELECTORS: ["#main-content div.past-bets", "#main-content div.past-bets.svelte-3cv27h"],
+            GAME_ACTION_BUTTON_SELECTOR:
+                "#main-content > div.parent > div > div > div > div > div.content > div.game-sidebar > div > button",
 
             // реестр поддерживаемых игр (slug из URL /casino/games/<slug>)
             SUPPORTED_GAMES: ["crash"],
@@ -1702,11 +1796,65 @@
 				gap:8px;
 				margin-bottom:10px;
 				}
+				#${PANEL_ID} .mep-game-phase-row{
+				display:grid;
+				grid-template-columns:1fr 1fr 1fr 1fr 1fr;
+				gap:8px;
+				margin-bottom:10px;
+				}
+				#${PANEL_ID} .mep-game-phase-cell{
+				border:1px solid rgba(255,255,255,.25);
+				border-radius:6px;
+				height:16px;
+				display:flex;
+				align-items:center;
+				justify-content:center;
+				font-size:12px;
+				color:#d7dde5;
+				background:rgba(255,255,255,.08);
+				transition:all .15s ease;
+				}
+				#${PANEL_ID} .mep-game-phase-cell.is-active{
+				color:#d9ffe5;
+				background:rgba(0,255,87,.22);
+				border-color:rgba(0,255,87,.85);
+				box-shadow:0 0 12px rgba(0,255,87,.48), inset 0 0 8px rgba(0,255,87,.12);
+				text-shadow:0 0 6px rgba(0,255,87,.55);
+				}
+				#${PANEL_ID} .mep-game-phase-cell-game.is-active{
+				color:#ffd9d9;
+				background:rgba(255,34,34,.22);
+				border-color:rgba(255,34,34,.9);
+				box-shadow:0 0 12px rgba(255,34,34,.5), inset 0 0 8px rgba(255,34,34,.14);
+				text-shadow:0 0 6px rgba(255,34,34,.55);
+				}
+				#${PANEL_ID} .mep-game-phase-cell-launch.is-active{
+				color:#ffe8cf;
+				background:rgba(255,136,0,.24);
+				border-color:rgba(255,136,0,.92);
+				box-shadow:0 0 12px rgba(255,136,0,.52), inset 0 0 8px rgba(255,136,0,.14);
+				text-shadow:0 0 6px rgba(255,136,0,.55);
+				}
+				#${PANEL_ID} .mep-game-phase-cell-placed.is-active{
+				color:#d8f4ff;
+				background:rgba(0,170,255,.24);
+				border-color:rgba(0,170,255,.92);
+				box-shadow:0 0 12px rgba(0,170,255,.5), inset 0 0 8px rgba(0,170,255,.14);
+				text-shadow:0 0 6px rgba(0,170,255,.55);
+				}
+				#${PANEL_ID} .mep-game-phase-cell-in-game.is-active{
+				color:#fff7cf;
+				background:rgba(255,223,0,.24);
+				border-color:rgba(255,223,0,.92);
+				box-shadow:0 0 12px rgba(255,223,0,.5), inset 0 0 8px rgba(255,223,0,.14);
+				text-shadow:0 0 6px rgba(255,223,0,.55);
+				}
 				#${PANEL_ID} .mep-game-tab-panel{
 				display:none;
 				padding:12px;
 				border:1px dashed rgba(255,255,255,0.22);
 				background: rgba(255,255,255,0.03);
+				padding-top:0px;
 				}
 				#${PANEL_ID} .mep-game-tab-panel.is-active{
 				display:block;
@@ -2367,7 +2515,12 @@
 				#${PANEL_ID} .mep-graph-wrap.mep-collapsed .mep-graph-controls{
 				display:none;
 				}
+				#${PANEL_ID} .mep-tracking-wrap.mep-collapsed .mep-track-wrap,
+				#${PANEL_ID} .mep-tracking-wrap.mep-collapsed .mep-track-count{
+				display:none;
+				}
 				#${PANEL_ID} .mep-frequency-collapse,
+				#${PANEL_ID} .mep-track-collapse,
 				#${PANEL_ID} .mep-stake-collapse,
 				#${PANEL_ID} .mep-balance-collapse,
 				#${PANEL_ID} .mep-main-graph-collapse{
@@ -2381,6 +2534,7 @@
 				cursor: pointer;
 				}
 				#${PANEL_ID} .mep-frequency-collapse:hover,
+				#${PANEL_ID} .mep-track-collapse:hover,
 				#${PANEL_ID} .mep-stake-collapse:hover,
 				#${PANEL_ID} .mep-balance-collapse:hover,
 				#${PANEL_ID} .mep-main-graph-collapse:hover{
@@ -2555,7 +2709,9 @@
 				outline:none;
 				}
 				#${PANEL_ID} input.mep-stake-scale-players,
-				#${PANEL_ID} input.mep-stake-scale-bet{
+				#${PANEL_ID} input.mep-stake-scale-bet,
+				#${PANEL_ID} input.mep-stake-color-players,
+				#${PANEL_ID} input.mep-stake-color-bet{
 				width:58px;
 				border-radius:8px;
 				border: 1px solid rgba(255,255,255,0.10);
@@ -2564,6 +2720,12 @@
 				padding: 0 8px;
 				font-size:12px;
 				outline:none;
+				}
+				#${PANEL_ID} input.mep-stake-color-players,
+				#${PANEL_ID} input.mep-stake-color-bet{
+				padding: 0;
+				height: 24px;
+				width: 36px;
 				}
 				#${PANEL_ID} .mep-stake-sync-label{
 				display:inline-flex;
@@ -2848,13 +3010,14 @@
         }
         .mep-strategy1-info-bar{
         height:24px;
-        background:rgba(146,146,146,.9);
-        color:#fff;
+        background:rgb(4 51 6 / 90%);
+        color:#19ff00;
         display:flex;
         align-items:center;
         overflow:hidden;
         padding:0 8px;
         box-sizing:border-box;
+        font-weight:100;
         }
         .mep-strategy1-info-track{
         width:100%;
@@ -2865,8 +3028,9 @@
         display:inline-block;
         will-change:transform;
         transform:translateX(0);
-        font-size:12px;
-        line-height:1;
+        font-size:14px;
+        line-height:initial;
+        letter-spacing:2px;
         }
         .mep-strategy1-info-ticker.is-running{
         animation:mepS1Ticker var(--mep-s1-ticker-duration,3200ms) linear 1 forwards;
@@ -2879,7 +3043,7 @@
         display:flex;
         align-items:center;
         gap:10px;
-        padding:8px 10px 0;
+        padding:0px 0px 0;
         }
         .mep-strategy1-control-label,.mep-strategy1-work-timer{
         color:#f4f7fb;
@@ -2950,6 +3114,16 @@
         flex-direction:column;
         gap:6px;
         }
+        .mep-strategy1-branch-tabs{display:flex;gap:6px;}
+        .mep-strategy1-branch-tab{
+        min-width:74px;height:24px;border-radius:6px;
+        border:1px solid rgba(255,255,255,.22);
+        background:rgba(255,255,255,.08);color:#d8dde6;font-size:12px;cursor:pointer;
+        }
+        .mep-strategy1-branch-tab.is-selected{background:rgba(255,255,255,.28);color:#fff;}
+        .mep-strategy1-branch-tab.is-runtime-active{
+        background:rgba(0,255,87,.2);border-color:rgba(0,255,87,.75);color:#b5ffca;box-shadow:0 0 10px rgba(0,255,87,.45);
+        }
         .mep-strategy1-cond-summary{
         font-size:11px;
         line-height:1.1;
@@ -2961,10 +3135,103 @@
         display:flex;
         justify-content:flex-end;
         text-align:right;
+        transition:all .15s ease;
         }
-        .mep-strategy1-cond-summary.is-true{color:#00ff57;}
-        .mep-strategy1-cond-summary.is-false{color:#ff6f9f;}
-        .mep-strategy1-cond-summary.is-idle{color:#a9b2bc;}
+        .mep-strategy1-cond-summary.is-true{
+        color:#d9ffe5;
+        background:rgba(0,255,87,.22);
+        border-color:rgba(0,255,87,.85);
+        box-shadow:0 0 12px rgba(0,255,87,.48), inset 0 0 10px rgba(0,255,87,.15);
+        text-shadow:0 0 6px rgba(0,255,87,.55);
+        }
+        .mep-strategy1-cond-summary.is-false{
+        color:#ff6f9f;
+        background:rgba(255,255,255,.03);
+        border-color:rgba(255,255,255,.2);
+        box-shadow:none;
+        }
+        .mep-strategy1-cond-summary.is-idle{
+        color:#a9b2bc;
+        background:rgba(255,255,255,.03);
+        border-color:rgba(255,255,255,.2);
+        box-shadow:none;
+        }
+        .mep-strategy1-stake-service-wrap{display:flex;flex-direction:column;gap:5px;}
+        .mep-strategy1-stake-row{
+        margin-top:0;
+        display:grid;
+        grid-template-columns:34px minmax(88px,1fr) 86px 42px 86px;
+        align-items:center;
+        gap:0;
+        border:1px dashed rgba(255,255,255,.24);
+        border-radius:0;
+        padding:0;
+        font-size:11px;
+        background:rgba(255,255,255,.04);
+        }
+        .mep-strategy1-stake-row.is-active{border-color:rgba(0,255,87,.5);background:rgba(0,255,87,.08);}
+        .mep-strategy1-stake-row.is-inactive{opacity:.86;}
+        .mep-strategy1-stake-mode-toggle{width:16px;height:16px;accent-color:#00e51f;}
+        .mep-strategy1-stake-col{padding:4px 8px;white-space:nowrap;overflow:visible;text-overflow:clip;word-break:normal;line-height:1.2;}
+        .mep-strategy1-stake-col.label{color:#f0f4fb;}
+        .mep-strategy1-stake-col.start{color:#d7dde5;text-align:right;}
+        .mep-strategy1-stake-col.loss{color:#9eb3d7;text-align:center;}
+        .mep-strategy1-stake-col.next{color:#9ef5b4;text-align:right;}
+        .mep-strategy1-click-apply{
+        cursor:pointer;
+        text-decoration:underline;
+        text-decoration-color:rgba(158,245,180,.6);
+        text-underline-offset:2px;
+        transition:all .15s ease;
+        }
+        .mep-strategy1-click-apply:hover{
+        color:#fff;
+        text-decoration-color:#fff;
+        text-shadow:0 0 8px rgba(158,245,180,.55);
+        }
+        .mep-strategy1-cycle-info-row{
+        display:grid;
+        grid-template-columns:1fr 1fr 1fr 1fr;
+        align-items:center;
+        gap:0;
+        border:1px dashed rgba(255,255,255,.24);
+        border-radius:0;
+        background:rgba(255,255,255,.04);
+        margin-top:0;
+        }
+        .mep-strategy1-cycle-info-cell{
+        padding:6px 8px;
+        font-size:12px;
+        color:#dce4f0;
+        text-align:center;
+        white-space:nowrap;
+        }
+        .mep-strategy1-cycle-info-cell b{color:#fff;font-weight:700;}
+        .mep-strategy1-service-array-row{
+        margin-top:0;
+        display:grid;
+        grid-template-columns:34px 92px minmax(86px,1fr) 86px;
+        align-items:center;
+        gap:0;
+        border:1px dashed rgba(255,255,255,.24);
+        border-radius:0;
+        font-size:11px;
+        background:rgba(255,255,255,.04);
+        }
+        .mep-strategy1-service-array-spacer{display:inline-block;}
+        .mep-strategy1-service-array-input{
+        width:100%;
+        height:22px;
+        border:1px solid rgba(255,255,255,.26);
+        background:rgba(255,255,255,.08);
+        color:#fff;
+        padding:0 6px;
+        font-size:11px;
+        box-sizing:border-box;
+        outline:none;
+        }
+        .mep-strategy1-service-array-input:focus{border-color:rgba(0,255,87,.55);}
+        .mep-strategy1-stake-col.active{color:#f7e7a2;text-align:right;}
         .mep-strategy1-cond-list{display:flex;flex-direction:column;gap:5px;}
         .mep-strategy1-cond-empty{
         font-size:11px;
@@ -2997,6 +3264,38 @@
         line-height:1;
         white-space:nowrap;
         min-width:0;
+        }
+        .mep-strategy1-cond-toggle-wrap.is-locked{
+        justify-content:center;
+        }
+        .mep-strategy1-cond-lock-indicator{
+        width:18px;
+        height:18px;
+        border-radius:4px;
+        border:1px solid rgba(255,255,255,.6);
+        background:rgba(255,255,255,.08);
+        display:inline-block;
+        position:relative;
+        }
+        .mep-strategy1-cond-lock-indicator.is-on{
+        background:#00e51f;
+        border-color:#00e51f;
+        box-shadow:0 0 8px rgba(0,229,31,.28);
+        }
+        .mep-strategy1-cond-lock-indicator.is-on::after{
+        content:"";
+        position:absolute;
+        left:5px;
+        top:2px;
+        width:6px;
+        height:10px;
+        border-right:2px solid #fff;
+        border-bottom:2px solid #fff;
+        transform:rotate(45deg);
+        }
+        .mep-strategy1-cond-lock-indicator.is-off{
+        background:rgba(255,255,255,.03);
+        border-color:rgba(255,255,255,.55);
         }
         .mep-strategy1-cond-toggle-wrap input{
         appearance:none;
@@ -3058,7 +3357,7 @@
         color:#fff;
         text-align:center;
         }
-        .mep-strategy1-cond-diff-mode{
+        .mep-strategy1-cond-vector-mode{
         width:150px;
         min-width:92px;
         height:24px;
@@ -3073,7 +3372,7 @@
         z-index:3;
         pointer-events:auto;
         }
-        .mep-strategy1-cond-diff-mode option{
+        .mep-strategy1-cond-vector-mode option{
         color:#111;
         background:#fff;
         }
@@ -3246,6 +3545,7 @@
             // данные статистики
             map: MEP.map || new Map(),
             list: MEP.list || [], // newest-first, clean values
+            gamePhase: typeof MEP.gamePhase === "string" ? MEP.gamePhase : "",
             maxItems: MEP.maxItems ?? MEP.Config.MAX_ITEMS_DEFAULT,
             graphMax: typeof MEP.graphMax === "number" ? MEP.graphMax : 10,
             graphDensity: typeof MEP.graphDensity === "number" ? MEP.graphDensity : 100,
@@ -3254,6 +3554,8 @@
             stakeGraphAutoHeight: !!MEP.stakeGraphAutoHeight,
             stakeGraphPlayersScale: typeof MEP.stakeGraphPlayersScale === "number" ? MEP.stakeGraphPlayersScale : 1,
             stakeGraphBetScale: typeof MEP.stakeGraphBetScale === "number" ? MEP.stakeGraphBetScale : 10,
+            stakeGraphPlayersColor: typeof MEP.stakeGraphPlayersColor === "string" ? MEP.stakeGraphPlayersColor : "#52d56a",
+            stakeGraphBetColor: typeof MEP.stakeGraphBetColor === "string" ? MEP.stakeGraphBetColor : "#ffad3c",
             stakeGraphShowPlayers: ("stakeGraphShowPlayers" in MEP) ? !!MEP.stakeGraphShowPlayers : true,
             stakeGraphShowBet: ("stakeGraphShowBet" in MEP) ? !!MEP.stakeGraphShowBet : true,
             stakePlayersVectorEnabled: ("stakePlayersVectorEnabled" in MEP) ? !!MEP.stakePlayersVectorEnabled : true,
@@ -3316,6 +3618,7 @@
             // НОВАЯ модель: t1: { x, limit, sound }
             track: MEP.track || { ...MEP.Config.TRACK_DEFAULT },
             trackCount: MEP.trackCount ?? 3,
+            trackingCollapsed: !!MEP.trackingCollapsed,
 
             // чтобы звук не "долбил" каждый рендер
             soundFired: MEP.soundFired || {},
@@ -4653,6 +4956,10 @@
                 const betsScaledView = betsRealView.map((v) => v * betScale); // только для рендера
                 const showPlayers = MEP.State.stakeGraphShowPlayers !== false;
                 const showBet = MEP.State.stakeGraphShowBet !== false;
+                const playersLineColor = (MEP.State.stakeGraphPlayersColor || "#52d56a").toString();
+                const betLineColor = (MEP.State.stakeGraphBetColor || "#ffad3c").toString();
+                if (ui.stakeLegendPlayersLine) ui.stakeLegendPlayersLine.style.background = playersLineColor;
+                if (ui.stakeLegendBetLine) ui.stakeLegendBetLine.style.background = betLineColor;
                 const autoHeight = !!MEP.State.stakeGraphAutoHeight;
                 const vbW = 100;
                 const vbH = 60;
@@ -4740,9 +5047,11 @@
                     svg.appendChild(pl);
                 };
 
-                if (showPlayers) makePolyline(playersPts, "rgba(112,206,255,0.95)");
-                if (showBet) makePolyline(betsPts, "rgba(255,170,60,0.95)");
-                if (MEP.State.stakePlayersVectorEnabled) {
+                if (showPlayers) makePolyline(playersPts, playersLineColor);
+                if (showBet) makePolyline(betsPts, betLineColor);
+                const renderPlayersVectors = showPlayers && MEP.State.stakePlayersVectorEnabled;
+                const renderBetVectors = showBet && MEP.State.stakeBetVectorEnabled;
+                if (renderPlayersVectors) {
                     makePolyline(
                         playersMainPts,
                         (MEP.State.stakePlayersVectorMainColor || "rgba(255,255,255,0.96)").toString(),
@@ -4760,7 +5069,7 @@
                         svg.appendChild(shiftPl);
                     }
                 }
-                if (MEP.State.stakeBetVectorEnabled) {
+                if (renderBetVectors) {
                     const mainPl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
                     if (betMainPts.length) {
                         mainPl.setAttribute("points", betMainPts.map((p) => `${p.x},${p.y}`).join(" "));
@@ -5451,43 +5760,120 @@
                 return MEP.State?.strategies?.strategy1 || null;
             },
 
-            ensureConditionBlocks(st = null) {
+            ensureConditionBlocks(st = null, branch = "plus") {
                 const state = st || this.getState();
                 if (!state) return buildStrategy1ConditionBlocksDefault();
                 const cfg = state.config && typeof state.config === "object" ? state.config : (state.config = {});
-                const src = cfg.conditionBlocks && typeof cfg.conditionBlocks === "object" ? cfg.conditionBlocks : {};
                 const d = buildStrategy1ConditionBlocksDefault();
+                const dMinus = buildStrategy1ConditionBlocksDisabledDefault();
+                const legacySrc = cfg.conditionBlocks && typeof cfg.conditionBlocks === "object" ? cfg.conditionBlocks : {};
+                const key = (branch || "").toString().trim().toLowerCase() === "minus" ? "minus" : "plus";
                 const toBool = (v, fallback) => (v === undefined ? !!fallback : !!v);
                 const toThreshold = (v) => {
                     const n = Math.floor(Number(v));
                     return Number.isFinite(n) ? Math.max(0, n) : 3;
                 };
+                const toFrequencyLineThreshold = (v) => {
+                    const n = Math.floor(Number(v));
+                    return Number.isFinite(n) ? Math.max(0, n) : 3;
+                };
+                const toStakeLineThreshold = (v) => {
+                    const n = Number(v);
+                    return Number.isFinite(n) ? Math.max(0, n) : 300;
+                };
                 const toMode = (v) => {
                     const m = (v ?? "gt").toString().trim().toLowerCase();
                     return m === "lt" || m === "flat" ? m : "gt";
                 };
-                const out = {
+                const normalizeBranch = (src = {}, defaults = d) => ({
                     charter: {
                         type: "charter",
-                        enabled: toBool(src?.charter?.enabled, d.charter.enabled),
+                        enabled: toBool(src?.charter?.enabled, defaults.charter.enabled),
                         label: "Устав",
                         params: {},
                     },
                     streak_lt: {
                         type: "streak_lt",
-                        enabled: toBool(src?.streak_lt?.enabled, d.streak_lt.enabled),
+                        enabled: toBool(src?.streak_lt?.enabled, defaults.streak_lt.enabled),
                         label: "Подряд",
-                        params: { threshold: toThreshold(src?.streak_lt?.params?.threshold ?? d.streak_lt.params.threshold) },
+                        params: { threshold: toThreshold(src?.streak_lt?.params?.threshold ?? defaults.streak_lt.params.threshold) },
                     },
                     diff_vector_state: {
                         type: "diff_vector_state",
-                        enabled: toBool(src?.diff_vector_state?.enabled, d.diff_vector_state.enabled),
+                        enabled: toBool(src?.diff_vector_state?.enabled, defaults.diff_vector_state.enabled),
                         label: "Diff",
-                        params: { mode: toMode(src?.diff_vector_state?.params?.mode ?? d.diff_vector_state.params.mode) },
+                        params: { mode: toMode(src?.diff_vector_state?.params?.mode ?? defaults.diff_vector_state.params.mode) },
                     },
+                    frequency_vector_state: {
+                        type: "frequency_vector_state",
+                        enabled: toBool(src?.frequency_vector_state?.enabled, defaults.frequency_vector_state.enabled),
+                        label: "Freq",
+                        params: { mode: toMode(src?.frequency_vector_state?.params?.mode ?? defaults.frequency_vector_state.params.mode) },
+                    },
+                    frequency_line_gt: {
+                        type: "frequency_line_gt",
+                        enabled: toBool(src?.frequency_line_gt?.enabled, defaults.frequency_line_gt.enabled),
+                        label: "FreqL",
+                        params: { threshold: toFrequencyLineThreshold(src?.frequency_line_gt?.params?.threshold ?? defaults.frequency_line_gt.params.threshold) },
+                    },
+                    stake_players_vector_state: {
+                        type: "stake_players_vector_state",
+                        enabled: toBool(src?.stake_players_vector_state?.enabled, defaults.stake_players_vector_state.enabled),
+                        label: "Clients",
+                        params: { mode: toMode(src?.stake_players_vector_state?.params?.mode ?? defaults.stake_players_vector_state.params.mode) },
+                    },
+                    stake_bet_vector_state: {
+                        type: "stake_bet_vector_state",
+                        enabled: toBool(src?.stake_bet_vector_state?.enabled, defaults.stake_bet_vector_state.enabled),
+                        label: "Bet",
+                        params: { mode: toMode(src?.stake_bet_vector_state?.params?.mode ?? defaults.stake_bet_vector_state.params.mode) },
+                    },
+                    stake_players_line_gte: {
+                        type: "stake_players_line_gte",
+                        enabled: toBool(src?.stake_players_line_gte?.enabled, defaults.stake_players_line_gte.enabled),
+                        label: "ClientsL",
+                        params: { threshold: toStakeLineThreshold(src?.stake_players_line_gte?.params?.threshold ?? defaults.stake_players_line_gte.params.threshold) },
+                    },
+                    stake_bet_line_gte: {
+                        type: "stake_bet_line_gte",
+                        enabled: toBool(src?.stake_bet_line_gte?.enabled, defaults.stake_bet_line_gte.enabled),
+                        label: "BetL",
+                        params: { threshold: toStakeLineThreshold(src?.stake_bet_line_gte?.params?.threshold ?? defaults.stake_bet_line_gte.params.threshold) },
+                    },
+                });
+
+                const rawBranches = cfg.conditionBranches && typeof cfg.conditionBranches === "object" ? cfg.conditionBranches : null;
+                const plusRaw = rawBranches?.plus && typeof rawBranches.plus === "object" ? rawBranches.plus : legacySrc;
+                const minusRaw = rawBranches?.minus && typeof rawBranches.minus === "object" ? rawBranches.minus : {};
+                const plusOut = normalizeBranch(plusRaw, d);
+                const minusOut = normalizeBranch(minusRaw, dMinus);
+                cfg.conditionBranches = { plus: plusOut, minus: minusOut };
+                cfg.conditionBlocks = plusOut;
+                if (cfg.conditionSelectedBranch !== "minus") cfg.conditionSelectedBranch = "plus";
+                return cfg.conditionBranches[key];
+            },
+
+            getConditionBranchPoolState(evaluated = []) {
+                const active = (evaluated || []).filter((it) => it.enabled);
+                const hasFalse = active.some((it) => !it.result);
+                return {
+                    activeCount: active.length,
+                    hasFalse,
+                    result: active.length > 0 ? !hasFalse : false,
                 };
-                cfg.conditionBlocks = out;
-                return out;
+            },
+
+            getRuntimeActiveBranch(st = null, plusPool = null, minusPool = null) {
+                const state = st || this.getState();
+                if (!state || !state.enabled) return "";
+                const lossCount = Math.max(0, Math.floor(Number(state.cycle?.lossCount) || 0));
+                if (lossCount === 0) return "plus";
+                const route = this.routeBranch();
+                if (route?.branch === "first") return "plus";
+                if (route?.branch === "second") return "minus";
+                if (plusPool?.result) return "plus";
+                if (minusPool?.result) return "minus";
+                return "minus";
             },
 
             getDiffVectorShortLabelByState(state = "") {
@@ -5504,10 +5890,89 @@
                 return "mEMA > sEMA";
             },
 
-            evaluateConditionBlocks(st = null) {
+            getFrequencyVectorShortLabelByState(state = "") {
+                const s = (state || "").toString().trim().toLowerCase();
+                if (s === "up") return "mEMA > sEMA";
+                if (s === "down") return "mEMA < sEMA";
+                return "flat";
+            },
+
+            getFrequencyVectorShortLabelByMode(mode = "") {
+                const m = (mode || "").toString().trim().toLowerCase();
+                if (m === "lt") return "mEMA < sEMA";
+                if (m === "flat") return "flat";
+                return "mEMA > sEMA";
+            },
+
+            getStakePlayersVectorShortLabelByState(state = "") {
+                const s = (state || "").toString().trim().toLowerCase();
+                if (s === "up") return "mEMA > sEMA";
+                if (s === "down") return "mEMA < sEMA";
+                return "flat";
+            },
+
+            getStakePlayersVectorShortLabelByMode(mode = "") {
+                const m = (mode || "").toString().trim().toLowerCase();
+                if (m === "lt") return "mEMA < sEMA";
+                if (m === "flat") return "flat";
+                return "mEMA > sEMA";
+            },
+
+            getStakeBetVectorShortLabelByState(state = "") {
+                const s = (state || "").toString().trim().toLowerCase();
+                if (s === "up") return "mEMA > sEMA";
+                if (s === "down") return "mEMA < sEMA";
+                return "flat";
+            },
+
+            getStakeBetVectorShortLabelByMode(mode = "") {
+                const m = (mode || "").toString().trim().toLowerCase();
+                if (m === "lt") return "mEMA < sEMA";
+                if (m === "flat") return "flat";
+                return "mEMA > sEMA";
+            },
+
+            getCurrentFrequencyValue() {
+                const graph = MEP.FrequencyGraph;
+                if (!graph || typeof graph._toOldestFirstNumbers !== "function" || typeof graph._buildSeries !== "function") return 0;
+                const threshold = Math.max(0, Number(MEP.State?.frequencyThreshold) || 0);
+                const period = Math.max(1, Math.floor(Number(MEP.State?.frequencyPeriod) || 1));
+                const oldestFirst = graph._toOldestFirstNumbers();
+                const fullSeries = graph._buildSeries(oldestFirst, threshold, period);
+                const last = fullSeries.length ? Number(fullSeries[fullSeries.length - 1]) : 0;
+                return Number.isFinite(last) ? last : 0;
+            },
+
+            getCurrentStakePlayersValue() {
+                const src = Array.isArray(MEP.State?.roundPlayersCountHistory) ? MEP.State.roundPlayersCountHistory : [];
+                for (let i = src.length - 1; i >= 0; i--) {
+                    const n = Number(src[i]);
+                    if (Number.isFinite(n)) return n;
+                }
+                return 0;
+            },
+
+            getCurrentStakeBetValue() {
+                const src = Array.isArray(MEP.State?.roundBetSumHistory) ? MEP.State.roundBetSumHistory : [];
+                for (let i = src.length - 1; i >= 0; i--) {
+                    const n = Number(src[i]);
+                    if (Number.isFinite(n)) return n;
+                }
+                return 0;
+            },
+
+            evaluateConditionBlocks(st = null, branch = "plus") {
                 const state = st || this.getState();
-                const blocks = this.ensureConditionBlocks(state);
+                const blocks = this.ensureConditionBlocks(state, branch);
                 const out = [];
+
+                const strategyEnabled = !!state?.enabled;
+                out.push({
+                    key: "strategy_enabled",
+                    enabled: true,
+                    currentValue: strategyEnabled ? "on" : "off",
+                    result: strategyEnabled,
+                });
 
                 const charterAllowed = state?.charterCheck?.allowed !== false;
                 out.push({
@@ -5534,6 +5999,68 @@
                     enabled: !!blocks.diff_vector_state.enabled,
                     currentValue: this.getDiffVectorShortLabelByState(diffState),
                     result: !!diffResult,
+                });
+
+                const freqMode = (blocks?.frequency_vector_state?.params?.mode || "gt").toString();
+                const freqState = (MEP.State?.frequencyVectorState || "flat").toString().trim().toLowerCase();
+                const freqResult = freqMode === "lt" ? freqState === "down" : freqMode === "flat" ? freqState === "flat" : freqState === "up";
+                out.push({
+                    key: "frequency_vector_state",
+                    enabled: !!blocks.frequency_vector_state.enabled,
+                    currentValue: this.getFrequencyVectorShortLabelByState(freqState),
+                    result: !!freqResult,
+                });
+
+                const frequencyValue = this.getCurrentFrequencyValue();
+                const frequencyLineThreshold = Math.max(0, Math.floor(Number(blocks?.frequency_line_gt?.params?.threshold) || 0));
+                out.push({
+                    key: "frequency_line_gt",
+                    enabled: !!blocks.frequency_line_gt.enabled,
+                    currentValue: frequencyValue,
+                    result: frequencyValue > frequencyLineThreshold,
+                    resultText: `${frequencyValue} > ${frequencyLineThreshold}`,
+                });
+
+                const stakePlayersMode = (blocks?.stake_players_vector_state?.params?.mode || "gt").toString();
+                const stakePlayersState = (MEP.State?.stakePlayersVectorState || "flat").toString().trim().toLowerCase();
+                const stakePlayersResult =
+                    stakePlayersMode === "lt" ? stakePlayersState === "down" : stakePlayersMode === "flat" ? stakePlayersState === "flat" : stakePlayersState === "up";
+                out.push({
+                    key: "stake_players_vector_state",
+                    enabled: !!blocks.stake_players_vector_state.enabled,
+                    currentValue: this.getStakePlayersVectorShortLabelByState(stakePlayersState),
+                    result: !!stakePlayersResult,
+                });
+
+                const stakeBetMode = (blocks?.stake_bet_vector_state?.params?.mode || "gt").toString();
+                const stakeBetState = (MEP.State?.stakeBetVectorState || "flat").toString().trim().toLowerCase();
+                const stakeBetResult =
+                    stakeBetMode === "lt" ? stakeBetState === "down" : stakeBetMode === "flat" ? stakeBetState === "flat" : stakeBetState === "up";
+                out.push({
+                    key: "stake_bet_vector_state",
+                    enabled: !!blocks.stake_bet_vector_state.enabled,
+                    currentValue: this.getStakeBetVectorShortLabelByState(stakeBetState),
+                    result: !!stakeBetResult,
+                });
+
+                const currentPlayers = this.getCurrentStakePlayersValue();
+                const playersThreshold = Math.max(0, Number(blocks?.stake_players_line_gte?.params?.threshold) || 0);
+                out.push({
+                    key: "stake_players_line_gte",
+                    enabled: !!blocks.stake_players_line_gte.enabled,
+                    currentValue: currentPlayers,
+                    result: currentPlayers >= playersThreshold,
+                    resultText: `${currentPlayers} >= ${playersThreshold}`,
+                });
+
+                const currentBet = this.getCurrentStakeBetValue();
+                const betThreshold = Math.max(0, Number(blocks?.stake_bet_line_gte?.params?.threshold) || 0);
+                out.push({
+                    key: "stake_bet_line_gte",
+                    enabled: !!blocks.stake_bet_line_gte.enabled,
+                    currentValue: currentBet,
+                    result: currentBet >= betThreshold,
+                    resultText: `${currentBet} >= ${betThreshold}`,
                 });
 
                 return out;
@@ -5672,6 +6199,280 @@
                 } catch (e) {}
             },
 
+            setExecutionDebugState(code = "", stage = "", text = "", meta = null) {
+                const st = this.getState();
+                if (!st?.runtime) return;
+                const c = (code || "").toString().trim();
+                const s = (stage || "").toString().trim();
+                const t = (text || c || "").toString().trim();
+                st.runtime.lastExecutionDebugCode = c;
+                st.runtime.lastExecutionDebugStage = s;
+                st.runtime.lastExecutionDebugText = t;
+                st.runtime.lastExecutionDebugMeta = meta && typeof meta === "object" ? { ...meta } : null;
+            },
+
+            setExecutionRejectInfo(reason = "", stage = "", textPrefix = "Ошибка ставки") {
+                const code = (reason || "execution_rejected").toString();
+                const phase = (MEP.State?.gamePhase || "").toString();
+                const message = `${textPrefix}: ${code}`;
+                this.setExecutionDebugState(code, stage || "execution", message, { phase });
+                if (phase === "bet") MEP.UI?.setStrategy1InfoMessage?.(message, { force: true });
+            },
+
+            getArmedTimeoutMs() {
+                return 5000;
+            },
+
+            clearArmedPermission(reason = "armed_cleared", opts = {}) {
+                const st = this.getState();
+                if (!st?.runtime) return;
+                const hadArmed = !!st.runtime.armedToBet;
+                st.runtime.armedToBet = false;
+                st.runtime.armedAtTs = 0;
+                st.runtime.armedBranch = "";
+                st.runtime.armedReason = (reason || "").toString();
+                st.runtime.armedPoolConditions = [];
+                st.runtime.armedBetAmount = 0;
+                st.runtime.armedTargetMultiplier = 0;
+                st.runtime.armedSourcePhase = "";
+                st.runtime.armedPermissionSnapshot = null;
+                st.runtime.armedPlanSnapshot = null;
+                if (hadArmed && opts?.notify) {
+                    const text = (opts?.message || "").toString().trim();
+                    if (text) MEP.UI?.setStrategy1InfoMessage?.(text, { force: true });
+                }
+            },
+
+            armBetPermission(permission = null, plan = null, sourcePhase = "") {
+                const st = this.getState();
+                if (!st?.runtime) return false;
+                if (!permission?.allowed || !plan?.ready) return false;
+                const branch = (permission.poolBranch || permission.branch || "").toString();
+                st.runtime.armedToBet = true;
+                st.runtime.armedAtTs = Date.now();
+                st.runtime.armedBranch = branch;
+                st.runtime.armedReason = "";
+                st.runtime.armedPoolConditions = Array.isArray(permission?.details?.pool?.conditions)
+                    ? permission.details.pool.conditions.map((it) => ({
+                          key: (it?.key || "").toString(),
+                          enabled: !!it?.enabled,
+                          result: !!it?.result,
+                          currentValue: it?.currentValue,
+                      }))
+                    : [];
+                st.runtime.armedBetAmount = Number(plan.betAmount) || 0;
+                st.runtime.armedTargetMultiplier = Number(plan.targetMultiplier) || 0;
+                st.runtime.armedSourcePhase = (sourcePhase || MEP.State?.gamePhase || "").toString();
+                st.runtime.armedPermissionSnapshot = permission && typeof permission === "object" ? { ...permission } : null;
+                st.runtime.armedPlanSnapshot = plan && typeof plan === "object" ? { ...plan } : null;
+                return true;
+            },
+
+            getArmedPermissionSnapshot(sourcePhase = "") {
+                const st = this.getState();
+                if (!st?.runtime?.armedToBet) return null;
+                const now = Date.now();
+                const timeoutMs = this.getArmedTimeoutMs();
+                const armedAtTs = Number(st.runtime.armedAtTs) || 0;
+                const ageMs = armedAtTs > 0 ? now - armedAtTs : Number.MAX_SAFE_INTEGER;
+                const timedOut = ageMs > timeoutMs;
+                const branchStillValid = ((st.runtime.armedBranch || "").toString() || "plus") === ((this.getRuntimeActiveBranch(st) || "plus").toString());
+                if (!st.enabled || timedOut || !branchStillValid) {
+                    const reason = !st.enabled ? "armed_strategy_disabled" : timedOut ? "armed_timeout" : "armed_branch_changed";
+                    const msg = timedOut ? "Armed timeout..." : reason === "armed_branch_changed" ? "Сигнал протух..." : "";
+                    this.clearArmedPermission(reason, { notify: !!msg, message: msg });
+                    return null;
+                }
+                return {
+                    valid: true,
+                    ageMs,
+                    timeoutMs,
+                    branch: (st.runtime.armedBranch || "").toString(),
+                    betAmount: Number(st.runtime.armedBetAmount) || 0,
+                    targetMultiplier: Number(st.runtime.armedTargetMultiplier) || 0,
+                    sourcePhase: (st.runtime.armedSourcePhase || "").toString(),
+                    permission: st.runtime.armedPermissionSnapshot ? { ...st.runtime.armedPermissionSnapshot } : null,
+                    plan: st.runtime.armedPlanSnapshot ? { ...st.runtime.armedPlanSnapshot } : null,
+                    poolConditions: Array.isArray(st.runtime.armedPoolConditions) ? [...st.runtime.armedPoolConditions] : [],
+                };
+            },
+
+            clearPendingDomSyncContext() {
+                const st = this.getState();
+                if (!st?.runtime) return;
+                st.runtime.pendingDomSyncContext = null;
+            },
+
+            continueExecutionAfterDomSync(syncResult = null, token = "") {
+                const st = this.getState();
+                if (!st?.runtime) return;
+                const pending = st.runtime.pendingDomSyncContext;
+                if (!pending || (token && pending.token !== token)) return;
+                this.clearPendingDomSyncContext();
+                this.executionDebug("[MEP][Strategy1][executeBet] async dom sync resolved", {
+                    token: pending.token,
+                    result: syncResult,
+                });
+                const sync = syncResult && typeof syncResult === "object" ? syncResult : { applied: false, reason: "dom_sync_failed", stage: "sync" };
+                if (!sync?.applied) {
+                    this.setExecutionState("bet_error", sync?.reason || "dom_sync_failed");
+                    this.onExecutionRejected(sync?.reason || "dom_sync_failed", sync || {});
+                    this.setExecutionState("idle", "bet_error_idle");
+                    return;
+                }
+                if (!st.enabled || st.runtime.waitingRoundResult || st.executionLocked) {
+                    this.setExecutionState("bet_error", "execution_locked");
+                    this.onExecutionRejected("execution_locked", { stage: "async_sync_continue" });
+                    this.setExecutionState("idle", "bet_error_idle");
+                    return;
+                }
+                const phase = (MEP.State?.gamePhase || "").toString();
+                if (phase !== "bet") {
+                    this.setExecutionState("bet_error", "bet_phase_not_active");
+                    this.onExecutionRejected("bet_phase_not_active", { stage: "async_sync_continue", phase });
+                    this.setExecutionState("idle", "bet_error_idle");
+                    return;
+                }
+                this.executionDebug("[MEP][Strategy1][executeBet] continue to clickBetButton", {
+                    token: pending.token,
+                    phase,
+                    ctx: pending.ctx || null,
+                });
+                const click = this.clickBetButton();
+                this.executionDebug("[MEP][Strategy1][executeBet] click result", click);
+                if (!click?.applied) {
+                    this.setExecutionState("bet_error", click?.reason || "dom_click_failed");
+                    this.onExecutionRejected(click?.reason || "dom_click_failed", click || {});
+                    this.setExecutionState("idle", "bet_error_idle");
+                    return;
+                }
+                const ctx = pending.ctx || {};
+                this.onExecutionAccepted({
+                    betAmount: Number(ctx.betAmount) || 0,
+                    targetMultiplier: Number(ctx.targetMultiplier) || 0,
+                    branch: (ctx.branch || "").toString(),
+                });
+            },
+
+            buildLiveBetDebugSummary(input = {}) {
+                const st = this.getState();
+                const runtime = st?.runtime || {};
+                const cycle = st?.cycle || {};
+                const permission = input?.permission || runtime.lastBetPermissionResult || {};
+                const plan = input?.plan || runtime.lastStakePlanResult || {};
+                const domSync = input?.domSync || runtime.lastDomSyncResult || null;
+                const click = input?.click || runtime.lastClickResult || null;
+                const phase = (input?.phase ?? MEP.State?.gamePhase ?? "").toString();
+                const armed = this.getArmedPermissionSnapshot(phase) || null;
+                const executionState = (input?.executionState ?? runtime.executionState ?? "idle").toString();
+                const reason = (input?.reason || runtime.lastExecutionDebugCode || runtime.lastExecutionReason || "").toString();
+                const stage = (input?.stage || runtime.lastExecutionDebugStage || "").toString();
+                const status = (input?.status || (reason ? "blocked" : "info")).toString();
+                const missingRequirement = (input?.missingRequirement || reason || "none").toString();
+                const signatureObj = {
+                    phase,
+                    executionState,
+                    permissionAllowed: !!permission?.allowed,
+                    permissionReason: (permission?.reason || "").toString(),
+                    cycleIsActive: !!cycle?.isActive,
+                    planReady: !!plan?.ready,
+                    reason,
+                    stage,
+                };
+                const signature = JSON.stringify(signatureObj);
+                return {
+                    phase,
+                    strategyEnabled: !!st?.enabled,
+                    executionState,
+                    cycleIsActive: !!cycle?.isActive,
+                    waitingRoundResult: !!runtime.waitingRoundResult,
+                    executionLocked: !!st?.executionLocked,
+                    manualPauseActive: !!runtime.manualPauseActive,
+                    waitingBalanceRecoveryActive: !!runtime.waitingBalanceRecoveryActive,
+                    permissionAllowed: !!permission?.allowed,
+                    permissionReason: (permission?.reason || "").toString(),
+                    branch: (permission?.branch || runtime.activeBranch || "").toString(),
+                    poolResult: permission?.poolResult ?? null,
+                    poolBranch: (permission?.poolBranch || permission?.details?.pool?.activeBranch || "").toString(),
+                    poolConditions: Array.isArray(permission?.details?.pool?.conditions) ? permission.details.pool.conditions : [],
+                    usingArmedPermission: !!input?.usingArmedPermission,
+                    armedToBet: !!runtime.armedToBet,
+                    armedAtTs: Number(runtime.armedAtTs) || 0,
+                    armedBranch: (runtime.armedBranch || "").toString(),
+                    armedBetAmount: Number(runtime.armedBetAmount) || 0,
+                    armedTargetMultiplier: Number(runtime.armedTargetMultiplier) || 0,
+                    armedSourcePhase: (runtime.armedSourcePhase || "").toString(),
+                    armedStillValid: !!armed?.valid,
+                    stakePlanReady: !!plan?.ready,
+                    stakePlanInvalidReason: (plan?.invalidReason || "").toString(),
+                    stakePlanBetAmount: Number(plan?.betAmount) || 0,
+                    stakePlanTargetMultiplier: Number(plan?.targetMultiplier) || 0,
+                    domSync,
+                    click,
+                    status,
+                    stage,
+                    reason,
+                    missingRequirement,
+                    signature,
+                };
+            },
+
+            logLiveBetConsole(summary = {}, force = false) {
+                if (!this.isExecutionDebugEnabled()) return;
+                const st = this.getState();
+                if (!st?.runtime) return;
+                if ((summary?.phase || "") !== "bet" && !force) return;
+                if (!force && st.runtime.lastLiveDebugSignature === summary.signature) return;
+                st.runtime.lastLiveDebugSignature = summary.signature;
+                st.runtime.lastLiveDebugTs = Date.now();
+                try {
+                    console.groupCollapsed("[MEP][Strategy1][LIVE][BET]");
+                    console.log("A.input", {
+                        gamePhase: summary.phase,
+                        strategyEnabled: summary.strategyEnabled,
+                        executionState: summary.executionState,
+                        cycleIsActive: summary.cycleIsActive,
+                        waitingRoundResult: summary.waitingRoundResult,
+                        executionLocked: summary.executionLocked,
+                        manualPauseActive: summary.manualPauseActive,
+                        waitingBalanceRecoveryActive: summary.waitingBalanceRecoveryActive,
+                    });
+                    console.log("B.permission", {
+                        allowed: summary.permissionAllowed,
+                        reason: summary.permissionReason,
+                        activeBranch: summary.branch,
+                        poolBranch: summary.poolBranch,
+                        poolResult: summary.poolResult,
+                        poolConditions: summary.poolConditions,
+                        usingArmedPermission: summary.usingArmedPermission,
+                        armedToBet: summary.armedToBet,
+                        armedStillValid: summary.armedStillValid,
+                        armedAtTs: summary.armedAtTs,
+                        armedBranch: summary.armedBranch,
+                        armedBetAmount: summary.armedBetAmount,
+                        armedTargetMultiplier: summary.armedTargetMultiplier,
+                        armedSourcePhase: summary.armedSourcePhase,
+                    });
+                    console.log("C.plan", {
+                        ready: summary.stakePlanReady,
+                        invalidReason: summary.stakePlanInvalidReason,
+                        betAmount: summary.stakePlanBetAmount,
+                        targetMultiplier: summary.stakePlanTargetMultiplier,
+                    });
+                    console.log("F.dom_sync", summary.domSync || null);
+                    console.log("G.click", summary.click || null);
+                    console.log("H.final", {
+                        status: summary.status,
+                        stage: summary.stage,
+                        reason: summary.reason,
+                        missingRequirement: summary.missingRequirement,
+                    });
+                    const finalLine = summary.status === "ok" ? "LIVE BET ready: all requirements passed" : `LIVE BET blocked: ${summary.missingRequirement || "unknown_reason"}`;
+                    console.log(finalLine);
+                    console.groupEnd();
+                } catch (e) {}
+            },
+
             formatDomNumber(v, fallback = "0") {
                 const n = Number(v);
                 if (!Number.isFinite(n) || n < 0) return fallback;
@@ -5785,89 +6586,162 @@
             },
 
             async syncBetInputsToDom(plan = {}) {
+                const st = this.getState();
+                const debugSync = {
+                    entered: true,
+                    stage: "enter",
+                    reason: "",
+                    amountInputFound: false,
+                    targetInputFound: false,
+                    betButtonFound: false,
+                    amountValuePlanned: this.formatDomNumber(plan?.betAmount, "0"),
+                    targetValuePlanned: this.formatDomNumber(plan?.targetMultiplier, "2"),
+                    amountValueApplied: "",
+                    targetValueApplied: "",
+                    amountAppliedOk: false,
+                    targetAppliedOk: false,
+                };
                 const root = this.findSidebarRoot();
                 this.executionDebug("[MEP][Strategy1][sync] root found", { found: !!root });
                 if (!root) {
-                    const out = { applied: false, reason: "sidebar_not_found", stage: "find_dom" };
+                    debugSync.stage = "find_dom";
+                    debugSync.reason = "sidebar_not_found";
+                    const out = { applied: false, reason: "sidebar_not_found", stage: "find_dom", debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
                 const manual = await this.ensureManualMode(root);
                 this.executionDebug("[MEP][Strategy1][sync] manual mode ensured", manual);
                 if (!manual?.applied) {
-                    const out = { applied: false, reason: manual?.reason || "manual_mode_unavailable", stage: "manual_mode" };
+                    debugSync.stage = "manual_mode";
+                    debugSync.reason = manual?.reason || "manual_mode_unavailable";
+                    const out = { applied: false, reason: manual?.reason || "manual_mode_unavailable", stage: "manual_mode", debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
                 const betInput = this.findBetAmountInput(root);
                 const targetInput = this.findTargetMultiplierInput(root);
+                const betBtn = MEP.UI.getGameBetButton();
+                debugSync.amountInputFound = !!betInput;
+                debugSync.targetInputFound = !!targetInput;
+                debugSync.betButtonFound = !!betBtn;
                 this.executionDebug("[MEP][Strategy1][sync] bet input found", { found: !!betInput });
                 this.executionDebug("[MEP][Strategy1][sync] target input found", { found: !!targetInput });
                 if (!betInput) {
-                    const out = { applied: false, reason: "amount_input_not_found", stage: "find_dom" };
+                    debugSync.stage = "find_dom";
+                    debugSync.reason = "amount_input_not_found";
+                    const out = { applied: false, reason: "amount_input_not_found", stage: "find_dom", debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
                 if (!targetInput) {
-                    const out = { applied: false, reason: "target_input_not_found", stage: "find_dom" };
+                    debugSync.stage = "find_dom";
+                    debugSync.reason = "target_input_not_found";
+                    const out = { applied: false, reason: "target_input_not_found", stage: "find_dom", debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
-                const betValue = this.formatDomNumber(plan?.betAmount, "0");
-                const targetValue = this.formatDomNumber(plan?.targetMultiplier, "2");
+                const betValue = debugSync.amountValuePlanned;
+                const targetValue = debugSync.targetValuePlanned;
                 this.executionDebug("[MEP][Strategy1][sync] set values", { betValue, targetValue });
-                const betOk = this.setNativeInputValue(betInput, betValue);
+                const betOk = MEP.UI.applyGameAmountValue(betValue) || this.setNativeInputValue(betInput, betValue);
                 if (!betOk) {
-                    const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "set_dom", betValue };
+                    debugSync.stage = "set_dom";
+                    debugSync.reason = "bet_amount_value_not_applied";
+                    const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "set_dom", betValue, debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
-                const targetOk = this.setNativeInputValue(targetInput, targetValue);
+                const targetOk = MEP.UI.applyGameTargetValue(targetValue) || this.setNativeInputValue(targetInput, targetValue);
                 if (!targetOk) {
-                    const out = { applied: false, reason: "target_value_not_applied", stage: "set_dom", targetValue };
+                    debugSync.stage = "set_dom";
+                    debugSync.reason = "target_value_not_applied";
+                    const out = { applied: false, reason: "target_value_not_applied", stage: "set_dom", targetValue, debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
                 const betApplied = (betInput.value || "").toString().trim();
                 const targetApplied = (targetInput.value || "").toString().trim();
+                debugSync.amountValueApplied = betApplied;
+                debugSync.targetValueApplied = targetApplied;
                 this.executionDebug("[MEP][Strategy1][sync] verify values", { betApplied, targetApplied });
-                if (!betApplied || betApplied !== betValue) {
-                    const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "verify_dom", betValue, betApplied };
+                const betExpectedNum = Number(MEP.Utils.cleanToNum(betValue));
+                const betAppliedNum = Number(MEP.Utils.cleanToNum(betApplied));
+                const targetExpectedNum = Number(MEP.Utils.cleanToNum(targetValue));
+                const targetAppliedNum = Number(MEP.Utils.cleanToNum(targetApplied));
+                const betMatches = Number.isFinite(betExpectedNum) && Number.isFinite(betAppliedNum) && Math.abs(betExpectedNum - betAppliedNum) <= 1e-8;
+                const targetMatches = Number.isFinite(targetExpectedNum) && Number.isFinite(targetAppliedNum) && Math.abs(targetExpectedNum - targetAppliedNum) <= 1e-6;
+                debugSync.amountAppliedOk = !!betMatches;
+                debugSync.targetAppliedOk = !!targetMatches;
+                if (!betMatches) {
+                    debugSync.stage = "verify_dom";
+                    debugSync.reason = "bet_amount_value_not_applied";
+                    const out = { applied: false, reason: "bet_amount_value_not_applied", stage: "verify_dom", betValue, betApplied, debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
-                if (!targetApplied || targetApplied !== targetValue) {
-                    const out = { applied: false, reason: "target_value_not_applied", stage: "verify_dom", targetValue, targetApplied };
+                if (!targetMatches) {
+                    debugSync.stage = "verify_dom";
+                    debugSync.reason = "target_value_not_applied";
+                    const out = { applied: false, reason: "target_value_not_applied", stage: "verify_dom", targetValue, targetApplied, debugSync };
+                    if (st?.runtime) st.runtime.lastDomSyncResult = out;
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
-                const st = this.getState();
                 if (st?.runtime) st.runtime.lastDomSyncAtTs = Date.now();
-                const out = { applied: true, reason: "", stage: "dom_synced", betValue, targetValue };
+                debugSync.stage = "dom_synced";
+                const out = { applied: true, reason: "", stage: "dom_synced", betValue, targetValue, debugSync };
+                if (st?.runtime) st.runtime.lastDomSyncResult = out;
                 this.executionDebug("[MEP][Strategy1][sync] result", out);
                 return out;
             },
 
             clickBetButton() {
-                const root = this.findSidebarRoot();
-                if (!root) {
-                    const out = { applied: false, reason: "sidebar_not_found", stage: "click" };
-                    this.executionWarn("[MEP][Strategy1][clickBetButton state]", { ...out, found: false });
+                const st = this.getState();
+                const btn = MEP.UI.getGameBetButton();
+                if (!btn) {
+                    const out = {
+                        applied: false,
+                        reason: "bet_button_not_found",
+                        stage: "click",
+                        debugClick: { entered: true, buttonFound: false, phase: "", disabled: true, clickPerformed: false, buttonText: "" },
+                    };
+                    if (st?.runtime) st.runtime.lastClickResult = out;
+                    this.executionWarn("[MEP][Strategy1][clickBetButton state]", out);
                     return out;
                 }
-                const btn = this.findBetButton(root);
-                const state = this.readBetButtonState(btn);
-                this.executionDebug("[MEP][Strategy1][clickBetButton state]", state);
-                if (!state.found) return { applied: false, reason: "bet_button_not_found", stage: "click" };
-                if (state.disabled) return { applied: false, reason: "bet_button_disabled", stage: "click" };
-                if (!state.canClick) return { applied: false, reason: "bet_button_unavailable_state", stage: "click" };
+                const phase = MEP.UI.resolveGamePhaseFromBetButton(btn);
+                const disabled = !!btn.disabled || btn.getAttribute?.("aria-disabled") === "true";
+                const text = (MEP.UI.getGameBetButtonText(btn) || btn.textContent || "").toString().trim();
+                const debugClick = { entered: true, buttonFound: true, phase, disabled, clickPerformed: false, buttonText: text };
+                this.executionDebug("[MEP][Strategy1][clickBetButton state]", { phase, disabled, text });
+                if (phase !== "bet") {
+                    const out = { applied: false, reason: "bet_phase_not_active", stage: "click", debugClick };
+                    if (st?.runtime) st.runtime.lastClickResult = out;
+                    return out;
+                }
+                if (disabled) {
+                    const out = { applied: false, reason: "bet_button_disabled", stage: "click", debugClick };
+                    if (st?.runtime) st.runtime.lastClickResult = out;
+                    return out;
+                }
                 try {
                     btn.click();
-                    const out = { applied: true, reason: "", stage: "clicked" };
+                    debugClick.clickPerformed = true;
+                    const out = { applied: true, reason: "", stage: "clicked", debugClick };
+                    if (st?.runtime) st.runtime.lastClickResult = out;
                     this.executionDebug("[MEP][Strategy1][clickBetButton result]", out);
                     return out;
                 } catch (e) {
-                    const out = { applied: false, reason: "dom_click_failed", stage: "click" };
+                    const out = { applied: false, reason: "dom_click_failed", stage: "click", debugClick };
+                    if (st?.runtime) st.runtime.lastClickResult = out;
                     this.executionWarn("[MEP][Strategy1][clickBetButton result]", out);
                     return out;
                 }
@@ -5895,8 +6769,13 @@
             onExecutionRejected(reason = "execution_rejected", extra = {}) {
                 const st = this.getState();
                 if (!st) return { applied: false, reason: "strategy1_not_found", stage: "reject" };
+                const rejectReason = (reason || "").toString();
+                const rejectStage = (extra?.stage || "reject").toString();
+                this.setExecutionRejectInfo(rejectReason, rejectStage, "Ошибка ставки");
+                this.clearArmedPermission("armed_rejected");
+                this.clearPendingDomSyncContext();
                 this.executionWarn("[MEP][Strategy1][execution rejected]", {
-                    reason: (reason || "").toString(),
+                    reason: rejectReason,
                     extra: extra && typeof extra === "object" ? { ...extra } : {},
                     state: {
                         cycleIsActive: !!st.cycle?.isActive,
@@ -5906,23 +6785,23 @@
                     },
                 });
                 st.runtime.lastExecutionAtTs = Date.now();
-                st.runtime.lastExecutionReason = (reason || "").toString();
+                st.runtime.lastExecutionReason = rejectReason;
                 st.runtime.lastExecutionResult = "rejected";
                 st.runtime.executionState = "rejected";
                 this.pushSystemMessage({
                     level: "warn",
                     action: "executeBet",
-                    text: `Ставка не выполнена: ${reason}`,
+                    text: `Ставка не выполнена: ${rejectReason}`,
                     code: "execution_rejected",
                     stage: "execution",
-                    reason: (reason || "").toString(),
+                    reason: rejectReason,
                     payload: extra && typeof extra === "object" ? { ...extra } : {},
                 });
                 this.announceStateTransition("execution", this.EVENT_CODES.EXECUTION_REJECTED, {
-                    reason: (reason || "").toString(),
+                    reason: rejectReason,
                 });
                 this.updateUiCounters();
-                return { applied: false, reason: (reason || "").toString(), stage: "reject" };
+                return { applied: false, reason: rejectReason, stage: "reject" };
             },
 
             onExecutionAccepted(payload = {}) {
@@ -5930,6 +6809,8 @@
                 if (!st) return { applied: false, reason: "strategy1_not_found", stage: "accept" };
                 const p = payload && typeof payload === "object" ? payload : {};
                 const now = Date.now();
+                this.clearArmedPermission("armed_bet_sent");
+                this.clearPendingDomSyncContext();
                 this.lockExecution("bet_sent");
                 st.runtime.lastExecutionAtTs = now;
                 st.runtime.lastExecutionReason = "bet_sent";
@@ -5945,7 +6826,14 @@
                     stepIndex: Number(st.cycle?.stepIndex) || 0,
                 };
                 st.runtime.lastExecutionRoundId = "";
-                st.runtime.waitingRoundResult = true;
+                st.runtime.waitingRoundResult = false;
+                st.runtime.executionState = "waiting_placed";
+                st.runtime.executionPhaseSinceTs = now;
+                st.runtime.betAcceptedInFlight = false;
+                this.setExecutionDebugState("waiting_placed", "accept", "Ставка отправлена: waiting_placed", {
+                    betAmount: Number(p.betAmount) || 0,
+                    targetMultiplier: Number(p.targetMultiplier) || 0,
+                });
                 st.cycle.lastStake = Number(p.betAmount) || 0;
                 st.cycle.lastTargetMultiplier = Number(p.targetMultiplier) || 0;
                 st.counters.lastStake = Number(p.betAmount) || 0;
@@ -5974,14 +6862,18 @@
                 return {
                     applied: true,
                     reason: "",
-                    stage: "awaiting_round_result",
+                    stage: "waiting_placed",
                     betAmount: Number(p.betAmount) || 0,
                     targetMultiplier: Number(p.targetMultiplier) || 0,
                 };
             },
 
-            executeBet() {
+            executeBet(opts = {}) {
                 const st = this.getState();
+                const useArmedPermission = !!opts?.useArmedPermission;
+                const permissionOverride = opts?.permissionOverride && typeof opts.permissionOverride === "object" ? opts.permissionOverride : null;
+                const planOverride = opts?.planOverride && typeof opts.planOverride === "object" ? opts.planOverride : null;
+                this.setExecutionDebugState("execute_enter", "execute_enter", "executeBet entered");
                 if (this.isExecutionDebugEnabled()) {
                     try {
                         console.groupCollapsed("[MEP][Strategy1][executeBet]");
@@ -6007,44 +6899,61 @@
                     activeStrategyId: (MEP.State?.activeStrategyId || "").toString(),
                 });
                 if (st.enabled !== true) {
+                    this.setExecutionDebugState("strategy_disabled", "guard", "executeBet blocked: strategy_disabled");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "strategy_disabled" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("strategy_disabled");
                 }
                 if (st.executionLocked) {
+                    this.setExecutionDebugState("execution_locked", "guard", "executeBet blocked: execution_locked");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "execution_locked" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("execution_locked");
                 }
                 if (!st.cycle?.isActive) {
+                    this.setExecutionDebugState("cycle_inactive", "guard", "executeBet blocked: cycle_inactive");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "cycle_inactive" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("cycle_inactive");
                 }
                 if (st.runtime?.manualPauseActive) {
+                    this.setExecutionDebugState("manual_pause_active", "guard", "executeBet blocked: manual_pause_active");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "manual_pause_active" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("manual_pause_active");
                 }
                 if (st.runtime?.waitingBalanceRecoveryActive) {
+                    this.setExecutionDebugState(
+                        "waiting_balance_recovery_active",
+                        "guard",
+                        "executeBet blocked: waiting_balance_recovery_active"
+                    );
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "waiting_balance_recovery_active" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("waiting_balance_recovery_active");
                 }
                 if (st.runtime?.waitingRoundResult) {
+                    this.setExecutionDebugState("waiting_round_result", "guard", "executeBet blocked: waiting_round_result");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "waiting_round_result" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("waiting_round_result");
                 }
                 if ((st.runtime?.executionState || "") === "awaiting_round_result") {
+                    this.setExecutionDebugState("already_executing", "guard", "executeBet blocked: already_executing");
                     this.executionWarn("[MEP][Strategy1][executeBet guard]", { code: "already_executing" });
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected("already_executing");
                 }
 
-                const permission = this.evaluateBetPermission();
+                const permission = useArmedPermission && permissionOverride ? permissionOverride : this.evaluateBetPermission();
                 this.executionDebug("[MEP][Strategy1][permission]", permission);
                 if (!permission?.allowed) {
+                    this.setExecutionDebugState(
+                        permission?.reason || "permission_denied",
+                        "permission",
+                        `executeBet blocked: ${permission?.reason || "permission_denied"}`,
+                        { permission: permission || null }
+                    );
                     this.executionWarn("[MEP][Strategy1][permission reject]", {
                         reason: permission?.reason || "permission_denied",
                         stage: permission?.stage || "",
@@ -6056,6 +6965,7 @@
                     return this.onExecutionRejected(permission?.reason || "permission_denied", { stage: permission?.stage || "" });
                 }
                 if (permission?.shouldEndCycle) {
+                    this.setExecutionDebugState("cycle_should_end", "permission", "executeBet blocked: cycle_should_end", { permission: permission || null });
                     this.executionWarn("[MEP][Strategy1][permission reject]", {
                         reason: "cycle_should_end",
                         stage: permission?.stage || "",
@@ -6067,17 +6977,27 @@
                     return this.onExecutionRejected("cycle_should_end");
                 }
 
-                const plan = this.buildStakePlan();
+                const plan = useArmedPermission && planOverride ? { ...planOverride } : this.buildStakePlan();
+                this.setExecutionDebugState(
+                    plan?.ready ? "stakeplan_ready" : "stakeplan_invalid",
+                    "stake_plan",
+                    plan?.ready ? "stakePlan ready" : `stakePlan invalid: ${plan?.invalidReason || "stake_plan_invalid"}`,
+                    { plan: plan || null }
+                );
                 this.executionDebug("[MEP][Strategy1][plan]", {
                     ready: plan?.ready,
                     invalidReason: plan?.invalidReason,
                     betAmount: plan?.betAmount,
                     targetMultiplier: plan?.targetMultiplier,
+                    currentBalance: plan?.currentBalance,
+                    balanceSource: plan?.balanceSource,
+                    riskPercent: plan?.riskPercent,
                     riskCap: plan?.riskCap,
                     maxAllowedStake: plan?.maxAllowedStake,
                     allowedByRisk: plan?.allowedByRisk,
                     calcMode: plan?.calcMode,
                     sourceStep: plan?.sourceStep,
+                    riskDebug: plan?.riskDebug || null,
                 });
                 if (!plan?.ready) {
                     this.executionWarn("[MEP][Strategy1][plan reject]", plan);
@@ -6085,8 +7005,45 @@
                     return this.onExecutionRejected(plan?.invalidReason || "stake_plan_invalid");
                 }
 
-                const sync = this.syncBetInputsToDom(plan);
-                this.executionDebug("[MEP][Strategy1][sync result raw]", sync);
+                const syncRaw = this.syncBetInputsToDom(plan);
+                const isSyncPromise = !!syncRaw && typeof syncRaw.then === "function";
+                this.executionDebug("[MEP][Strategy1][sync result raw]", { isPromise: isSyncPromise, value: syncRaw });
+                if (isSyncPromise) {
+                    const token = `sync_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                    const phaseAtStart = (MEP.State?.gamePhase || "").toString();
+                    const ctx = {
+                        betAmount: Number(plan?.betAmount) || 0,
+                        targetMultiplier: Number(plan?.targetMultiplier) || 0,
+                        branch: (permission?.branch || permission?.poolBranch || "").toString(),
+                        cycleId: (st.cycle?.cycleId || "").toString(),
+                        phaseAtStart,
+                    };
+                    st.runtime.pendingDomSyncContext = {
+                        token,
+                        ts: Date.now(),
+                        ctx,
+                    };
+                    this.setExecutionState("waiting_dom_sync", "dom_sync_async_pending");
+                    this.setExecutionDebugState("dom_sync_async_pending", "sync", "syncBetInputsToDom async started", { async: true, token, ctx });
+                    this.executionDebug("[MEP][Strategy1][executeBet] async dom sync started", { token, ctx });
+                    try {
+                        syncRaw.then((resolved) => {
+                            this.executionDebug("[MEP][Strategy1][sync async resolved]", resolved);
+                            this.continueExecutionAfterDomSync(resolved, token);
+                        }).catch((err) => {
+                            this.continueExecutionAfterDomSync({ applied: false, reason: "dom_sync_failed", stage: "sync_async_reject", error: String(err || "") }, token);
+                        });
+                    } catch (e) {}
+                    if (this.isExecutionDebugEnabled()) console.groupEnd?.();
+                    return { applied: false, pending: true, reason: "dom_sync_async_pending", stage: "waiting_dom_sync", token };
+                }
+                const sync = syncRaw;
+                this.setExecutionDebugState(
+                    sync?.applied ? "dom_sync_ok" : sync?.reason || "dom_sync_failed",
+                    "sync",
+                    sync?.applied ? "syncBetInputsToDom applied" : `syncBetInputsToDom failed: ${sync?.reason || "dom_sync_failed"}`,
+                    sync || null
+                );
                 if (!sync?.applied) {
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected(sync?.reason || "dom_sync_failed", sync || {});
@@ -6094,6 +7051,12 @@
 
                 const click = this.clickBetButton();
                 this.executionDebug("[MEP][Strategy1][click result]", click);
+                this.setExecutionDebugState(
+                    click?.applied ? "dom_click_ok" : click?.reason || "dom_click_failed",
+                    "click",
+                    click?.applied ? "clickBetButton applied" : `clickBetButton failed: ${click?.reason || "dom_click_failed"}`,
+                    click || null
+                );
                 if (!click?.applied) {
                     if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                     return this.onExecutionRejected(click?.reason || "dom_click_failed", click || {});
@@ -6102,10 +7065,251 @@
                 const accepted = this.onExecutionAccepted({
                     betAmount: plan.betAmount,
                     targetMultiplier: plan.targetMultiplier,
-                    branch: permission?.branch || "",
+                    branch: permission?.branch || permission?.poolBranch || "",
                 });
+                this.setExecutionDebugState(
+                    accepted?.applied ? "bet_sent" : accepted?.reason || "bet_send_failed",
+                    "final",
+                    accepted?.applied ? "executeBet applied" : `executeBet failed: ${accepted?.reason || "bet_send_failed"}`,
+                    accepted || null
+                );
                 if (this.isExecutionDebugEnabled()) console.groupEnd?.();
                 return accepted;
+            },
+
+            setExecutionState(next = "idle", reason = "") {
+                const st = this.getState();
+                if (!st) return;
+                st.runtime.executionState = (next || "idle").toString();
+                st.runtime.executionPhaseSinceTs = Date.now();
+                if (reason) st.runtime.lastExecutionReason = (reason || "").toString();
+            },
+
+            processGamePhaseExecution() {
+                const st = this.getState();
+                if (!st) return;
+                if (!st.enabled) {
+                    this.clearArmedPermission("armed_strategy_disabled");
+                    this.clearPendingDomSyncContext();
+                    return;
+                }
+                if (st.runtime.phaseMachineBusy) return;
+                st.runtime.phaseMachineBusy = true;
+                try {
+                    const phase = (MEP.State?.gamePhase || "").toString();
+                    const prevPhase = (st.runtime.lastGamePhase || "").toString();
+                    st.runtime.lastGamePhase = phase;
+
+                    const execState = (st.runtime.executionState || "idle").toString();
+                    const sinceTs = Number(st.runtime.executionPhaseSinceTs) || 0;
+                    const elapsed = sinceTs > 0 ? Date.now() - sinceTs : 0;
+                    this.setExecutionDebugState("exec_enter", "phase_machine", "processGamePhaseExecution entered", {
+                        phase,
+                        executionState: execState,
+                    });
+                    this.logLiveBetConsole(
+                        this.buildLiveBetDebugSummary({
+                            phase,
+                            executionState: execState,
+                            status: "info",
+                            stage: "A",
+                            reason: "exec_enter",
+                            missingRequirement: "collecting_requirements",
+                        })
+                    );
+
+                    if ((execState === "idle" || execState === "bet_error" || execState === "round_resolved") && !st.runtime.waitingRoundResult) {
+                        const permission = this.evaluateBetPermission();
+                        const planCandidate = permission?.allowed ? this.buildStakePlan() : null;
+                        const planReady = !!planCandidate?.ready;
+                        const armedBefore = this.getArmedPermissionSnapshot(phase);
+                        if (!armedBefore && permission?.allowed && planReady) {
+                            const armed = this.armBetPermission(permission, planCandidate, phase);
+                            if (armed) {
+                                this.setExecutionDebugState("signal_armed", "arm", "Сигнал зафиксирован...");
+                                MEP.UI?.setStrategy1InfoMessage?.("Сигнал зафиксирован...", { force: true });
+                            }
+                        }
+                        const armed = this.getArmedPermissionSnapshot(phase);
+                        const canUseArmed = !!armed?.valid;
+                        if (phase === "bet" && !canUseArmed && !permission?.allowed) {
+                            const reasonCode = permission?.reason || "permission_denied";
+                            this.setExecutionRejectInfo(reasonCode, "permission", "Нет боевого режима");
+                            this.logLiveBetConsole(
+                                this.buildLiveBetDebugSummary({
+                                    phase,
+                                    executionState: execState,
+                                    permission,
+                                    plan: planCandidate || null,
+                                    usingArmedPermission: false,
+                                    status: "blocked",
+                                    stage: "B",
+                                    reason: reasonCode,
+                                    missingRequirement: `permission.allowed=false (${reasonCode})`,
+                                }),
+                                true
+                            );
+                        }
+                        if (phase === "bet" && (canUseArmed || permission?.allowed)) {
+                            if (st.cycle?.isActive !== true) {
+                                const started = !!this.startCycle();
+                                this.setExecutionDebugState(started ? "cycle_started" : "cycle_start_failed", "cycle", started ? "startCycle done" : "startCycle failed");
+                                if (!started || st.cycle?.isActive !== true) {
+                                    this.setExecutionState("bet_error", "start_cycle_failed");
+                                    this.setExecutionRejectInfo("start_cycle_failed", "cycle", "Ошибка ставки");
+                                    this.setExecutionState("idle", "bet_error_idle");
+                                    this.logLiveBetConsole(
+                                        this.buildLiveBetDebugSummary({
+                                            phase,
+                                            executionState: execState,
+                                            permission,
+                                            status: "blocked",
+                                            stage: "D",
+                                            reason: "start_cycle_failed",
+                                            missingRequirement: "cycle.isActive=false",
+                                        }),
+                                        true
+                                    );
+                                    return;
+                                }
+                            } else {
+                                this.setExecutionDebugState("cycle_skipped", "cycle", "startCycle skipped (already active)");
+                            }
+                            if ((Number(st.cycle?.lossCount) || 0) === 0 && !(Number(st.runtime.preCycleBalance) > 0)) {
+                                st.runtime.preCycleBalance = Number(this.getCurrentBalance()) || 0;
+                            }
+                            const permissionForExecute = canUseArmed
+                                ? { ...(armed.permission || permission), allowed: true, reason: "", stage: "armed_ready" }
+                                : permission;
+                            const planForExecute = canUseArmed ? armed.plan || planCandidate : planCandidate;
+                            const serviceData = MEP.UI?.getStrategy1StakeServiceData?.(st) || null;
+                            this.executionDebug("[MEP][Strategy1][stake parity]", {
+                                service: serviceData
+                                    ? {
+                                          mode: serviceData.mode,
+                                          nextFixed: Number(serviceData.nextFixed) || 0,
+                                          nextPercent: Number(serviceData.nextPercent) || 0,
+                                          targetNextValue: Number(serviceData.targetNextValue) || 0,
+                                      }
+                                    : null,
+                                real: {
+                                    betAmount: Number(planForExecute?.betAmount) || 0,
+                                    targetMultiplier: Number(planForExecute?.targetMultiplier) || 0,
+                                },
+                            });
+                            this.setExecutionState("ready_to_bet", "ready_to_bet");
+                            this.setExecutionDebugState(
+                                canUseArmed ? "permission_ok_armed" : "permission_ok",
+                                "permission",
+                                canUseArmed ? "Вход в ставку по зафиксированному сигналу..." : "permission ok"
+                            );
+                            if (canUseArmed) MEP.UI?.setStrategy1InfoMessage?.("Вход в ставку по зафиксированному сигналу...", { force: true });
+                            this.setExecutionState("clicking_bet", "clicking_bet");
+                            this.setExecutionDebugState("execute_enter", "execution", "executeBet entered");
+                            const out = this.executeBet({
+                                useArmedPermission: canUseArmed,
+                                permissionOverride: permissionForExecute,
+                                planOverride: planForExecute,
+                            });
+                            if (out?.pending) {
+                                this.setExecutionDebugState("waiting_dom_sync", "execution", "Ожидание async DOM sync...");
+                                return;
+                            }
+                            if (!out?.applied) {
+                                const reasonCode = out?.reason || st.runtime.lastExecutionDebugCode || "bet_click_failed";
+                                this.setExecutionState("bet_error", reasonCode);
+                                this.setExecutionRejectInfo(reasonCode, out?.stage || "execution", "Ошибка ставки");
+                                this.setExecutionState("idle", "bet_error_idle");
+                                this.logLiveBetConsole(
+                                    this.buildLiveBetDebugSummary({
+                                        phase,
+                                        executionState: "clicking_bet",
+                                        permission: permissionForExecute,
+                                        plan: planForExecute || st.runtime.lastStakePlanResult || null,
+                                        domSync: st.runtime.lastDomSyncResult || null,
+                                        click: st.runtime.lastClickResult || null,
+                                        usingArmedPermission: canUseArmed,
+                                        status: "blocked",
+                                        stage: out?.stage || st.runtime.lastExecutionDebugStage || "execution",
+                                        reason: reasonCode,
+                                        missingRequirement: reasonCode,
+                                    }),
+                                    true
+                                );
+                            } else {
+                                this.setExecutionDebugState("waiting_placed", "execution", "waiting_placed started");
+                                this.logLiveBetConsole(
+                                    this.buildLiveBetDebugSummary({
+                                        phase,
+                                        executionState: "waiting_placed",
+                                        permission: permissionForExecute,
+                                        plan: planForExecute || st.runtime.lastStakePlanResult || null,
+                                        domSync: st.runtime.lastDomSyncResult || null,
+                                        click: st.runtime.lastClickResult || null,
+                                        usingArmedPermission: canUseArmed,
+                                        status: "ok",
+                                        stage: "I",
+                                        reason: "waiting_placed",
+                                        missingRequirement: "none",
+                                    }),
+                                    true
+                                );
+                            }
+                        }
+                        return;
+                    }
+
+                if (execState === "waiting_placed") {
+                    if (phase === "placed") {
+                        st.runtime.postBetBalance = Number(this.getCurrentBalance()) || 0;
+                        st.runtime.waitingRoundResult = true;
+                        this.setExecutionState("waiting_in_game", "placed_confirmed");
+                    } else if (phase === "in_game") {
+                        st.runtime.postBetBalance = Number(this.getCurrentBalance()) || Number(st.runtime.postBetBalance) || 0;
+                        st.runtime.waitingRoundResult = true;
+                        if (!st.runtime.betAcceptedInFlight) {
+                            st.runtime.betAcceptedInFlight = true;
+                            st.cycle.betCount = (Number(st.cycle.betCount) || 0) + 1;
+                        }
+                        MEP.UI?.setStrategy1InfoMessage?.("Ставка сделана...", { force: true });
+                        this.setExecutionState("waiting_round_finish", "in_game_direct");
+                    } else if (elapsed > 10000 && phase !== "bet") {
+                        st.runtime.waitingRoundResult = false;
+                        this.setExecutionState("bet_error", "placed_not_reached");
+                        MEP.UI?.setStrategy1InfoMessage?.("Ошибка ставки...", { force: true });
+                        this.setExecutionState("idle", "bet_error_idle");
+                    }
+                    return;
+                }
+
+                if (execState === "waiting_dom_sync") {
+                    // async sync continuation handles click/accept path
+                    return;
+                }
+
+                if (execState === "waiting_in_game") {
+                    if (phase === "in_game") {
+                        if (!st.runtime.betAcceptedInFlight) {
+                            st.runtime.betAcceptedInFlight = true;
+                            st.cycle.betCount = (Number(st.cycle.betCount) || 0) + 1;
+                        }
+                        MEP.UI?.setStrategy1InfoMessage?.("Ставка сделана...", { force: true });
+                        this.setExecutionState("waiting_round_finish", "in_game_reached");
+                    } else if (elapsed > 15000 && phase !== "placed") {
+                        st.runtime.waitingRoundResult = false;
+                        this.setExecutionState("bet_error", "in_game_not_reached");
+                        MEP.UI?.setStrategy1InfoMessage?.("Ошибка ставки...", { force: true });
+                        this.setExecutionState("idle", "bet_error_idle");
+                    }
+                }
+
+                if (execState === "waiting_round_finish" && prevPhase === "in_game" && phase === "game") {
+                    // round finish will be finalized by DOM bridge; this only marks transition
+                    this.setExecutionState("round_resolved", "phase_game_returned");
+                }
+                } finally {
+                    st.runtime.phaseMachineBusy = false;
+                }
             },
 
             handleRoundFinishedForExecution(payload = {}) {
@@ -6122,32 +7326,72 @@
                 const roundId = (p.roundId || "").toString();
                 const ts = Number(p.ts) || Date.now();
                 const currentBalance = Number(this.getCurrentBalance()) || 0;
+                const pendingStake = Number(st.runtime.pendingBetAmount) || 0;
+                const pendingTarget = Number(st.runtime.pendingTargetMultiplier) || 0;
+                const postBetBalance = Number(st.runtime.postBetBalance) || currentBalance;
+                const rawMultiplier = Number(p.rawMultiplier);
+                const inferredWon = p.won === true || (!Number.isNaN(rawMultiplier) && Number.isFinite(rawMultiplier) && pendingTarget > 1 && rawMultiplier >= pendingTarget);
+                const inferredLost = p.lost === true || (!Number.isNaN(rawMultiplier) && Number.isFinite(rawMultiplier) && pendingTarget > 1 && rawMultiplier < pendingTarget);
+                let resolvedBalance = Number.isFinite(Number(p.balance)) ? Number(p.balance) : currentBalance;
+                if (!(resolvedBalance > 0)) {
+                    if (inferredWon && pendingStake > 0 && pendingTarget > 1) resolvedBalance = postBetBalance + pendingStake * pendingTarget;
+                    else if (inferredLost) resolvedBalance = postBetBalance;
+                }
                 this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution payload]", {
                     roundId,
-                    balance: Number.isFinite(Number(p.balance)) ? Number(p.balance) : currentBalance,
+                    balance: resolvedBalance,
                     ts,
                 });
                 const result = {
-                    balance: Number.isFinite(Number(p.balance)) ? Number(p.balance) : currentBalance,
-                    stake: Number(st.runtime.pendingBetAmount) || 0,
-                    targetMultiplier: Number(st.runtime.pendingTargetMultiplier) || 0,
+                    balance: resolvedBalance,
+                    stake: pendingStake,
+                    targetMultiplier: pendingTarget,
                     roundId: roundId || `exec_${ts}`,
                     ts,
                     rawMultiplier: Number.isFinite(Number(p.rawMultiplier)) ? Number(p.rawMultiplier) : null,
-                    won: p.won === true,
-                    lost: p.lost === true,
+                    won: inferredWon,
+                    lost: inferredLost,
                     resultKind: "execution_bridge",
                 };
+                const lossCountBefore = Number(st.cycle?.lossCount) || 0;
+                const winCountBefore = Number(st.cycle?.winCount) || 0;
                 this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution normalized]", result);
                 const updated = this.updateAfterRound(result);
                 this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution updateAfterRound]", updated);
                 st.runtime.lastExecutionRoundId = result.roundId;
                 st.runtime.lastExecutionResult = updated?.applied ? "round_processed" : "round_apply_failed";
+                const balanceAfterRound = Number(result.balance) || Number(this.getCurrentBalance()) || 0;
+                st.runtime.balanceAfterRound = balanceAfterRound;
+                const preCycleBalance = Number(st.runtime.preCycleBalance) || Number(st.cycle?.startBalance) || balanceAfterRound;
+                const stakeProfit = balanceAfterRound - postBetBalance;
+                if (stakeProfit > 0) {
+                    MEP.UI?.setStrategy1InfoMessage?.(`Профит ставки ${stakeProfit.toFixed(8)}...`, { force: true });
+                } else {
+                    MEP.UI?.setStrategy1InfoMessage?.(`Минус ${Number(st.cycle?.lossCount) || 0}...`, { force: true });
+                }
+                const cycleProfit = balanceAfterRound - preCycleBalance;
+                if (cycleProfit > 0) {
+                    MEP.UI?.setStrategy1InfoMessage?.(`Профит цикла ${cycleProfit.toFixed(8)}...`, { force: true });
+                }
+                this.executionDebug("[MEP][Strategy1][round cycle math]", {
+                    lossCountBefore,
+                    lossCountAfter: Number(st.cycle?.lossCount) || 0,
+                    winCountBefore,
+                    winCountAfter: Number(st.cycle?.winCount) || 0,
+                    preCycleBalance: Number(preCycleBalance) || 0,
+                    postBetBalance: Number(postBetBalance) || 0,
+                    balanceAfterRound: Number(balanceAfterRound) || 0,
+                    cycleProfit: Number(cycleProfit) || 0,
+                    finishReason: updated?.finishReason || "",
+                });
                 st.runtime.executionState = "idle";
                 st.runtime.pendingExecutionPayload = null;
                 st.runtime.pendingBetAmount = 0;
                 st.runtime.pendingTargetMultiplier = 0;
                 st.runtime.waitingRoundResult = false;
+                st.runtime.betAcceptedInFlight = false;
+                st.runtime.postBetBalance = 0;
+                st.runtime.balanceAfterRound = 0;
                 st.executionLocked = false;
                 this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution final]", {
                     executionLocked: !!st.executionLocked,
@@ -6166,6 +7410,34 @@
                 this.announceStateTransition("execution", this.EVENT_CODES.EXECUTION_ROUND_PROCESSED, { roundId: result.roundId });
                 this.updateUiCounters();
                 return { applied: !!updated?.applied, reason: updated?.reason || "", roundId: result.roundId };
+            },
+
+            handleRoundFinishedFromDom(entry = {}) {
+                const st = this.getState();
+                if (!st || !st.enabled || !st.cycle?.isActive) {
+                    return { applied: false, reason: "strategy_disabled_or_cycle_inactive" };
+                }
+                const roundId = entry?.raw ? `${entry.raw}|${entry.ts}` : `dom_${Date.now()}`;
+                const ts = Number(entry?.ts) || Date.now();
+                const rawMultiplier = Number(entry?.num);
+                if (st.isExecuting && st.runtime?.waitingRoundResult) {
+                    return this.handleRoundFinishedForExecution({
+                        roundId,
+                        ts,
+                        rawMultiplier,
+                    });
+                }
+                return this.updateAfterRound({
+                    roundId,
+                    ts,
+                    balance: Number(this.getCurrentBalance()) || 0,
+                    stake: 0,
+                    targetMultiplier: 0,
+                    rawMultiplier,
+                    won: false,
+                    lost: false,
+                    resultKind: "dom_cycle_round",
+                });
             },
 
             checkExecutionTimeout() {
@@ -6496,6 +7768,40 @@
                 if (branchInfo.branch === "second") return "Цикл продолжается после минусов — используется вторая ветка";
                 if (branchInfo.reason === "cycle_inactive") return "Цикл не активен — ветка не выбрана";
                 return "Ветка стратегии не выбрана";
+            },
+
+            getPermissionPoolEvaluation(st = null) {
+                const state = st || this.getState();
+                if (!state) {
+                    return {
+                        plusEvaluated: [],
+                        minusEvaluated: [],
+                        plusPool: { activeCount: 0, hasFalse: false, result: false },
+                        minusPool: { activeCount: 0, hasFalse: false, result: false },
+                        activePoolBranch: "",
+                        activePool: { activeCount: 0, hasFalse: false, result: false },
+                        activeEvaluated: [],
+                        failedCondition: null,
+                    };
+                }
+                const plusEvaluated = this.evaluateConditionBlocks(state, "plus") || [];
+                const minusEvaluated = this.evaluateConditionBlocks(state, "minus") || [];
+                const plusPool = this.getConditionBranchPoolState(plusEvaluated);
+                const minusPool = this.getConditionBranchPoolState(minusEvaluated);
+                const activePoolBranch = this.getRuntimeActiveBranch(state, plusPool, minusPool) || "plus";
+                const activeEvaluated = activePoolBranch === "minus" ? minusEvaluated : plusEvaluated;
+                const activePool = activePoolBranch === "minus" ? minusPool : plusPool;
+                const failedCondition = (activeEvaluated || []).find((it) => it.enabled && !it.result) || null;
+                return {
+                    plusEvaluated,
+                    minusEvaluated,
+                    plusPool,
+                    minusPool,
+                    activePoolBranch,
+                    activePool,
+                    activeEvaluated,
+                    failedCondition,
+                };
             },
 
             getLt2Streak() {
@@ -6840,12 +8146,14 @@
                 MEP.State.activeStrategyId = st.id;
                 st.cycle.isActive = true;
                 st.cycle.cycleId = `s1_${now}`;
+                st.cycle.cycleNumber = Math.max(0, Math.floor(Number(st.cycle.cycleNumber) || 0)) + 1;
                 st.cycle.endReason = "";
                 st.cycle.startBalance = currentBalanceNow;
                 st.cycle.currentBalance = currentBalanceNow;
                 st.cycle.cyclePnL = 0;
                 st.cycle.totalStakeSum = 0;
                 st.cycle.roundCount = 0;
+                st.cycle.betCount = 0;
                 st.cycle.lossCount = 0;
                 st.cycle.winCount = 0;
                 st.cycle.stepIndex = 0;
@@ -6860,6 +8168,22 @@
                 st.timers.cycleStartedAtTs = now;
                 st.timers.cycleFinishedAtTs = 0;
                 st.timers.cycleDurationMs = 0;
+                st.runtime.preCycleBalance = currentBalanceNow;
+                st.runtime.postBetBalance = 0;
+                st.runtime.balanceAfterRound = 0;
+                st.runtime.betAcceptedInFlight = false;
+                st.runtime.waitingRoundResult = false;
+                st.runtime.pendingExecutionPayload = null;
+                st.runtime.pendingBetAmount = 0;
+                st.runtime.pendingTargetMultiplier = 0;
+                st.runtime.executionState = "idle";
+                st.runtime.lastExecutionDebugCode = "cycle_started";
+                st.runtime.lastExecutionDebugStage = "startCycle";
+                st.runtime.lastExecutionDebugText = "startCycle done";
+                st.runtime.lastExecutionDebugMeta = null;
+                st.runtime.lastLiveDebugSignature = "";
+                this.clearArmedPermission("armed_cycle_restart");
+                this.clearPendingDomSyncContext();
                 this.pushEvent("cycle_start", now);
                 st.runtime.lastCycleAction = "startCycle";
                 st.runtime.lastAnnouncedCycleState = "active";
@@ -6893,9 +8217,12 @@
                 if (MEP.State.activeStrategyId === st.id) MEP.State.activeStrategyId = null;
                 this.pushEvent("cycle_finish", now);
                 st.runtime.lastCycleAction = "finishCycle";
+                this.clearArmedPermission("armed_cycle_finished");
+                this.clearPendingDomSyncContext();
                 const finishCodeMap = {
                     profit_reached: this.EVENT_CODES.CYCLE_FINISHED_PROFIT,
                     max_losses_reached: this.EVENT_CODES.CYCLE_FINISHED_MAX_LOSSES,
+                    stop_minus_reached: this.EVENT_CODES.CYCLE_FINISHED_MAX_LOSSES,
                     manual_stop: this.EVENT_CODES.CYCLE_FINISHED_MANUAL,
                     hard_exit: this.EVENT_CODES.CYCLE_FINISHED_HARD_EXIT,
                 };
@@ -6905,13 +8232,19 @@
                     reason: st.cycle.endReason,
                     cycleId: st.cycle.cycleId,
                 });
-                if (st.cycle.endReason === "profit_reached" || st.cycle.endReason === "max_losses_reached") {
+                if (
+                    st.cycle.endReason === "profit_reached" ||
+                    st.cycle.endReason === "max_losses_reached" ||
+                    st.cycle.endReason === "stop_minus_reached"
+                ) {
                     this.pushSystemMessage({
                         level: "ok",
                         action: "finishCycle",
                         text:
                             st.cycle.endReason === "profit_reached"
                                 ? "Цикл завершён: достигнут профит"
+                                : st.cycle.endReason === "stop_minus_reached"
+                                ? "Цикл завершён: достигнут СтопМинус"
                                 : "Цикл завершён: достигнут лимит проигрышей",
                         code: "cycle_finished",
                         stage: "post_round_finish",
@@ -7238,20 +8571,25 @@
             checkConditions() {
                 const st = this.getState();
                 if (!st) return { canBet: false, shouldEndCycle: false, reason: "strategy1_not_found" };
-                const evaluated = this.evaluateConditionBlocks(st);
-                const active = evaluated.filter((it) => it.enabled);
-                const hasFalse = active.some((it) => !it.result);
+                const evaluatedPlus = this.evaluateConditionBlocks(st, "plus");
+                const evaluatedMinus = this.evaluateConditionBlocks(st, "minus");
+                const plusPool = this.getConditionBranchPoolState(evaluatedPlus);
+                const minusPool = this.getConditionBranchPoolState(evaluatedMinus);
                 const result = {
-                    canBet: active.length > 0 ? !hasFalse : false,
+                    canBet: plusPool.result,
                     shouldEndCycle: false,
-                    reason: active.length ? (hasFalse ? "condition_pool_false" : "") : "condition_pool_not_used",
-                    items: evaluated,
+                    reason: plusPool.activeCount ? (plusPool.hasFalse ? "condition_pool_false" : "") : "condition_pool_not_used",
+                    items: evaluatedPlus,
+                    plusResult: plusPool.result,
+                    minusResult: minusPool.result,
                 };
                 if (st.conditions?.lastResult) {
                     st.conditions.lastResult.canBet = !!result.canBet;
                     st.conditions.lastResult.shouldEndCycle = false;
                     st.conditions.lastResult.reason = (result.reason || "").toString();
                 }
+                st.runtime.activeBranch = this.getRuntimeActiveBranch(st, plusPool, minusPool);
+                st.runtime.lastConditionBranchResults = { plus: plusPool, minus: minusPool };
                 st.runtime.lastConditionResult = result;
                 st.runtime.lastCycleAction = "checkConditions";
                 this.updateUiCounters();
@@ -7265,6 +8603,12 @@
                     .split(/[\s,;]+/g)
                     .map((chunk) => MEP.Utils.cleanToNum(chunk))
                     .filter((n) => Number.isFinite(n));
+            },
+
+            getCycleArrayItem(arr = [], stepIndex = 0) {
+                if (!Array.isArray(arr) || !arr.length) return 0;
+                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0)) % arr.length;
+                return Number(arr[idx]) || 0;
             },
 
             getStakePlanStatusText(plan = null) {
@@ -7287,6 +8631,44 @@
                 return map[reason] || "План ставки не готов";
             },
 
+            calcStakeGrowthByStep(cfg = {}, baseStake = 0, stepIndex = 0) {
+                const safeBase = Number(baseStake) || 0;
+                if (!(safeBase > 0)) return 0;
+                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0));
+                const growthMode = cfg?.stakeGrowthMode === "array" ? "array" : "factor";
+                if (growthMode === "array") {
+                    const growthArr = this.parseNumberArray(cfg?.stakeGrowthArrayText);
+                    if (!growthArr.length) return 0;
+                    if (growthArr.length === 1) {
+                        const g = Number(growthArr[0]) || 0;
+                        return g > 0 ? safeBase * Math.pow(g, idx) : 0;
+                    }
+                    const g = Number(growthArr[idx % growthArr.length]) || 0;
+                    return g > 0 ? safeBase * g : 0;
+                }
+                const factor = Number(cfg?.stakeGrowthFactor);
+                if (!Number.isFinite(factor) || factor <= 0) return 0;
+                return safeBase * Math.pow(factor, idx);
+            },
+
+            calcTargetByStep(cfg = {}, stepIndex = 0) {
+                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0));
+                const targetMode = cfg?.targetMode === "array" ? "array" : "fixed";
+                const base = Math.max(0, Number(cfg?.targetMultiplierValue) || 0);
+                if (!(base > 0)) return 0;
+                if (targetMode === "array") {
+                    const arr = this.parseNumberArray(cfg?.targetMultiplierArrayText);
+                    if (!arr.length) return 0;
+                    if (arr.length === 1) {
+                        const g = Number(arr[0]) || 0;
+                        return g > 0 ? base * Math.pow(g, idx) : 0;
+                    }
+                    const g = Number(arr[idx % arr.length]) || 0;
+                    return g > 0 ? base * g : 0;
+                }
+                return base;
+            },
+
             buildStakePlan() {
                 const st = this.getState();
                 if (!st) {
@@ -7302,13 +8684,29 @@
                         invalidReason: "strategy1_not_found",
                     };
                 }
-                const currentBalance = Math.max(0, Number(this.getCurrentBalance()) || 0);
+                const balanceCandidates = [
+                    { source: "dom_live", value: Number(this.getCurrentBalance()) || 0 },
+                    { source: "cycle_current_balance", value: Number(st.cycle?.currentBalance) || 0 },
+                    { source: "counters_after_round", value: Number(st.counters?.currentBalanceAfterRound) || 0 },
+                    { source: "runtime_after_round", value: Number(st.runtime?.balanceAfterRound) || 0 },
+                ];
+                let currentBalance = 0;
+                let balanceSource = "none";
+                for (const item of balanceCandidates) {
+                    const n = Number(item?.value);
+                    if (Number.isFinite(n) && n > 0) {
+                        currentBalance = n;
+                        balanceSource = (item.source || "unknown").toString();
+                        break;
+                    }
+                }
                 const lossCount = Math.max(0, Math.floor(Number(st.cycle?.lossCount) || 0));
                 const stepIndex = lossCount;
                 const sourceStep = `step_${stepIndex}`;
-                const startMode = st.config?.startStakeMode === "array" ? "array" : "fixed";
-                const growthMode = st.config?.stakeGrowthMode === "array" ? "array" : "factor";
-                const targetMode = st.config?.targetMode === "array" ? "array" : "fixed";
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                const startMode = cfg.startStakeMode === "percent" ? "percent" : "fixed";
+                const growthMode = cfg?.stakeGrowthMode === "array" ? "array" : "factor";
+                const targetMode = cfg?.targetMode === "array" ? "array" : "fixed";
 
                 const plan = {
                     betAmount: 0,
@@ -7316,73 +8714,53 @@
                     maxAllowedStake: 0,
                     riskCap: 0,
                     allowedByRisk: false,
+                    currentBalance,
+                    balanceSource,
+                    riskPercent: Number(cfg?.riskPercent) || 0,
+                    charterMaxStakePercent: Number(MEP.State?.charterMaxStakePercent) || 0,
+                    charterCap: 0,
                     sourceStep,
                     calcMode: `${startMode}:${growthMode}`,
                     ready: false,
                     invalidReason: "",
                 };
 
-                const riskPercent = Number(st.config?.riskPercent) || 0;
+                const riskPercent = Number(cfg?.riskPercent) || 0;
                 if (!(riskPercent > 0)) {
                     plan.invalidReason = "risk_percent_not_set";
                 } else {
                     const riskCap = currentBalance * (riskPercent / 100);
                     plan.riskCap = Number.isFinite(riskCap) && riskCap > 0 ? riskCap : 0;
                     const charterMaxStakePercent = Number(MEP.State?.charterMaxStakePercent) || 0;
-                    const charterCap =
-                        charterMaxStakePercent > 0 ? currentBalance * (charterMaxStakePercent / 100) : 0;
+                    const charterCap = charterMaxStakePercent > 0 ? currentBalance * (charterMaxStakePercent / 100) : 0;
+                    plan.charterCap = Number.isFinite(charterCap) && charterCap > 0 ? charterCap : 0;
                     const hasRiskCap = plan.riskCap > 0;
-                    const hasCharterCap = charterCap > 0;
-                    if (hasRiskCap && hasCharterCap) plan.maxAllowedStake = Math.min(plan.riskCap, charterCap);
+                    const hasCharterCap = plan.charterCap > 0;
+                    if (hasRiskCap && hasCharterCap) plan.maxAllowedStake = Math.min(plan.riskCap, plan.charterCap);
                     else if (hasRiskCap) plan.maxAllowedStake = plan.riskCap;
-                    else if (hasCharterCap) plan.maxAllowedStake = charterCap;
+                    else if (hasCharterCap) plan.maxAllowedStake = plan.charterCap;
                     else plan.maxAllowedStake = 0;
                     plan.allowedByRisk = plan.maxAllowedStake > 0;
                 }
 
-                let baseStake = 0;
+                const fixedStart = Math.max(0, Number(cfg?.startStakeValue) || 0);
+                const percentStart = Math.max(0, currentBalance * (riskPercent / 100));
+                let baseStake = startMode === "percent" ? percentStart : fixedStart;
                 if (!plan.invalidReason) {
-                    if (startMode === "array") {
-                        const startArr = this.parseNumberArray(st.config?.startStakeArrayText);
-                        if (!startArr.length) plan.invalidReason = "start_array_empty";
-                        else baseStake = startArr[Math.min(stepIndex, startArr.length - 1)] || 0;
-                    } else {
-                        baseStake = Number(st.config?.startStakeValue) || 0;
-                        if (!(baseStake > 0)) plan.invalidReason = "start_stake_invalid";
+                    if (!(baseStake > 0)) plan.invalidReason = "start_stake_invalid";
+                }
+
+                if (!plan.invalidReason) {
+                    plan.betAmount = this.calcStakeGrowthByStep(cfg, baseStake, stepIndex);
+                    if (!(plan.betAmount > 0)) {
+                        plan.invalidReason = growthMode === "array" ? "growth_array_empty" : "growth_factor_invalid";
                     }
                 }
 
                 if (!plan.invalidReason) {
-                    if (growthMode === "array") {
-                        const growthArr = this.parseNumberArray(st.config?.stakeGrowthArrayText);
-                        if (!growthArr.length) {
-                            plan.invalidReason = "growth_array_empty";
-                        } else {
-                            const growthMultiplier = growthArr[Math.min(stepIndex, growthArr.length - 1)] || 0;
-                            plan.betAmount = baseStake * growthMultiplier;
-                        }
-                    } else {
-                        const factor = Number(st.config?.stakeGrowthFactor);
-                        if (!Number.isFinite(factor) || factor <= 0) {
-                            plan.invalidReason = "growth_factor_invalid";
-                        } else if (stepIndex === 0) {
-                            plan.betAmount = baseStake;
-                        } else {
-                            plan.betAmount = baseStake * Math.pow(factor, stepIndex);
-                        }
-                    }
-                }
-
-                if (!plan.invalidReason) {
-                    if (targetMode === "array") {
-                        const targetArr = this.parseNumberArray(st.config?.targetMultiplierArrayText);
-                        if (!targetArr.length) plan.invalidReason = "target_array_empty";
-                        else plan.targetMultiplier = targetArr[Math.min(stepIndex, targetArr.length - 1)] || 0;
-                    } else {
-                        plan.targetMultiplier = Number(st.config?.targetMultiplierValue) || 0;
-                    }
+                    plan.targetMultiplier = this.calcTargetByStep(cfg, stepIndex);
                     if (!plan.invalidReason && (!Number.isFinite(plan.targetMultiplier) || plan.targetMultiplier <= 1)) {
-                        plan.invalidReason = "target_invalid";
+                        plan.invalidReason = targetMode === "array" ? "target_array_empty" : "target_invalid";
                     }
                 }
 
@@ -7397,6 +8775,24 @@
                 }
 
                 plan.ready = !plan.invalidReason;
+                plan.riskDebug = {
+                    currentBalance: Number(currentBalance) || 0,
+                    balanceSource,
+                    riskPercent: Number(riskPercent) || 0,
+                    riskCap: Number(plan.riskCap) || 0,
+                    charterMaxStakePercent: Number(plan.charterMaxStakePercent) || 0,
+                    charterCap: Number(plan.charterCap) || 0,
+                    maxAllowedStake: Number(plan.maxAllowedStake) || 0,
+                    plannedBetAmount: Number(plan.betAmount) || 0,
+                    allowedByRisk: !!plan.allowedByRisk,
+                    compareOk: Number(plan.betAmount) <= Number(plan.maxAllowedStake),
+                    invalidReason: (plan.invalidReason || "").toString(),
+                };
+                if (plan.invalidReason === "max_stake_not_allowed" || plan.invalidReason === "max_stake_exceeded") {
+                    this.executionWarn("[MEP][Strategy1][stakePlan risk check]", plan.riskDebug);
+                } else {
+                    this.executionDebug("[MEP][Strategy1][stakePlan risk check]", plan.riskDebug);
+                }
 
                 st.stakePlan = {
                     ...st.stakePlan,
@@ -7559,10 +8955,23 @@
                 let finishReason = "";
                 if (this.isProfitReached()) finishReason = "profit_reached";
                 else if (this.isMaxLossesReached()) finishReason = "max_losses_reached";
+                else {
+                    const stopMinusCount = Math.max(0, Math.floor(Number(st.config?.stopMinusCount) || 0));
+                    if (stopMinusCount > 0 && Number(st.cycle.lossCount) >= stopMinusCount) {
+                        finishReason = "stop_minus_reached";
+                    }
+                }
 
                 let finished = false;
-                if (finishReason === "profit_reached" || finishReason === "max_losses_reached") {
+                if (
+                    finishReason === "profit_reached" ||
+                    finishReason === "max_losses_reached" ||
+                    finishReason === "stop_minus_reached"
+                ) {
                     this.finishCycle(finishReason);
+                    if (finishReason === "stop_minus_reached" && st.enabled) {
+                        this.startCycle();
+                    }
                     finished = true;
                 }
 
@@ -7630,6 +9039,8 @@
                     allowed: !!safe.allowed,
                     shouldEndCycle: !!safe.shouldEndCycle,
                     branch: branchRaw === "first" || branchRaw === "second" ? branchRaw : "",
+                    poolBranch: ((safe.poolBranch || "").toString().trim().toLowerCase() === "minus" ? "minus" : "plus"),
+                    poolResult: !!safe.poolResult,
                     stage: (safe.stage || "init").toString(),
                     reason: (safe.reason || "").toString(),
                     statusCode: statusCodeRaw || this.DECISION_STATUS.IDLE,
@@ -7730,90 +9141,133 @@
                             });
                         } else {
                             const branchInfo = this.routeBranch();
-                            const branch = (branchInfo?.branch || "").toString();
-                            if (!branch) {
+                            const poolEval = this.getPermissionPoolEvaluation(st);
+                            const activePoolBranch = poolEval.activePoolBranch === "minus" ? "minus" : "plus";
+                            const branch = activePoolBranch === "minus" ? "second" : "first";
+                            const activePool = poolEval.activePool || { activeCount: 0, hasFalse: false, result: false };
+                            const activeConditions = Array.isArray(poolEval.activeEvaluated)
+                                ? poolEval.activeEvaluated.filter((it) => it && it.enabled)
+                                : [];
+                            const failedCondition = poolEval.failedCondition || null;
+                            if (!branchInfo?.branch) {
                                 result = this.normalizeDecisionResult({
                                     ...result,
+                                    branch: "",
+                                    poolBranch: activePoolBranch,
+                                    poolResult: !!activePool.result,
                                     stage: "routing",
                                     reason: (branchInfo?.reason || "branch_not_selected").toString(),
                                     statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
                                     statusText: this.getBranchStatusText(branchInfo),
-                                    details: { branchInfo: { ...(branchInfo || {}) } },
+                                    details: {
+                                        branchInfo: { ...(branchInfo || {}) },
+                                        pool: {
+                                            activeBranch: activePoolBranch,
+                                            plus: { ...(poolEval.plusPool || {}) },
+                                            minus: { ...(poolEval.minusPool || {}) },
+                                            active: { ...(activePool || {}) },
+                                            conditions: activeConditions.map((it) => ({
+                                                key: (it.key || "").toString(),
+                                                enabled: !!it.enabled,
+                                                result: !!it.result,
+                                                currentValue: it.currentValue,
+                                            })),
+                                        },
+                                    },
                                 });
-                            } else if (branch === "first") {
-                                const first = this.checkFirstBranch();
-                                if (!first?.passed) {
-                                    result = this.normalizeDecisionResult({
-                                        ...result,
-                                        branch: "first",
-                                        stage: "first_branch",
-                                        reason: (first?.failedAt || "").toString(),
-                                        statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                                        statusText: (first?.statusText || "Раунд пропускаем — ждём сигнал первой ветки").toString(),
-                                        details: { firstBranch: { ...(first || {}) } },
-                                    });
-                                } else {
-                                    const plan = this.buildStakePlan();
-                                    if (!plan?.ready) {
-                                        result = this.normalizeDecisionResult({
-                                            ...result,
-                                            branch: "first",
-                                            stage: "stake_plan",
-                                            reason: (plan?.invalidReason || "stake_plan_invalid").toString(),
-                                            statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                                            statusText: this.getStakePlanStatusText(plan),
-                                            details: { stakePlan: { ...(plan || {}) } },
-                                        });
-                                    } else {
-                                        result = this.normalizeDecisionResult({
-                                            ...result,
-                                            allowed: true,
-                                            branch: "first",
-                                            stage: "ready",
-                                            reason: "",
-                                            statusCode: this.DECISION_STATUS.BET_ALLOWED,
-                                            statusText: "Первая ветка пройдена — план ставки готов",
-                                            details: { firstBranch: { ...(first || {}) }, stakePlan: { ...(plan || {}) } },
-                                        });
-                                    }
-                                }
+                            } else if (!activePool.result) {
+                                const failKey = (failedCondition?.key || "condition_pool_false").toString();
+                                result = this.normalizeDecisionResult({
+                                    ...result,
+                                    allowed: false,
+                                    shouldEndCycle: false,
+                                    branch,
+                                    poolBranch: activePoolBranch,
+                                    poolResult: false,
+                                    stage: "condition_pool",
+                                    reason: failKey,
+                                    statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
+                                    statusText: `Пул условий (${activePoolBranch}) не пройден`,
+                                    details: {
+                                        branchInfo: { ...(branchInfo || {}) },
+                                        failedCondition: failedCondition
+                                            ? {
+                                                  key: (failedCondition.key || "").toString(),
+                                                  currentValue: failedCondition.currentValue,
+                                                  result: !!failedCondition.result,
+                                              }
+                                            : null,
+                                        pool: {
+                                            activeBranch: activePoolBranch,
+                                            plus: { ...(poolEval.plusPool || {}) },
+                                            minus: { ...(poolEval.minusPool || {}) },
+                                            active: { ...(activePool || {}) },
+                                            conditions: activeConditions.map((it) => ({
+                                                key: (it.key || "").toString(),
+                                                enabled: !!it.enabled,
+                                                result: !!it.result,
+                                                currentValue: it.currentValue,
+                                            })),
+                                        },
+                                    },
+                                });
                             } else {
-                                const second = this.checkSecondBranch();
-                                if (!second?.passed && second?.shouldEndCycle) {
+                                const plan = this.buildStakePlan();
+                                if (!plan?.ready) {
                                     result = this.normalizeDecisionResult({
                                         ...result,
-                                        allowed: false,
-                                        shouldEndCycle: true,
-                                        branch: "second",
-                                        stage: "second_branch",
-                                        reason: (second?.endReason || second?.failedAt || "").toString(),
-                                        statusCode: this.DECISION_STATUS.CYCLE_SHOULD_END,
-                                        statusText: (second?.statusText || "Цикл завершён — достигнут максимальный уровень ставки").toString(),
-                                        details: { secondBranch: { ...(second || {}) } },
-                                    });
-                                } else if (!second?.passed) {
-                                    result = this.normalizeDecisionResult({
-                                        ...result,
-                                        allowed: false,
-                                        shouldEndCycle: false,
-                                        branch: "second",
-                                        stage: "second_branch",
-                                        reason: (second?.failedAt || second?.waitReason || "").toString(),
+                                        branch,
+                                        poolBranch: activePoolBranch,
+                                        poolResult: true,
+                                        stage: "stake_plan",
+                                        reason: (plan?.invalidReason || "stake_plan_invalid").toString(),
                                         statusCode: this.DECISION_STATUS.WAITING_SIGNAL,
-                                        statusText: (second?.statusText || "Раунд пропускаем — ждём сигнал второй ветки").toString(),
-                                        details: { secondBranch: { ...(second || {}) } },
+                                        statusText: this.getStakePlanStatusText(plan),
+                                        details: {
+                                            branchInfo: { ...(branchInfo || {}) },
+                                            pool: {
+                                                activeBranch: activePoolBranch,
+                                                plus: { ...(poolEval.plusPool || {}) },
+                                                minus: { ...(poolEval.minusPool || {}) },
+                                                active: { ...(activePool || {}) },
+                                                conditions: activeConditions.map((it) => ({
+                                                    key: (it.key || "").toString(),
+                                                    enabled: !!it.enabled,
+                                                    result: !!it.result,
+                                                    currentValue: it.currentValue,
+                                                })),
+                                            },
+                                            stakePlan: { ...(plan || {}) },
+                                        },
                                     });
                                 } else {
                                     result = this.normalizeDecisionResult({
                                         ...result,
                                         allowed: true,
                                         shouldEndCycle: false,
-                                        branch: "second",
+                                        branch,
+                                        poolBranch: activePoolBranch,
+                                        poolResult: true,
                                         stage: "ready",
                                         reason: "",
                                         statusCode: this.DECISION_STATUS.BET_ALLOWED,
-                                        statusText: "Вторая ветка пройдена — ставка разрешена",
-                                        details: { secondBranch: { ...(second || {}) } },
+                                        statusText: `Пул условий (${activePoolBranch}) пройден — ставка разрешена`,
+                                        details: {
+                                            branchInfo: { ...(branchInfo || {}) },
+                                            pool: {
+                                                activeBranch: activePoolBranch,
+                                                plus: { ...(poolEval.plusPool || {}) },
+                                                minus: { ...(poolEval.minusPool || {}) },
+                                                active: { ...(activePool || {}) },
+                                                conditions: activeConditions.map((it) => ({
+                                                    key: (it.key || "").toString(),
+                                                    enabled: !!it.enabled,
+                                                    result: !!it.result,
+                                                    currentValue: it.currentValue,
+                                                })),
+                                            },
+                                            stakePlan: { ...(plan || {}) },
+                                        },
                                     });
                                 }
                             }
@@ -7920,6 +9374,16 @@
                 if (!canBetNow && !lastPermissionState) {
                     st.runtime.lastAnnouncedPermissionReason = (result.reason || "").toString();
                 }
+                this.executionDebug("[MEP][Strategy1][permission mapping]", {
+                    branch: result.branch || "",
+                    poolBranch: result.poolBranch || "",
+                    poolResult: !!result.poolResult,
+                    allowed: !!result.allowed,
+                    reason: result.reason || "",
+                    stage: result.stage || "",
+                    pool: result?.details?.pool || null,
+                    failedCondition: result?.details?.failedCondition || null,
+                });
                 if (st.conditions?.lastResult) {
                     st.conditions.lastResult.canBet = !!result.allowed;
                     st.conditions.lastResult.shouldEndCycle = !!result.shouldEndCycle;
@@ -8050,9 +9514,31 @@
                 return n.toFixed(8).replace(/\.?0+$/, "").replace(".", ",");
             },
 
-            getStrategy1ConditionBlocks(st = null) {
+            getStrategy1SelectedConditionBranch(st = null) {
                 const s = st || MEP.UI.getStrategyState("strategy1");
-                return MEP.Strategy1?.ensureConditionBlocks?.(s) || buildStrategy1ConditionBlocksDefault();
+                if (!s) return "plus";
+                const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
+                const branch = (cfg.conditionSelectedBranch || "plus").toString().trim().toLowerCase();
+                const safe = branch === "minus" ? "minus" : "plus";
+                cfg.conditionSelectedBranch = safe;
+                return safe;
+            },
+
+            setStrategy1SelectedConditionBranch(branch = "plus") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                const safe = (branch || "").toString().trim().toLowerCase() === "minus" ? "minus" : "plus";
+                if (cfg.conditionSelectedBranch === safe) return;
+                cfg.conditionSelectedBranch = safe;
+                MEP.Storage.save();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
+            getStrategy1ConditionBlocks(st = null, branch = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                const selected = branch || MEP.UI.getStrategy1SelectedConditionBranch(s);
+                return MEP.Strategy1?.ensureConditionBlocks?.(s, selected) || buildStrategy1ConditionBlocksDefault();
             },
 
             removeConditionIdFromStrategyPool(strategyId = "strategy1", objectId = "") {
@@ -8099,25 +9585,444 @@
                 MEP.Strategy1?.checkConditions?.();
             },
 
+            setStrategy1FrequencyMode(mode = "gt") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                const m = (mode || "").toString().trim().toLowerCase();
+                blocks.frequency_vector_state.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            setStrategy1FrequencyLineThreshold(value = 0) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                let threshold = Math.floor(Number(value));
+                if (!Number.isFinite(threshold) || threshold < 0) threshold = 0;
+                blocks.frequency_line_gt.params.threshold = threshold;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            setStrategy1StakePlayersMode(mode = "gt") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                const m = (mode || "").toString().trim().toLowerCase();
+                blocks.stake_players_vector_state.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            setStrategy1StakeBetMode(mode = "gt") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                const m = (mode || "").toString().trim().toLowerCase();
+                blocks.stake_bet_vector_state.params.mode = m === "lt" || m === "flat" ? m : "gt";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            setStrategy1StakePlayersThreshold(value = 0) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                let threshold = Number(value);
+                if (!Number.isFinite(threshold) || threshold < 0) threshold = 0;
+                blocks.stake_players_line_gte.params.threshold = threshold;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            setStrategy1StakeBetThreshold(value = 0) {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(st);
+                let threshold = Number(value);
+                if (!Number.isFinite(threshold) || threshold < 0) threshold = 0;
+                blocks.stake_bet_line_gte.params.threshold = threshold;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+            },
+
+            calcStrategy1NextStakeByMode(baseStake = 0, st = null, stepIndex = 0) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!s) return 0;
+                return Number(MEP.Strategy1?.calcStakeGrowthByStep?.(s.config || {}, baseStake, stepIndex)) || 0;
+            },
+
+            getStrategy1CycleArrayActiveValue(text = "", stepIndex = 0) {
+                const parse = MEP.Strategy1?.parseNumberArray?.bind(MEP.Strategy1);
+                const arr = parse ? parse(text) : [];
+                if (!arr.length) return 0;
+                const idx = Math.max(0, Math.floor(Number(stepIndex) || 0)) % arr.length;
+                return Number(arr[idx]) || 0;
+            },
+
+            getStrategy1TargetValueByStep(st = null, stepIndex = 0) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!s) return 0;
+                const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
+                return Number(MEP.Strategy1?.calcTargetByStep?.(cfg, stepIndex)) || 0;
+            },
+
+            getStrategy1TargetBaseValue(st = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!s) return 0;
+                const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
+                return Number(cfg.targetMultiplierValue) || 0;
+            },
+
+            formatStrategyTargetValue(value = 0) {
+                const n = Number(value) || 0;
+                if (!(n > 0)) return "0";
+                if (Number.isInteger(n)) return String(n);
+                return n.toFixed(4).replace(/\.?0+$/g, "");
+            },
+
+            formatStrategyStakeBaseValue(value = 0) {
+                const n = Number(value) || 0;
+                if (!(n > 0)) return "0";
+                if (Number.isInteger(n)) return String(n);
+                return n.toFixed(8).replace(/\.?0+$/g, "");
+            },
+
+            getStrategy1StakeServiceData(st = null) {
+                const s = st || MEP.UI.getStrategyState("strategy1");
+                if (!s) return null;
+                const cfg = s.config && typeof s.config === "object" ? s.config : (s.config = {});
+                const enabled = !!s.enabled;
+                const currentBalance = Math.max(0, Number(MEP.UI.readCurrentBalanceFromDom().amount) || 0);
+                const riskPercent = Math.max(0, Number(cfg.riskPercent) || 0);
+                const fixedStart = Math.max(0, Number(cfg.startStakeValue) || 0);
+                const percentStart = Math.max(0, currentBalance * (riskPercent / 100));
+                const lossCount = enabled ? Math.max(0, Math.floor(Number(s.cycle?.lossCount) || 0)) : 0;
+                const roundCount = enabled ? Math.max(0, Math.floor(Number(s.cycle?.roundCount) || 0)) : 0;
+                const betCount = enabled ? Math.max(0, Math.floor(Number(s.cycle?.betCount) || 0)) : 0;
+                const cycleNumber = enabled ? Math.max(0, Math.floor(Number(s.cycle?.cycleNumber) || 0)) : 0;
+                const activeStakeGrowthMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.stakeGrowthArrayText, lossCount);
+                const activeTargetMultiplier = MEP.UI.getStrategy1CycleArrayActiveValue(cfg.targetMultiplierArrayText, lossCount);
+                const targetBaseValue = MEP.UI.getStrategy1TargetBaseValue(s);
+                const targetLossCount = lossCount;
+                const targetNextValue = MEP.UI.getStrategy1TargetValueByStep(s, lossCount);
+                return {
+                    mode: cfg.startStakeMode === "percent" ? "percent" : "fixed",
+                    riskPercent,
+                    lossCount,
+                    fixedStart,
+                    percentStart,
+                    stakeGrowthArrayText: (cfg.stakeGrowthArrayText || "").toString(),
+                    targetMultiplierArrayText: (cfg.targetMultiplierArrayText || "").toString(),
+                    activeStakeGrowthMultiplier,
+                    activeTargetMultiplier,
+                    targetBaseValue,
+                    targetLossCount,
+                    targetNextValue,
+                    cycleNumber,
+                    cycleRoundCount: roundCount,
+                    cycleBetCount: betCount,
+                    cycleLossCount: lossCount,
+                    nextFixed: MEP.UI.calcStrategy1NextStakeByMode(fixedStart, s, lossCount),
+                    nextPercent: MEP.UI.calcStrategy1NextStakeByMode(percentStart, s, lossCount),
+                };
+            },
+
+            getGameBetButton() {
+                const s1 = MEP.Strategy1;
+                const root = s1?.findSidebarRoot?.() || document;
+                const phaseRank = { in_game: 5, placed: 4, bet: 3, launch: 2, game: 1 };
+                const pickBest = (btnList) => {
+                    let bestBtn = null;
+                    let bestRank = 0;
+                    for (const btn of btnList) {
+                        if (!btn) continue;
+                        const isVisible = !!(btn.offsetParent || btn.getClientRects?.().length);
+                        if (!isVisible) continue;
+                        const txt = MEP.UI.normalizeGameBetButtonText(
+                            btn.getAttribute?.("aria-label") || btn.innerText || btn.textContent || ""
+                        );
+                        const phase = MEP.UI.resolveGamePhaseFromBetButton(btn);
+                        const rank = phaseRank[phase] || 0;
+                        if (rank > bestRank) {
+                            bestRank = rank;
+                            bestBtn = btn;
+                        }
+                    }
+                    return bestBtn;
+                };
+
+                const direct = [
+                    document.querySelector?.(MEP.Config.GAME_ACTION_BUTTON_SELECTOR) || null,
+                    root.querySelector?.('button[data-testid="cancel-button"]') || null,
+                    root.querySelector?.('button[data-testid="cashout-button"]') || null,
+                    root.querySelector?.('button[data-testid="bet-button"]') || null,
+                    s1?.findBetButton?.(root) || null,
+                ].filter(Boolean);
+
+                const directBest = pickBest(direct);
+                if (directBest) return directBest;
+
+                const buttons = [...(root.querySelectorAll?.(".game-sidebar button") || [])];
+                const scannedBest = pickBest(buttons);
+                if (scannedBest) return scannedBest;
+
+                return direct[0] || buttons[0] || null;
+            },
+
+            normalizeGameBetButtonText(text = "") {
+                return (text || "").toString().replace(/\s+/g, " ").trim();
+            },
+
+            getGameBetButtonText() {
+                const btn = MEP.UI.getGameBetButton();
+                if (!btn) return "";
+                const raw =
+                    btn.getAttribute?.("aria-label") ||
+                    btn.innerText ||
+                    btn.textContent ||
+                    "";
+                return MEP.UI.normalizeGameBetButtonText(raw);
+            },
+
+            resolveGamePhaseFromBetButton(btn = null) {
+                if (!btn) return "";
+                const text = MEP.UI.normalizeGameBetButtonText(
+                    btn.getAttribute?.("aria-label") || btn.innerText || btn.textContent || ""
+                );
+                const byText = MEP.UI.resolveGamePhaseFromBetButtonText(text);
+                if (byText !== "bet") return byText;
+
+                const disabled = !!btn.disabled || btn.getAttribute?.("aria-disabled") === "true";
+                if (disabled) return "placed";
+                return "bet";
+            },
+
+            resolveGamePhaseFromBetButtonText(text = "") {
+                const t = MEP.UI.normalizeGameBetButtonText(text).toLowerCase();
+                if (!t) return "";
+                if (t === "сделать ставку (след. раунд)" || (t.includes("сделать ставку") && t.includes("след"))) return "game";
+                if (t === "начинается..." || t.includes("начинается")) return "launch";
+                if (t === "ставка") return "bet";
+                if (t.includes("отмен")) return "placed";
+                if (/к[эе]шаут/.test(t) || /cash\s*out/.test(t) || /cashout/.test(t)) return "in_game";
+                return "";
+            },
+
+            updateGamePhaseFromDom() {
+                const btn = MEP.UI.getGameBetButton();
+                const phase = MEP.UI.resolveGamePhaseFromBetButton(btn);
+                MEP.State.gamePhase = phase;
+                return phase;
+            },
+
+            renderGamePhaseRow() {
+                const ui = MEP.UI.ui;
+                if (!ui || !ui.gamePhaseRowEl) return;
+                const phase = MEP.UI.updateGamePhaseFromDom();
+                const cells = [ui.gamePhaseCellGameEl, ui.gamePhaseCellBetEl, ui.gamePhaseCellPlacedEl, ui.gamePhaseCellLaunchEl, ui.gamePhaseCellInGameEl];
+                for (const cell of cells) {
+                    if (!cell) continue;
+                    const key = (cell.dataset.phase || "").toString();
+                    cell.classList.toggle("is-active", !!phase && phase === key);
+                }
+            },
+
+            getGameAmountInput() {
+                const s1 = MEP.Strategy1;
+                const root = s1?.findSidebarRoot?.() || document;
+                return s1?.findBetAmountInput?.(root) || root.querySelector?.('input[data-testid="input-game-amount"]') || null;
+            },
+
+            getGameTargetInput() {
+                const s1 = MEP.Strategy1;
+                const root = s1?.findSidebarRoot?.() || document;
+                const byHelper = s1?.findTargetMultiplierInput?.(root);
+                if (byHelper) return byHelper;
+                const labels = root.querySelectorAll?.("label, div, span") || [];
+                for (const node of labels) {
+                    const text = (node.textContent || "").toString().toLowerCase();
+                    if (!text.includes("целевой коэффициент")) continue;
+                    const candidate =
+                        node.querySelector?.('input[type="number"]') ||
+                        node.parentElement?.querySelector?.('input[type="number"]') ||
+                        node.closest?.("label, div")?.querySelector?.('input[type="number"]');
+                    if (candidate) return candidate;
+                }
+                return root.querySelector?.('input[type="number"][min="1.01"]') || null;
+            },
+
+            setNativeInputValue(el, value) {
+                if (!el) return false;
+                const proto = Object.getPrototypeOf(el);
+                const descriptor = Object.getOwnPropertyDescriptor(proto, "value");
+                const setter = descriptor?.set;
+                try {
+                    el.focus?.();
+                    if (typeof setter === "function") setter.call(el, value);
+                    else el.value = value;
+                    el.dispatchEvent(new Event("input", { bubbles: true }));
+                    el.dispatchEvent(new Event("change", { bubbles: true }));
+                    el.blur?.();
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            },
+
+            formatGameNumericValue(value, fallback = "0") {
+                const n = Number(value);
+                if (!Number.isFinite(n) || n < 0) return fallback;
+                const raw = n.toFixed(8).replace(/\.?0+$/, "");
+                return raw && raw !== "-0" ? raw : fallback;
+            },
+
+            applyGameAmountValue(value) {
+                const input = MEP.UI.getGameAmountInput();
+                if (!input) {
+                    console.warn("[MEP][Strategy1] amount input not found");
+                    return false;
+                }
+                const text = MEP.UI.formatGameNumericValue(value, "0");
+                return MEP.UI.setNativeInputValue(input, text);
+            },
+
+            applyGameTargetValue(value) {
+                const input = MEP.UI.getGameTargetInput();
+                if (!input) {
+                    console.warn("[MEP][Strategy1] target input not found");
+                    return false;
+                }
+                const text = MEP.UI.formatGameNumericValue(value, "2");
+                return MEP.UI.setNativeInputValue(input, text);
+            },
+
+            setStrategy1StartStakeMode(mode = "fixed") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                const next = mode === "percent" ? "percent" : "fixed";
+                if (cfg.startStakeMode === next) return;
+                cfg.startStakeMode = next;
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
+            setStrategy1StakeGrowthArrayText(value = "") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                cfg.stakeGrowthArrayText = (value ?? "").toString();
+                cfg.stakeGrowthMode = "array";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
+            setStrategy1TargetMultiplierArrayText(value = "") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                cfg.targetMultiplierArrayText = (value ?? "").toString();
+                cfg.targetMode = "array";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
+            setStrategy1TargetBaseValue(value = "") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                let v = Number((value ?? "").toString().replace(",", "."));
+                if (!Number.isFinite(v) || v <= 0) v = 0;
+                cfg.targetMultiplierValue = v;
+                cfg.targetMode = "fixed";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
+            setStrategy1StartStakeBaseValue(value = "") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                let v = Number((value ?? "").toString().replace(",", "."));
+                if (!Number.isFinite(v) || v < 0) v = 0;
+                cfg.startStakeValue = v;
+                cfg.startStakeMode = "fixed";
+                MEP.Storage.save();
+                MEP.Strategy1?.checkConditions?.();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
+            setStrategy1StopMinusCount(value = "") {
+                const st = MEP.UI.getStrategyState("strategy1");
+                if (!st) return;
+                const cfg = st.config && typeof st.config === "object" ? st.config : (st.config = {});
+                let v = Math.floor(Number((value ?? "").toString().replace(",", ".")));
+                if (!Number.isFinite(v) || v < 0) v = 0;
+                cfg.stopMinusCount = v;
+                MEP.Storage.save();
+                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+            },
+
             renderStrategy1ConditionBridge(st = null) {
                 const ui = MEP.UI.ui;
                 const s = st || MEP.UI.getStrategyState("strategy1");
                 if (!ui || !s || !ui.strategy1CondListEl || !ui.strategy1CondSummaryEl) return;
                 const activeEl = document.activeElement;
+                let stakeServiceWrapEl = ui.strategy1CondWrapEl?.querySelector?.(".mep-strategy1-stake-service-wrap") || null;
                 const isEditingConditionControl =
                     !!activeEl &&
                     ui.strategy1CondListEl.contains(activeEl) &&
-                    (activeEl.classList.contains("mep-strategy1-cond-diff-mode") || activeEl.classList.contains("mep-strategy1-cond-threshold"));
-                if (isEditingConditionControl) return;
-                const blocks = MEP.UI.getStrategy1ConditionBlocks(s);
-                const evaluated = MEP.Strategy1?.evaluateConditionBlocks?.(s) || [];
+                    (activeEl.classList.contains("mep-strategy1-cond-vector-mode") ||
+                        activeEl.classList.contains("mep-strategy1-cond-threshold") ||
+                        activeEl.classList.contains("mep-strategy1-cond-frequency-line-threshold"));
+                const isEditingServiceArrayControl =
+                    !!activeEl &&
+                    !!stakeServiceWrapEl &&
+                    stakeServiceWrapEl.contains(activeEl) &&
+                    (activeEl.classList.contains("mep-strategy1-stake-growth-array-input") ||
+                        activeEl.classList.contains("mep-strategy1-start-stake-base-input") ||
+                        activeEl.classList.contains("mep-strategy1-target-multiplier-array-input") ||
+                        activeEl.classList.contains("mep-strategy1-target-base-input") ||
+                        activeEl.classList.contains("mep-strategy1-stop-minus-input") ||
+                        activeEl.classList.contains("mep-strategy1-service-array-input"));
+                if (isEditingConditionControl || isEditingServiceArrayControl) return;
+                const selectedBranch = MEP.UI.getStrategy1SelectedConditionBranch(s);
+                const blocks = MEP.UI.getStrategy1ConditionBlocks(s, selectedBranch);
+                const evaluatedPlus = MEP.Strategy1?.evaluateConditionBlocks?.(s, "plus") || [];
+                const evaluatedMinus = MEP.Strategy1?.evaluateConditionBlocks?.(s, "minus") || [];
+                const evaluated = selectedBranch === "minus" ? evaluatedMinus : evaluatedPlus;
                 const byKey = Object.create(null);
                 for (const it of evaluated) byKey[it.key] = it;
-                const active = evaluated.filter((it) => it.enabled);
-                const hasFalse = active.some((it) => !it.result);
+                const plusPool = MEP.Strategy1?.getConditionBranchPoolState?.(evaluatedPlus) || { activeCount: 0, hasFalse: false, result: false };
+                const minusPool = MEP.Strategy1?.getConditionBranchPoolState?.(evaluatedMinus) || { activeCount: 0, hasFalse: false, result: false };
+                const activeBranch = MEP.Strategy1?.getRuntimeActiveBranch?.(s, plusPool, minusPool) || "";
+                s.runtime = s.runtime && typeof s.runtime === "object" ? s.runtime : {};
+                s.runtime.activeBranch = activeBranch;
+                const currentPool = selectedBranch === "minus" ? minusPool : plusPool;
                 const rows = [];
                 const threshold = Math.max(0, Math.floor(Number(blocks?.streak_lt?.params?.threshold) || 0));
                 const diffMode = (blocks?.diff_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const freqMode = (blocks?.frequency_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const freqLineThreshold = Math.max(0, Math.floor(Number(blocks?.frequency_line_gt?.params?.threshold) || 0));
+                const stakePlayersMode = (blocks?.stake_players_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const stakeBetMode = (blocks?.stake_bet_vector_state?.params?.mode || "gt").toString().trim().toLowerCase();
+                const stakePlayersLineThreshold = Math.max(0, Number(blocks?.stake_players_line_gte?.params?.threshold) || 0);
+                const stakeBetLineThreshold = Math.max(0, Number(blocks?.stake_bet_line_gte?.params?.threshold) || 0);
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-system">
+<span class="mep-strategy1-cond-toggle-wrap is-locked"><span class="mep-strategy1-cond-lock-indicator ${byKey?.strategy_enabled?.result ? "is-on" : "is-off"}"></span></span>
+<span class="mep-strategy1-cond-text">Вкл/Откл</span>
+<span class="mep-strategy1-cond-current">${byKey?.strategy_enabled?.currentValue ?? "off"}</span>
+<span class="mep-strategy1-cond-result ${byKey?.strategy_enabled?.result ? "is-true" : "is-false"}">${byKey?.strategy_enabled?.result ? "true" : "false"}</span>
+</div>`
+                );
                 rows.push(
                     `<div class="mep-strategy1-condition-row">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="charter" ${blocks?.charter?.enabled ? "checked" : ""} /></span>
@@ -8138,17 +10043,68 @@
                     `<div class="mep-strategy1-condition-row is-diff">
 <span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="diff_vector_state" ${blocks?.diff_vector_state?.enabled ? "checked" : ""} /></span>
 <span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Diff</span></span>
-<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-diff-mode"><option value="gt" ${diffMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${diffMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${diffMode === "flat" ? "selected" : ""}>flat</option></select></span>
 <span class="mep-strategy1-cond-current">${byKey?.diff_vector_state?.currentValue ?? "flat"}</span>
 <span class="mep-strategy1-cond-result ${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.diff_vector_state?.enabled ? (byKey?.diff_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-diff">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="frequency_vector_state" ${blocks?.frequency_vector_state?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Freq</span></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-frequency-mode"><option value="gt" ${freqMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${freqMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${freqMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-current">${byKey?.frequency_vector_state?.currentValue ?? "flat"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.frequency_vector_state?.enabled ? (byKey?.frequency_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.frequency_vector_state?.enabled ? (byKey?.frequency_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="frequency_line_gt" ${blocks?.frequency_line_gt?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Freq</span><span class="mep-strategy1-cond-inline">f &gt;</span><input class="mep-strategy1-cond-threshold mep-strategy1-cond-frequency-line-threshold" type="number" min="0" step="1" value="${freqLineThreshold}" /></span>
+<span class="mep-strategy1-cond-current">${byKey?.frequency_line_gt?.currentValue ?? 0}</span>
+<span class="mep-strategy1-cond-result ${blocks?.frequency_line_gt?.enabled ? (byKey?.frequency_line_gt?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.frequency_line_gt?.enabled ? (byKey?.frequency_line_gt?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-diff">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="stake_players_vector_state" ${blocks?.stake_players_vector_state?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Clients</span></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-stake-players-mode"><option value="gt" ${stakePlayersMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${stakePlayersMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${stakePlayersMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-current">${byKey?.stake_players_vector_state?.currentValue ?? "flat"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.stake_players_vector_state?.enabled ? (byKey?.stake_players_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_players_vector_state?.enabled ? (byKey?.stake_players_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row is-diff">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="stake_bet_vector_state" ${blocks?.stake_bet_vector_state?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Bet</span></span>
+<span class="mep-strategy1-cond-control"><select class="mep-strategy1-cond-vector-mode mep-strategy1-cond-stake-bet-mode"><option value="gt" ${stakeBetMode === "gt" ? "selected" : ""}>mEMA &gt; sEMA</option><option value="lt" ${stakeBetMode === "lt" ? "selected" : ""}>mEMA &lt; sEMA</option><option value="flat" ${stakeBetMode === "flat" ? "selected" : ""}>flat</option></select></span>
+<span class="mep-strategy1-cond-current">${byKey?.stake_bet_vector_state?.currentValue ?? "flat"}</span>
+<span class="mep-strategy1-cond-result ${blocks?.stake_bet_vector_state?.enabled ? (byKey?.stake_bet_vector_state?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_bet_vector_state?.enabled ? (byKey?.stake_bet_vector_state?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="stake_players_line_gte" ${blocks?.stake_players_line_gte?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Clients</span><span class="mep-strategy1-cond-inline">c &gt;=</span><input class="mep-strategy1-cond-threshold mep-strategy1-cond-stake-players-threshold" type="number" min="0" step="1" value="${stakePlayersLineThreshold}" /></span>
+<span class="mep-strategy1-cond-current">${byKey?.stake_players_line_gte?.currentValue ?? 0}</span>
+<span class="mep-strategy1-cond-result ${blocks?.stake_players_line_gte?.enabled ? (byKey?.stake_players_line_gte?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_players_line_gte?.enabled ? (byKey?.stake_players_line_gte?.result ? "true" : "false") : "not use"}</span>
+</div>`
+                );
+                rows.push(
+                    `<div class="mep-strategy1-condition-row">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-cond-enabled" type="checkbox" data-block-type="stake_bet_line_gte" ${blocks?.stake_bet_line_gte?.enabled ? "checked" : ""} /></span>
+<span class="mep-strategy1-cond-text"><span class="mep-strategy1-cond-title">Bet</span><span class="mep-strategy1-cond-inline">b &gt;=</span><input class="mep-strategy1-cond-threshold mep-strategy1-cond-stake-bet-threshold" type="number" min="0" step="0.01" value="${stakeBetLineThreshold}" /></span>
+<span class="mep-strategy1-cond-current">${byKey?.stake_bet_line_gte?.currentValue ?? 0}</span>
+<span class="mep-strategy1-cond-result ${blocks?.stake_bet_line_gte?.enabled ? (byKey?.stake_bet_line_gte?.result ? "is-true" : "is-false") : "is-idle"}">${blocks?.stake_bet_line_gte?.enabled ? (byKey?.stake_bet_line_gte?.result ? "true" : "false") : "not use"}</span>
 </div>`
                 );
                 ui.strategy1CondListEl.innerHTML = rows.join("");
 
                 let summaryText = "Пул условий: not use";
                 let summaryClass = "is-idle";
-                if (active.length > 0) {
-                    if (hasFalse) {
+                if (currentPool.activeCount > 0) {
+                    if (currentPool.hasFalse) {
                         summaryText = "Пул условий: false";
                         summaryClass = "is-false";
                     } else {
@@ -8159,6 +10115,137 @@
                 ui.strategy1CondSummaryEl.textContent = summaryText;
                 ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false", "is-idle");
                 ui.strategy1CondSummaryEl.classList.add(summaryClass);
+                if (ui.strategy1CondBranchTabsEl) {
+                    const plusBtn = ui.strategy1CondBranchTabsEl.querySelector(".mep-strategy1-branch-tab-plus");
+                    const minusBtn = ui.strategy1CondBranchTabsEl.querySelector(".mep-strategy1-branch-tab-minus");
+                    const applyTabState = (btn, branchKey) => {
+                        if (!btn) return;
+                        const isSelected = selectedBranch === branchKey;
+                        const isRuntimeActive = activeBranch === branchKey;
+                        btn.classList.toggle("is-selected", isSelected);
+                        btn.classList.toggle("is-runtime-active", isRuntimeActive);
+                    };
+                    applyTabState(plusBtn, "plus");
+                    applyTabState(minusBtn, "minus");
+                }
+
+                stakeServiceWrapEl = ui.strategy1CondWrapEl?.querySelector?.(".mep-strategy1-stake-service-wrap") || null;
+                if (!stakeServiceWrapEl && ui.strategy1CondSummaryEl?.parentNode) {
+                    stakeServiceWrapEl = document.createElement("div");
+                    stakeServiceWrapEl.className = "mep-strategy1-stake-service-wrap";
+                    ui.strategy1CondSummaryEl.insertAdjacentElement("afterend", stakeServiceWrapEl);
+                }
+                const serviceData = MEP.UI.getStrategy1StakeServiceData(s);
+                if (stakeServiceWrapEl && serviceData) {
+                    const safeStakeGrowthArrayText = (serviceData.stakeGrowthArrayText || "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/\"/g, "&quot;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;");
+                    const safeTargetMultiplierArrayText = (serviceData.targetMultiplierArrayText || "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/\"/g, "&quot;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;");
+                    const liveDebugPhase = (MEP.State?.gamePhase || "").toString();
+                    const liveDebugCurrentBalance = Number(MEP.UI.readCurrentBalanceFromDom()?.amount) || 0;
+                    const liveDebugPreCycleBalance = Number(s.runtime?.preCycleBalance) || 0;
+                    const liveDebugPostBetBalance = Number(s.runtime?.postBetBalance) || 0;
+                    const liveDebugAfterRound = Number(s.runtime?.balanceAfterRound) || 0;
+                    const liveDebugDiff = liveDebugAfterRound - liveDebugPreCycleBalance;
+                    const liveDebugPool = !!currentPool?.result;
+                    const liveDebugPlan = s.runtime?.lastStakePlanResult || null;
+                    const liveDebugClick = s.runtime?.lastClickResult || null;
+                    const fmtBool = (v) => (v ? "true" : "false");
+                    const fmtBal = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(8).replace(/\.?0+$/, "") : "—");
+                    stakeServiceWrapEl.innerHTML = `
+<div class="mep-strategy1-cycle-info-row">
+<span class="mep-strategy1-cycle-info-cell">Циклов: <b>${serviceData.cycleNumber}</b></span>
+<span class="mep-strategy1-cycle-info-cell">Раунд: <b>${serviceData.cycleRoundCount}</b></span>
+<span class="mep-strategy1-cycle-info-cell">Ставок: <b>${serviceData.cycleBetCount}</b></span>
+<span class="mep-strategy1-cycle-info-cell">Минусов: <b>${serviceData.cycleLossCount}</b></span>
+</div>
+<div class="mep-strategy1-service-array-row">
+<span class="mep-strategy1-service-array-spacer"></span>
+<span class="mep-strategy1-stake-col label">Множ.ставок</span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-stake-growth-array-input" type="text" value="${safeStakeGrowthArrayText}" placeholder="2 3 4" /></span>
+<span class="mep-strategy1-stake-col active">${serviceData.activeStakeGrowthMultiplier > 0 ? serviceData.activeStakeGrowthMultiplier : "—"}</span>
+</div>
+<div class="mep-strategy1-stake-row ${serviceData.mode === "fixed" ? "is-active" : "is-inactive"}">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-stake-mode-toggle mep-strategy1-stake-mode-fixed" type="checkbox" ${serviceData.mode === "fixed" ? "checked" : ""} /></span>
+<span class="mep-strategy1-stake-col label">Ставка фикс.</span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-start-stake-base-input" type="text" value="${MEP.UI.formatStrategyStakeBaseValue(serviceData.fixedStart)}" placeholder="0" /></span>
+<span class="mep-strategy1-stake-col loss">${serviceData.lossCount}</span>
+<span class="mep-strategy1-stake-col next mep-strategy1-click-apply mep-strategy1-click-apply-stake" data-value="${serviceData.nextFixed}">${MEP.UI.formatCoinValue(serviceData.nextFixed)}</span>
+</div>
+<div class="mep-strategy1-stake-row ${serviceData.mode === "percent" ? "is-active" : "is-inactive"}">
+<span class="mep-strategy1-cond-toggle-wrap"><input class="mep-strategy1-stake-mode-toggle mep-strategy1-stake-mode-percent" type="checkbox" ${serviceData.mode === "percent" ? "checked" : ""} /></span>
+<span class="mep-strategy1-stake-col label">Ставка ${serviceData.riskPercent}%</span>
+<span class="mep-strategy1-stake-col start">${MEP.UI.formatCoinValue(serviceData.percentStart)}</span>
+<span class="mep-strategy1-stake-col loss">${serviceData.lossCount}</span>
+<span class="mep-strategy1-stake-col next mep-strategy1-click-apply mep-strategy1-click-apply-stake" data-value="${serviceData.nextPercent}">${MEP.UI.formatCoinValue(serviceData.nextPercent)}</span>
+</div>
+<div class="mep-strategy1-service-array-row">
+<span class="mep-strategy1-service-array-spacer"></span>
+<span class="mep-strategy1-stake-col label">Множ.коэф</span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-target-multiplier-array-input" type="text" value="${safeTargetMultiplierArrayText}" placeholder="2 3 4" /></span>
+<span class="mep-strategy1-stake-col active">${serviceData.activeTargetMultiplier > 0 ? serviceData.activeTargetMultiplier : "—"}</span>
+</div>
+<div class="mep-strategy1-stake-row is-inactive">
+<span class="mep-strategy1-cond-toggle-wrap"><span class="mep-strategy1-service-array-spacer"></span></span>
+<span class="mep-strategy1-stake-col label">Цел.коэф.</span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-target-base-input" type="number" min="0" step="0.01" value="${MEP.UI.formatStrategyTargetValue(serviceData.targetBaseValue)}" placeholder="2" /></span>
+<span class="mep-strategy1-stake-col loss">${serviceData.targetLossCount}</span>
+<span class="mep-strategy1-stake-col next mep-strategy1-click-apply mep-strategy1-click-apply-target" data-value="${serviceData.targetNextValue}">${MEP.UI.formatStrategyTargetValue(serviceData.targetNextValue)}</span>
+</div>
+<div class="mep-strategy1-service-array-row">
+<span class="mep-strategy1-service-array-spacer"></span>
+<span class="mep-strategy1-stake-col label">СтопМинус</span>
+<span class="mep-strategy1-stake-col start"><input class="mep-strategy1-service-array-input mep-strategy1-stop-minus-input" type="number" min="0" step="1" value="${Math.max(0, Math.floor(Number(s.config?.stopMinusCount) || 0))}" placeholder="0" /></span>
+<span class="mep-strategy1-stake-col active"></span>
+</div>
+<div class="mep-strategy1-live-debug-box">
+<div class="mep-strategy1-live-debug-grid">
+<div class="mep-strategy1-live-debug-col">
+<div class="mep-strategy1-live-debug-title">резерв</div>
+<div class="mep-strategy1-live-debug-table">
+<div class="mep-strategy1-live-debug-row"><span>Фаза</span><span>${liveDebugPhase || "—"}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Armed</span><span>${fmtBool(!!s.runtime?.armedToBet)}</span></div>
+</div>
+</div>
+<div class="mep-strategy1-live-debug-col">
+<div class="mep-strategy1-live-debug-title">Ветка</div>
+<div class="mep-strategy1-live-debug-table">
+<div class="mep-strategy1-live-debug-row"><span>Плюс</span><span>${fmtBool(!!plusPool?.result)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Минус</span><span>${fmtBool(!!minusPool?.result)}</span></div>
+</div>
+</div>
+<div class="mep-strategy1-live-debug-col">
+<div class="mep-strategy1-live-debug-title">События</div>
+<div class="mep-strategy1-live-debug-table">
+<div class="mep-strategy1-live-debug-row"><span>Пул</span><span>${fmtBool(liveDebugPool)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Ставка число</span><span>${fmtBool((Number(liveDebugPlan?.betAmount) || 0) > 0)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Цел.коэф.</span><span>${fmtBool((Number(liveDebugPlan?.targetMultiplier) || 0) > 1)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Ставка кнопка</span><span>${fmtBool(!!liveDebugClick?.applied)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПослеСтав.Бал.</span><span>${fmtBool(liveDebugPostBetBalance > 0)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>запуск игры</span><span>${fmtBool(liveDebugPhase === "launch")}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>в игре</span><span>${fmtBool(liveDebugPhase === "in_game")}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Конец игры</span><span>${fmtBool(liveDebugPhase === "game")}</span></div>
+</div>
+</div>
+<div class="mep-strategy1-live-debug-col">
+<div class="mep-strategy1-live-debug-title">Баланс</div>
+<div class="mep-strategy1-live-debug-table">
+<div class="mep-strategy1-live-debug-row"><span>Текущий</span><span>${fmtBal(liveDebugCurrentBalance)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПредЦикл</span><span>${fmtBal(liveDebugPreCycleBalance)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПослеСтавка</span><span>${fmtBal(liveDebugPostBetBalance)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПослеРаунд</span><span>${fmtBal(liveDebugAfterRound)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>РазницаБПР</span><span>${fmtBal(liveDebugDiff)}</span></div>
+</div>
+</div>
+</div>
+</div>`;
+                }
             },
 
             renderStrategyBalanceRow(strategyId = "strategy1") {
@@ -8299,6 +10386,7 @@
                 const blocked = !enabled && !MEP.UI.canEnableStrategy("strategy1");
                 if (ui.strategy1EnabledToggle) ui.strategy1EnabledToggle.disabled = blocked;
                 MEP.UI.renderStrategyBalanceRow("strategy1");
+                MEP.Strategy1?.processGamePhaseExecution?.();
                 MEP.UI.renderStrategy1ConditionBridge(st);
             },
 
@@ -8327,6 +10415,7 @@
             },
 
             renderStrategyMinimalUi() {
+                MEP.UI.renderGamePhaseRow();
                 MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                 MEP.UI.renderStrategy2MinimalUi(MEP.UI.getStrategyState("strategy2"));
             },
@@ -8603,9 +10692,13 @@
         </div>
     </div>
     <div class="mep-divider"></div>
+    <div class="mep-tracking-wrap">
     <div class="mep-section-head">
         <div class="mep-section-title">Отслеживание</div>
-        <input class="mep-track-count" type="number" min="1" step="1" />
+        <div class="mep-track-head-controls">
+            <input class="mep-track-count" type="number" min="1" step="1" />
+            <button class="mep-track-collapse" type="button" title="Свернуть параметры">▲</button>
+        </div>
     </div>
     <div class="mep-track-wrap">
         <table class="mep-track-table">
@@ -8661,6 +10754,7 @@
                 </tr>
             </tbody>
         </table>
+    </div>
     </div>
 </div>
 <div class="mep-diff-wrap">
@@ -8768,6 +10862,8 @@
             <label class="mep-stake-sync-label"><input class="mep-stake-auto-height" type="checkbox" /><span>Автовысота</span></label>
             <label class="mep-stake-density-label">Клиенты масштаб<input class="mep-stake-scale-players" type="number" min="0" step="0.1" value="1" /></label>
             <label class="mep-stake-density-label">Ставки масштаб<input class="mep-stake-scale-bet" type="number" min="0" step="0.1" value="10" /></label>
+            <label class="mep-stake-density-label">Клиенты цвет<input class="mep-stake-color-players" type="color" value="#52d56a" /></label>
+            <label class="mep-stake-density-label">Ставка цвет<input class="mep-stake-color-bet" type="color" value="#ffad3c" /></label>
         </div>
         <div class="mep-stake-vector-row">
             <label class="mep-stake-vector-label"><input class="mep-stake-players-vector-enabled" type="checkbox" checked /><span>Клиенты вектор</span></label>
@@ -9037,6 +11133,13 @@
     <button class="mep-game-tab-btn" type="button" data-tab="strategy1">Стратегия1</button>
     <button class="mep-game-tab-btn" type="button" data-tab="strategy2">Стратегия2</button>
 </div>
+<div class="mep-game-phase-row">
+    <div class="mep-game-phase-cell mep-game-phase-cell-game" data-phase="game">Игра</div>
+    <div class="mep-game-phase-cell mep-game-phase-cell-bet" data-phase="bet">Ставка</div>
+    <div class="mep-game-phase-cell mep-game-phase-cell-placed" data-phase="placed">Поставили</div>
+    <div class="mep-game-phase-cell mep-game-phase-cell-launch" data-phase="launch">Запуск</div>
+    <div class="mep-game-phase-cell mep-game-phase-cell-in-game" data-phase="in_game">В игре</div>
+</div>
 <div class="mep-game-tab-panel mep-game-tab-panel-charter is-active">
     <div class="mep-charter-note">0 = без ограничений</div>
     <div class="mep-charter-sections">
@@ -9106,6 +11209,10 @@
             <span class="mep-strategy1-risk-percent-sign">%</span>
         </div>
         <div class="mep-strategy1-conditions-wrap">
+            <div class="mep-strategy1-branch-tabs">
+                <button class="mep-strategy1-branch-tab mep-strategy1-branch-tab-plus is-selected" type="button" data-branch="plus">ПЛЮС</button>
+                <button class="mep-strategy1-branch-tab mep-strategy1-branch-tab-minus" type="button" data-branch="minus">МИНУС</button>
+            </div>
             <div class="mep-strategy1-cond-list"></div>
             <div class="mep-strategy1-cond-summary is-idle">Пул условий: not use</div>
         </div>
@@ -9168,6 +11275,12 @@
                     mainPanel: panel.querySelector(".mep-tab-panel-main"),
                     gamePanel: panel.querySelector(".mep-tab-panel-game"),
                     gameTabButtons: [...panel.querySelectorAll("button.mep-game-tab-btn")],
+                    gamePhaseRowEl: panel.querySelector(".mep-game-phase-row"),
+                    gamePhaseCellGameEl: panel.querySelector(".mep-game-phase-cell-game"),
+                    gamePhaseCellLaunchEl: panel.querySelector(".mep-game-phase-cell-launch"),
+                    gamePhaseCellBetEl: panel.querySelector(".mep-game-phase-cell-bet"),
+                    gamePhaseCellPlacedEl: panel.querySelector(".mep-game-phase-cell-placed"),
+                    gamePhaseCellInGameEl: panel.querySelector(".mep-game-phase-cell-in-game"),
                     charterPanel: panel.querySelector(".mep-game-tab-panel-charter"),
                     strategy1Panel: panel.querySelector(".mep-game-tab-panel-strategy1"),
                     strategy2Panel: panel.querySelector(".mep-game-tab-panel-strategy2"),
@@ -9196,6 +11309,7 @@
                     strategy1RiskAmountEl: panel.querySelector(".mep-strategy1-risk-amount"),
                     strategy1RiskPercentInput: panel.querySelector(".mep-strategy1-risk-percent"),
                     strategy1CondWrapEl: panel.querySelector(".mep-strategy1-conditions-wrap"),
+                    strategy1CondBranchTabsEl: panel.querySelector(".mep-strategy1-branch-tabs"),
                     strategy1CondSummaryEl: panel.querySelector(".mep-strategy1-cond-summary"),
                     strategy1CondListEl: panel.querySelector(".mep-strategy1-cond-list"),
                     strategy1TabBtn: panel.querySelector('button.mep-game-tab-btn[data-tab="strategy1"]'),
@@ -9287,8 +11401,12 @@
                     stakeAutoHeightInput: panel.querySelector("input.mep-stake-auto-height"),
                     stakePlayersScaleInput: panel.querySelector("input.mep-stake-scale-players"),
                     stakeBetScaleInput: panel.querySelector("input.mep-stake-scale-bet"),
+                    stakePlayersColorInput: panel.querySelector("input.mep-stake-color-players"),
+                    stakeBetColorInput: panel.querySelector("input.mep-stake-color-bet"),
                     stakeShowPlayersInput: panel.querySelector("input.mep-stake-show-players"),
                     stakeShowBetInput: panel.querySelector("input.mep-stake-show-bet"),
+                    stakeLegendPlayersLine: panel.querySelector(".mep-stake-legend-line.mep-stake-legend-players"),
+                    stakeLegendBetLine: panel.querySelector(".mep-stake-legend-line.mep-stake-legend-bets"),
                     stakePlayersVectorEnabledInput: panel.querySelector("input.mep-stake-players-vector-enabled"),
                     stakePlayersVectorPeriodInput: panel.querySelector("input.mep-stake-players-vector-period"),
                     stakePlayersVectorShiftInput: panel.querySelector("input.mep-stake-players-vector-shift"),
@@ -9311,6 +11429,8 @@
                     soundSelects: [...panel.querySelectorAll("select.mep-soundkey")],
 
                     trackCountInput: panel.querySelector(".mep-track-count"),
+                    trackingWrap: panel.querySelector(".mep-tracking-wrap"),
+                    trackCollapseBtn: panel.querySelector("button.mep-track-collapse"),
 
                     historyBtn: panel.querySelector("button.mep-history-load"),
                     historySteps: panel.querySelector("input.mep-history-steps"),
@@ -9451,6 +11571,9 @@
                         s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
                         s1.runtime.startBalanceSnapshot = MEP.UI.readCurrentBalanceFromDom().amount || 0;
                     }
+                    if (s1.enabled && !s1.cycle?.isActive) {
+                        MEP.Strategy1?.startNewCycle?.();
+                    }
                     if (ui.strategy1EnabledToggle) {
                         ui.strategy1EnabledToggle.checked = !!s1.enabled;
                         ui.strategy1EnabledToggle.addEventListener("change", () => {
@@ -9467,11 +11590,18 @@
                                 s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
                                 s1.runtime.startBalanceSnapshot = MEP.UI.readCurrentBalanceFromDom().amount || 0;
                                 MEP.State.activeStrategyId = "strategy1";
+                                MEP.Strategy1?.startNewCycle?.();
                             } else {
                                 if (!s1.timers || typeof s1.timers !== "object") s1.timers = {};
                                 s1.timers.enabledAtTs = 0;
                                 s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
                                 s1.runtime.startBalanceSnapshot = 0;
+                                s1.cycle = s1.cycle && typeof s1.cycle === "object" ? s1.cycle : {};
+                                s1.cycle.isActive = false;
+                                s1.cycle.cycleNumber = 0;
+                                s1.cycle.roundCount = 0;
+                                s1.cycle.betCount = 0;
+                                s1.cycle.lossCount = 0;
                                 if (MEP.State.activeStrategyId === "strategy1" && !s1.isExecuting) MEP.State.activeStrategyId = null;
                             }
                             MEP.Storage.save();
@@ -9544,7 +11674,80 @@
                         const val = Number(ui.strategy1RiskAmountEl.dataset.value) || 0;
                         s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
                         s1.runtime.copiedRiskAmount = val;
+                        const cfg = s1.config && typeof s1.config === "object" ? s1.config : (s1.config = {});
+                        cfg.startStakeValue = Math.max(0, val);
+                        MEP.Storage.save();
+                        MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                         MEP.UI.setStrategy1InfoMessage("Сумма риска скопирована в стартовую позицию");
+                    });
+                }
+                if (ui.strategy1CondWrapEl && s1) {
+                    ui.strategy1CondWrapEl.addEventListener("change", (e) => {
+                        const fixedToggle = e.target?.closest?.("input.mep-strategy1-stake-mode-fixed");
+                        if (fixedToggle) {
+                            fixedToggle.checked = true;
+                            MEP.UI.setStrategy1StartStakeMode("fixed");
+                            return;
+                        }
+                        const percentToggle = e.target?.closest?.("input.mep-strategy1-stake-mode-percent");
+                        if (percentToggle) {
+                            percentToggle.checked = true;
+                            MEP.UI.setStrategy1StartStakeMode("percent");
+                            return;
+                        }
+                        const stakeGrowthArrayInput = e.target?.closest?.("input.mep-strategy1-stake-growth-array-input");
+                        if (stakeGrowthArrayInput) {
+                            MEP.UI.setStrategy1StakeGrowthArrayText(stakeGrowthArrayInput.value);
+                            return;
+                        }
+                        const targetMultiplierArrayInput = e.target?.closest?.("input.mep-strategy1-target-multiplier-array-input");
+                        if (targetMultiplierArrayInput) {
+                            MEP.UI.setStrategy1TargetMultiplierArrayText(targetMultiplierArrayInput.value);
+                            return;
+                        }
+                        const startStakeBaseInput = e.target?.closest?.("input.mep-strategy1-start-stake-base-input");
+                        if (startStakeBaseInput) {
+                            MEP.UI.setStrategy1StartStakeBaseValue(startStakeBaseInput.value);
+                            return;
+                        }
+                        const targetBaseInput = e.target?.closest?.("input.mep-strategy1-target-base-input");
+                        if (targetBaseInput) {
+                            MEP.UI.setStrategy1TargetBaseValue(targetBaseInput.value);
+                            return;
+                        }
+                        const stopMinusInput = e.target?.closest?.("input.mep-strategy1-stop-minus-input");
+                        if (stopMinusInput) {
+                            MEP.UI.setStrategy1StopMinusCount(stopMinusInput.value);
+                        }
+                    });
+                    ui.strategy1CondWrapEl.addEventListener("keydown", (e) => {
+                        const arrayInput = e.target?.closest?.(
+                            "input.mep-strategy1-stake-growth-array-input, input.mep-strategy1-target-multiplier-array-input, input.mep-strategy1-start-stake-base-input, input.mep-strategy1-target-base-input, input.mep-strategy1-stop-minus-input"
+                        );
+                        if (!arrayInput) return;
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            arrayInput.blur();
+                        }
+                    });
+                    ui.strategy1CondWrapEl.addEventListener("click", (e) => {
+                        const branchTab = e.target?.closest?.(".mep-strategy1-branch-tab");
+                        if (branchTab) {
+                            const branch = (branchTab.dataset.branch || "plus").toString();
+                            MEP.UI.setStrategy1SelectedConditionBranch(branch);
+                            return;
+                        }
+                        const stakeApply = e.target?.closest?.(".mep-strategy1-click-apply-stake");
+                        if (stakeApply) {
+                            const value = Number(stakeApply.dataset.value) || 0;
+                            MEP.UI.applyGameAmountValue(value);
+                            return;
+                        }
+                        const targetApply = e.target?.closest?.(".mep-strategy1-click-apply-target");
+                        if (targetApply) {
+                            const value = Number(targetApply.dataset.value) || 0;
+                            MEP.UI.applyGameTargetValue(value);
+                        }
                     });
                 }
                 if (ui.strategy1CondListEl && s1) {
@@ -9562,13 +11765,46 @@
                         }
                         const thresholdInput = e.target?.closest?.("input.mep-strategy1-cond-threshold");
                         if (thresholdInput) {
+                            if (thresholdInput.classList.contains("mep-strategy1-cond-frequency-line-threshold")) {
+                                MEP.UI.setStrategy1FrequencyLineThreshold(thresholdInput.value);
+                                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                                return;
+                            }
+                            if (thresholdInput.classList.contains("mep-strategy1-cond-stake-players-threshold")) {
+                                MEP.UI.setStrategy1StakePlayersThreshold(thresholdInput.value);
+                                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                                return;
+                            }
+                            if (thresholdInput.classList.contains("mep-strategy1-cond-stake-bet-threshold")) {
+                                MEP.UI.setStrategy1StakeBetThreshold(thresholdInput.value);
+                                MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                                return;
+                            }
                             MEP.UI.setStrategy1StreakThreshold(thresholdInput.value);
                             MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                             return;
                         }
-                        const modeSelect = e.target?.closest?.("select.mep-strategy1-cond-diff-mode");
-                        if (modeSelect) {
-                            MEP.UI.setStrategy1DiffMode(modeSelect.value);
+                        const diffModeSelect = e.target?.closest?.("select.mep-strategy1-cond-diff-mode");
+                        if (diffModeSelect) {
+                            MEP.UI.setStrategy1DiffMode(diffModeSelect.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
+                        const frequencyModeSelect = e.target?.closest?.("select.mep-strategy1-cond-frequency-mode");
+                        if (frequencyModeSelect) {
+                            MEP.UI.setStrategy1FrequencyMode(frequencyModeSelect.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
+                        const stakePlayersModeSelect = e.target?.closest?.("select.mep-strategy1-cond-stake-players-mode");
+                        if (stakePlayersModeSelect) {
+                            MEP.UI.setStrategy1StakePlayersMode(stakePlayersModeSelect.value);
+                            MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
+                            return;
+                        }
+                        const stakeBetModeSelect = e.target?.closest?.("select.mep-strategy1-cond-stake-bet-mode");
+                        if (stakeBetModeSelect) {
+                            MEP.UI.setStrategy1StakeBetMode(stakeBetModeSelect.value);
                             MEP.UI.renderStrategy1MinimalUi(MEP.UI.getStrategyState("strategy1"));
                             return;
                         }
@@ -9859,6 +12095,35 @@
                     });
                 }
 
+                const normalizeStakeColor = (value, fallback) => {
+                    const raw = (value || "").toString().trim();
+                    return /^#[0-9a-fA-F]{6}$/.test(raw) ? raw : fallback;
+                };
+                if (ui.stakePlayersColorInput) {
+                    const current = normalizeStakeColor(MEP.State.stakeGraphPlayersColor, "#52d56a");
+                    MEP.State.stakeGraphPlayersColor = current;
+                    ui.stakePlayersColorInput.value = current;
+                    ui.stakePlayersColorInput.addEventListener("input", () => {
+                        const v = normalizeStakeColor(ui.stakePlayersColorInput.value, "#52d56a");
+                        MEP.State.stakeGraphPlayersColor = v;
+                        ui.stakePlayersColorInput.value = v;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+                if (ui.stakeBetColorInput) {
+                    const current = normalizeStakeColor(MEP.State.stakeGraphBetColor, "#ffad3c");
+                    MEP.State.stakeGraphBetColor = current;
+                    ui.stakeBetColorInput.value = current;
+                    ui.stakeBetColorInput.addEventListener("input", () => {
+                        const v = normalizeStakeColor(ui.stakeBetColorInput.value, "#ffad3c");
+                        MEP.State.stakeGraphBetColor = v;
+                        ui.stakeBetColorInput.value = v;
+                        MEP.Storage.save();
+                        MEP.StakeGraph?.render?.();
+                    });
+                }
+
                 if (ui.stakeShowPlayersInput) {
                     ui.stakeShowPlayersInput.checked = MEP.State.stakeGraphShowPlayers !== false;
                     ui.stakeShowPlayersInput.addEventListener("change", () => {
@@ -10006,6 +12271,22 @@
                 MEP.FrequencyGraph?.init?.(ui);
                 MEP.StakeGraph?.init?.(ui);
                 MEP.BalanceGraph?.init?.(ui);
+
+                const applyTrackingCollapse = () => {
+                    if (!ui.trackingWrap || !ui.trackCollapseBtn) return;
+                    const collapsed = !!MEP.State.trackingCollapsed;
+                    ui.trackingWrap.classList.toggle("mep-collapsed", collapsed);
+                    ui.trackCollapseBtn.textContent = collapsed ? "▼" : "▲";
+                    ui.trackCollapseBtn.title = collapsed ? "Развернуть параметры" : "Свернуть параметры";
+                };
+                applyTrackingCollapse();
+                if (ui.trackCollapseBtn) {
+                    ui.trackCollapseBtn.addEventListener("click", () => {
+                        MEP.State.trackingCollapsed = !MEP.State.trackingCollapsed;
+                        MEP.Storage.save();
+                        applyTrackingCollapse();
+                    });
+                }
 
                 const applyFrequencyParamsCollapse = () => {
                     if (!ui.frequencyWrap || !ui.frequencyCollapseBtn) return;
@@ -11747,6 +14028,12 @@
 
                         // lastAddedKey подвинем на самое свежее из DOM
                         if (j === 0) MEP.State.lastAddedKey = k;
+
+                        try {
+                            MEP.Strategy1?.handleRoundFinishedFromDom?.(e);
+                        } catch (e) {
+                            console.warn("[MEP] reconcile strategy1 round bridge failed:", e);
+                        }
                     }
 
                     // чтобы не было двойного addNewest на этом же тике
@@ -11819,14 +14106,7 @@
                     console.warn("[MEP] sendEntry call failed:", e);
                 }
                 try {
-                    const st = MEP.State?.strategies?.strategy1;
-                    if (st?.isExecuting && st?.runtime?.waitingRoundResult) {
-                        MEP.Strategy1?.handleRoundFinishedForExecution?.({
-                            roundId: entry?.raw ? `${entry.raw}|${entry.ts}` : `dom_${Date.now()}`,
-                            ts: Number(entry?.ts) || Date.now(),
-                            rawMultiplier: Number(entry?.num),
-                        });
-                    }
+                    MEP.Strategy1?.handleRoundFinishedFromDom?.(entry);
                 } catch (e) {
                     console.warn("[MEP] execution round bridge failed:", e);
                 }

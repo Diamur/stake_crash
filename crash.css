@@ -1,10 +1,80 @@
-/*== CSS ver 0.1.5.66 ==*/
+/*== CSS ver 0.1.6.01 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
   height: 1px;
   background: rgba(255,255,255,0.08);
   margin: 14px 0;
+}
+
+#mep-control-panel .mep-game-phase-row{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr 1fr 1fr;
+  gap:8px;
+  margin-bottom:10px;
+}
+#mep-control-panel .mep-game-phase-cell{
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:6px;
+  height:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  color:#d7dde5;
+  background:rgba(255,255,255,.08);
+  transition:all .15s ease;
+}
+#mep-control-panel .mep-game-phase-cell.is-active{
+  color:#d9ffe5;
+  background:rgba(0,255,87,.22);
+  border-color:rgba(0,255,87,.85);
+  box-shadow:0 0 12px rgba(0,255,87,.48), inset 0 0 8px rgba(0,255,87,.12);
+  text-shadow:0 0 6px rgba(0,255,87,.55);
+}
+
+#mep-control-panel .mep-game-phase-cell-game.is-active{
+  color:#ffd9d9;
+  background:rgba(255,34,34,.22);
+  border-color:rgba(255,34,34,.9);
+  box-shadow:0 0 12px rgba(255,34,34,.5), inset 0 0 8px rgba(255,34,34,.14);
+  text-shadow:0 0 6px rgba(255,34,34,.55);
+}
+
+#mep-control-panel .mep-game-phase-cell-launch.is-active{
+  color:#ffe8cf;
+  background:rgba(255,136,0,.24);
+  border-color:rgba(255,136,0,.92);
+  box-shadow:0 0 12px rgba(255,136,0,.52), inset 0 0 8px rgba(255,136,0,.14);
+  text-shadow:0 0 6px rgba(255,136,0,.55);
+}
+
+#mep-control-panel .mep-game-phase-cell-placed.is-active{
+  color:#d8f4ff;
+  background:rgba(0,170,255,.24);
+  border-color:rgba(0,170,255,.92);
+  box-shadow:0 0 12px rgba(0,170,255,.5), inset 0 0 8px rgba(0,170,255,.14);
+  text-shadow:0 0 6px rgba(0,170,255,.55);
+}
+
+#mep-control-panel .mep-game-phase-cell-in-game.is-active{
+  color:#fff7cf;
+  background:rgba(255,223,0,.24);
+  border-color:rgba(255,223,0,.92);
+  box-shadow:0 0 12px rgba(255,223,0,.5), inset 0 0 8px rgba(255,223,0,.14);
+  text-shadow:0 0 6px rgba(255,223,0,.55);
+}
+
+#mep-control-panel .mep-game-tab-panel{
+  display:none;
+  padding:12px;
+  border:1px dashed rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.03);
+  padding-top: 0px;
+}
+
+#mep-control-panel .mep-game-tab-panel.is-active{
+  display:block;
 }
 
 #mep-control-panel .mep-section-title{
@@ -337,6 +407,11 @@
   // padding: 20px;              /* ← ВАЖНО */
   gap: 12px;
 }
+#mep-control-panel .mep-track-head-controls{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
 
 /* Заголовок */
 #mep-control-panel .mep-section-title{
@@ -364,6 +439,23 @@
 
 #mep-control-panel .mep-track-count:focus{
   border-color: rgba(255,255,255,0.22);
+}
+#mep-control-panel .mep-track-collapse{
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.07);
+  color:#fff;
+  border-radius: 8px;
+  padding: 1px 8px 2px;
+  font-size: 13px;
+  line-height: 1.1;
+  cursor: pointer;
+}
+#mep-control-panel .mep-track-collapse:hover{
+  background: rgba(255,255,255,0.14);
+}
+#mep-control-panel .mep-tracking-wrap.mep-collapsed .mep-track-wrap,
+#mep-control-panel .mep-tracking-wrap.mep-collapsed .mep-track-count{
+  display:none;
 }
 
 
@@ -874,4 +966,160 @@ body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
 .mep-graph-label input {
     text-align: center;
     width: 40px;
+}
+
+/* Strategy1 service stake rows */
+#mep-control-panel .mep-strategy1-stake-service-wrap{display:flex;flex-direction:column;gap:5px;}
+#mep-control-panel .mep-strategy1-stake-row{
+  margin-top:0;
+  display:grid;
+  grid-template-columns:34px minmax(88px,1fr) 86px 42px 86px;
+  align-items:center;
+  gap:0;
+  border:1px dashed rgba(255,255,255,.24);
+  border-radius:0;
+  padding:0;
+  font-size:11px;
+  background:rgba(255,255,255,.04);
+}
+#mep-control-panel .mep-strategy1-stake-row.is-active{border-color:rgba(0,255,87,.5);background:rgba(0,255,87,.08);}
+#mep-control-panel .mep-strategy1-stake-row.is-inactive{opacity:.86;}
+#mep-control-panel .mep-strategy1-stake-mode-toggle{width:16px;height:16px;accent-color:#00e51f;}
+#mep-control-panel .mep-strategy1-stake-col{padding:4px 8px;white-space:nowrap;overflow:visible;text-overflow:clip;word-break:normal;line-height:1.2;}
+#mep-control-panel .mep-strategy1-stake-col.label{color:#f0f4fb;}
+#mep-control-panel .mep-strategy1-stake-col.start{color:#d7dde5;text-align:right;}
+#mep-control-panel .mep-strategy1-stake-col.loss{color:#9eb3d7;text-align:center;}
+#mep-control-panel .mep-strategy1-stake-col.next{color:#9ef5b4;text-align:right;}
+#mep-control-panel .mep-strategy1-click-apply{
+  cursor:pointer;
+  text-decoration:underline;
+  text-decoration-color:rgba(158,245,180,.6);
+  text-underline-offset:2px;
+  transition:all .15s ease;
+}
+#mep-control-panel .mep-strategy1-click-apply:hover{
+  color:#fff;
+  text-decoration-color:#fff;
+  text-shadow:0 0 8px rgba(158,245,180,.55);
+}
+#mep-control-panel .mep-strategy1-cycle-info-row{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr 1fr;
+  align-items:center;
+  gap:0;
+  border:1px dashed rgba(255,255,255,.24);
+  border-radius:0;
+  background:rgba(255,255,255,.04);
+  margin-top:0;
+}
+#mep-control-panel .mep-strategy1-cycle-info-cell{
+  padding:6px 8px;
+  font-size:12px;
+  color:#dce4f0;
+  text-align:center;
+  white-space:nowrap;
+}
+#mep-control-panel .mep-strategy1-cycle-info-cell b{color:#fff;font-weight:700;}
+#mep-control-panel .mep-strategy1-branch-tabs{display:flex;gap:6px;}
+#mep-control-panel .mep-strategy1-branch-tab{
+  min-width:74px;height:24px;border-radius:6px;
+  border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.08);color:#d8dde6;font-size:12px;cursor:pointer;
+}
+#mep-control-panel .mep-strategy1-branch-tab.is-selected{background:rgba(255,255,255,.28);color:#fff;}
+#mep-control-panel .mep-strategy1-branch-tab.is-runtime-active{
+  background:rgba(0,255,87,.2);border-color:rgba(0,255,87,.75);color:#b5ffca;box-shadow:0 0 10px rgba(0,255,87,.45);
+}
+#mep-control-panel .mep-strategy1-cond-summary{
+  transition:all .15s ease;
+}
+#mep-control-panel .mep-strategy1-cond-summary.is-true{
+  color:#d9ffe5;
+  background:rgba(0,255,87,.22);
+  border-color:rgba(0,255,87,.85);
+  box-shadow:0 0 12px rgba(0,255,87,.48), inset 0 0 10px rgba(0,255,87,.15);
+  text-shadow:0 0 6px rgba(0,255,87,.55);
+}
+#mep-control-panel .mep-strategy1-cond-summary.is-false{
+  color:#ff6f9f;
+  background:rgba(255,255,255,.03);
+  border-color:rgba(255,255,255,.2);
+  box-shadow:none;
+}
+#mep-control-panel .mep-strategy1-cond-summary.is-idle{
+  color:#a9b2bc;
+  background:rgba(255,255,255,.03);
+  border-color:rgba(255,255,255,.2);
+  box-shadow:none;
+}
+#mep-control-panel .mep-strategy1-service-array-row{
+  margin-top:0;
+  display:grid;
+  grid-template-columns:34px 92px minmax(86px,1fr) 86px;
+  align-items:center;
+  gap:0;
+  border:1px dashed rgba(255,255,255,.24);
+  border-radius:0;
+  font-size:11px;
+  background:rgba(255,255,255,.04);
+}
+#mep-control-panel .mep-strategy1-service-array-spacer{display:inline-block;}
+#mep-control-panel .mep-strategy1-service-array-input{
+  width:100%;
+  height:22px;
+  border:1px solid rgba(255,255,255,.26);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  padding:0 6px;
+  font-size:11px;
+  box-sizing:border-box;
+  outline:none;
+}
+#mep-control-panel .mep-strategy1-service-array-input:focus{border-color:rgba(0,255,87,.55);}
+#mep-control-panel .mep-strategy1-stake-col.active{color:#f7e7a2;text-align:right;}
+#mep-control-panel .mep-strategy1-live-debug-box{
+  margin-top:4px;
+  border:1px dashed rgba(255,255,255,.25);
+  background:rgba(5,8,12,.82);
+  color:#d7e4ff;
+  font-size:12px;
+  padding:8px 10px;
+  line-height:1.35;
+}
+#mep-control-panel .mep-strategy1-live-debug-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr 1fr;
+  gap:0;
+}
+#mep-control-panel .mep-strategy1-live-debug-col{
+  padding:2px 10px 4px 10px;
+}
+#mep-control-panel .mep-strategy1-live-debug-col + .mep-strategy1-live-debug-col{
+  border-left:1px dashed rgba(255,255,255,.35);
+}
+#mep-control-panel .mep-strategy1-live-debug-title{
+  color:#00f4ff;
+  font-size:18px;
+  line-height:1.1;
+  margin-bottom:8px;
+}
+#mep-control-panel .mep-strategy1-live-debug-table{
+  display:grid;
+  grid-template-columns:minmax(88px,1fr) auto;
+  column-gap:10px;
+  row-gap:1px;
+  align-items:center;
+}
+#mep-control-panel .mep-strategy1-live-debug-row{
+  display:contents;
+}
+#mep-control-panel .mep-strategy1-live-debug-row > span:first-child{
+  color:#f0f6ff;
+  white-space:nowrap;
+}
+#mep-control-panel .mep-strategy1-live-debug-row > span:last-child{
+  color:#ffffff;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
 }
