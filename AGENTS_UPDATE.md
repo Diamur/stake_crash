@@ -334,3 +334,289 @@
 - Реализован приоритет code > storage/DB: `MEP.Settings.getEndpoint()` и `MEP.Settings.getSoundsText()` сначала читают `MEP.CodeSettings`.
 - В settings UI добавлены readonly/title-hints для endpoint/sounds при активном code override; сохранение этих полей в state пропускается при code-priority.
 - Версии повышены: `crash.js 0.1.5.66` (header + `MEP.ver`) и `crash.css 0.1.5.66`.
+- 2026-04-04: Strategy1 minimal pool расширен локальным блоком `frequency_vector_state` (Freq) без registry/DB изменений.
+- Добавлены short-label helper'ы `getFrequencyVectorShortLabelByState/Mode` и evaluate-ветка `frequency_vector_state` по `MEP.State.frequencyVectorState` (`up/down/flat`).
+- В `renderStrategy1ConditionBridge` добавлена строка `Freq` сразу после `Diff` с toggle + mode select + currentValue + result.
+- Добавлены `setStrategy1FrequencyMode()` и bind `select.mep-strategy1-cond-frequency-mode`; guard автоперерендера расширен на общий класс `mep-strategy1-cond-vector-mode`.
+- Стили vector-mode select унифицированы через `.mep-strategy1-cond-vector-mode` (Diff/Freq используют один стиль).
+- Версии повышены: `crash.js 0.1.5.67` (header + `MEP.ver`) и `crash.css 0.1.5.67`.
+- 2026-04-04: В Strategy1 local minimal pool добавлен новый блок `frequency_line_gt` (`label: FreqL`, `params.threshold`, без registry/DB).
+- В `evaluateConditionBlocks()` добавлена проверка `currentFrequency > threshold` с `currentValue` как числом частотности и `resultText` вида `N > T`.
+- Текущая частотность берётся из runtime-расчёта FrequencyGraph: `_toOldestFirstNumbers()` + `_buildSeries(...)` + последний элемент серии.
+- В `renderStrategy1ConditionBridge` после строки `Freq` добавлена строка `FreqL` с компактной формулой `f > [threshold]`.
+- Добавлены `setStrategy1FrequencyLineThreshold()` и bind для `mep-strategy1-cond-frequency-line-threshold`; guard авто-rerender расширен под новый input.
+- Версии повышены: `crash.js 0.1.5.68` (header + `MEP.ver`) и `crash.css 0.1.5.68`.
+- 2026-04-04: StakeGraph render fix — векторные линии теперь зависят не только от `stake*VectorEnabled`, но и от видимости соответствующей серии.
+- Добавлены флаги `renderPlayersVectors = showPlayers && stakePlayersVectorEnabled` и `renderBetVectors = showBet && stakeBetVectorEnabled`.
+- При выключении `Клиенты` скрываются: линия клиентов + mainEMA + shiftedEMA клиентов.
+- При выключении `Ставка x10` скрываются: линия ставки + mainEMA + shiftedEMA ставки.
+- Расчёт EMA/state не менялся; изменены только условия отображения в `MEP.StakeGraph.render()`.
+- Версии повышены: `crash.js 0.1.5.69` (header + `MEP.ver`) и `crash.css 0.1.5.69`.
+- 2026-04-04: Добавлено сворачивание блока «Отслеживание» (кнопка-стрелка в header, как у графиков).
+- Введён state-флаг `MEP.State.trackingCollapsed` с persistence через `MEP.Storage.save/load` (localStorage + cookie).
+- В mount добавлены `mep-tracking-wrap`, `mep-track-collapse` и группировка `mep-track-head-controls`.
+- В bind добавлен `applyTrackingCollapse()` и click-handler кнопки с сохранением состояния.
+- В collapsed скрываются `.mep-track-wrap` и `.mep-track-count`, header и кнопка остаются видимыми.
+- Версии повышены: `crash.js 0.1.5.70` (header + `MEP.ver`) и `crash.css 0.1.5.70`.
+- 2026-04-04: Для `График ставок` добавлены ручные цвета основных линий: `stakeGraphPlayersColor` и `stakeGraphBetColor`.
+- В stake-params добавлены color-контролы: `mep-stake-color-players` и `mep-stake-color-bet`.
+- Рендер основныйх series в `MEP.StakeGraph.render()` переведён с hardcoded цветов на state-цвета.
+- Легенда `.mep-stake-legend-players/.mep-stake-legend-bets` теперь синхронизируется с выбранными state-цветами.
+- Новые поля добавлены в `MEP.Storage.save/load` (localStorage + cookie) и в bind handlers с save+rerender.
+- Версии повышены: `crash.js 0.1.5.71` (header + `MEP.ver`) и `crash.css 0.1.5.71`.
+- 2026-04-04: В Strategy1 minimal pool добавлен обязательный системный пункт `strategy_enabled` (первая строка `Вкл/Откл`).
+- Пункт не хранится как редактируемый `conditionBlock`: он подмешивается в `evaluateConditionBlocks()` с `enabled:true` и `currentValue on/off`.
+- При `strategy1.enabled=false` первая строка даёт `false`, и общий `Пул условий` теперь корректно становится `false`.
+- В `renderStrategy1ConditionBridge` строка `strategy_enabled` вставлена первой, перед `Устав`.
+- UI сделан locked/non-disable: вместо интерактивного checkbox используется неинтерактивный индикатор `.mep-strategy1-cond-lock-indicator`.
+- Версии повышены: `crash.js 0.1.5.72` (header + `MEP.ver`) и `crash.css 0.1.5.72`.
+- 2026-04-04: В Strategy1 local minimal pool добавлен новый блок `stake_players_vector_state` (`label: Clients`, `mode: gt/lt/flat`, без registry/DB).
+- Добавлены short-label helper'ы `getStakePlayersVectorShortLabelByState/Mode` в формате `mEMA > sEMA | mEMA < sEMA | flat`.
+- В `evaluateConditionBlocks()` добавлена ветка `stake_players_vector_state` по runtime-источнику `MEP.State.stakePlayersVectorState`.
+- В `renderStrategy1ConditionBridge` добавлена строка `Clients` после `Freq line` с toggle + vector-mode select + currentValue + result.
+- Добавлены `setStrategy1StakePlayersMode()` и bind для `select.mep-strategy1-cond-stake-players-mode`.
+- Версии повышены: `crash.js 0.1.5.73` (header + `MEP.ver`) и `crash.css 0.1.5.73`.
+- 2026-04-04: В Strategy1 local minimal pool добавлен новый блок `stake_bet_vector_state` (`label: Bet`, `mode: gt/lt/flat`, без registry/DB).
+- Добавлены short-label helper'ы `getStakeBetVectorShortLabelByState/Mode` в формате `mEMA > sEMA | mEMA < sEMA | flat`.
+- В `evaluateConditionBlocks()` добавлена ветка `stake_bet_vector_state` по runtime-источнику `MEP.State.stakeBetVectorState`.
+- В `renderStrategy1ConditionBridge` добавлена строка `Bet` после `Clients` с toggle + vector-mode select + currentValue + result.
+- Добавлены `setStrategy1StakeBetMode()` и bind для `select.mep-strategy1-cond-stake-bet-mode`.
+- Версии повышены: `crash.js 0.1.5.74` (header + `MEP.ver`) и `crash.css 0.1.5.74`.
+- 2026-04-04: В Strategy1 local minimal pool добавлены line-условия `stake_players_line_gte` и `stake_bet_line_gte` (без registry/DB).
+- Добавлены runtime helper'ы `getCurrentStakePlayersValue()` и `getCurrentStakeBetValue()` по последним значениям `roundPlayersCountHistory/roundBetSumHistory` (сырые значения).
+- В `evaluateConditionBlocks()` добавлены проверки `currentPlayers >= threshold` и `currentBet >= threshold` с `currentValue`/`resultText`.
+- В `renderStrategy1ConditionBridge` добавлены строки `ClientsL` (`c >=`) и `BetL` (`b >=`) после `Clients`/`Bet`.
+- Добавлены setter'ы `setStrategy1StakePlayersThreshold()` / `setStrategy1StakeBetThreshold()` и bind для новых threshold input.
+- Версии повышены: `crash.js 0.1.5.75` (header + `MEP.ver`) и `crash.css 0.1.5.75`.
+- 2026-04-04: В Strategy1 minimal UI после `Пул условий` добавлены service-строки `Ставка фикс.` и `Ставка X%` (вне condition-pool).
+- Добавлено вычисление start/loss/next для fixed и percent режимов; `next` считается как шаг `lossCount + 1` через текущие growth-настройки.
+- Добавлены toggles режимов старта: `startStakeMode` переключается между `fixed` и `percent` с save + checkConditions + rerender.
+- Клик по `.mep-strategy1-risk-amount` теперь копирует значение и в `Strategy1.config.startStakeValue` (с сохранением и ререндером).
+- Добавлены стили service-строк в `crash.js` (inline style block) и `crash.css`.
+- Версии повышены: `crash.js 0.1.5.76` (header + `MEP.ver`) и `crash.css 0.1.5.76`.
+- 2026-04-05: Убрано многоточие в service-строках ставок Strategy1 (`Ставка фикс.` / `Ставка X%`).
+- Для `.mep-strategy1-stake-col` включён полный вывод значений: `white-space: normal`, `overflow: visible`, `text-overflow: clip`, `word-break: break-all`.
+- Изменение внесено синхронно в inline-стили `crash.js` и в `crash.css`.
+- 2026-04-05: Для service-строк ставок Strategy1 расширены колонки значений, чтобы числа не переносились по цифрам.
+- `.mep-strategy1-stake-row` переведён на сетку `34px minmax(88px,1fr) 86px 42px 86px`.
+- Для `.mep-strategy1-stake-col` включён `white-space: nowrap` и увеличен горизонтальный padding.
+- Версии повышены: `crash.js 0.1.5.77` (header + `MEP.ver`) и `crash.css 0.1.5.77`.
+- 2026-04-05: В Strategy1 service-блок после строк ставок добавлены строки `Множ.ставок` и `Множ.коэф` с текстовыми input массивов.
+- В сервисных расчётах и в реальном `Strategy1.buildStakePlan()` переведён выбор элементов массивов на циклический режим (`stepIndex % array.length`).
+- Добавлены setter'ы `setStrategy1StakeGrowthArrayText` / `setStrategy1TargetMultiplierArrayText` (save + check + rerender, авто-включение array-mode).
+- Строки ставок `Ставка фикс.` / `Ставка X%` теперь пересчитывают next-значения с циклическим множителем при изменении `lossCount`.
+- Версии повышены: `crash.js 0.1.5.78` (header + `MEP.ver`) и `crash.css 0.1.5.78`.
+- 2026-04-05: Исправлено ручное редактирование полей `Множ.ставок` / `Множ.коэф` (без автозатирания во время печати).
+- В `renderStrategy1ConditionBridge()` расширен guard: при фокусе на array-input service-блока ререндер пропускается.
+- Сохранение массивов оставлено на `change` (blur) + добавлен commit по Enter (`blur()`), без save на каждый символ.
+- Setter'ы теперь сохраняют строку как введена (`value.toString()`), без агрессивной нормализации во время ввода.
+- Версии повышены: `crash.js 0.1.5.79` (header + `MEP.ver`) и `crash.css 0.1.5.79`.
+- 2026-04-05: Исправлено исчезновение service-полей Strategy1 (`Ставка...`, `Множ.ставок`, `Множ.коэф`).
+- Причина: в `renderStrategy1ConditionBridge()` была реассайнация `const stakeServiceWrapEl`, что валило рендер.
+- Исправление: `stakeServiceWrapEl` снова `let`, повторный поиск/создание блока работает без runtime-ошибки.
+- Версии повышены: `crash.js 0.1.5.80` (header + `MEP.ver`) и `crash.css 0.1.5.80`.
+- 2026-04-05: В Strategy1 service-блок после `Множ.коэф` добавлена расчётная строка `Цел.коэф.`.
+- `getStrategy1StakeServiceData()` расширен полями `targetBaseValue`, `targetLossCount`, `targetNextValue`.
+- Добавлены helper'ы `getStrategy1TargetBaseValue()`, `getStrategy1TargetValueByStep()`, `formatStrategyTargetValue()`.
+- Для `targetMode=array` расчёт `targetNextValue` идёт циклически по `lossCount % array.length`.
+- Версии повышены: `crash.js 0.1.5.81` (header + `MEP.ver`) и `crash.css 0.1.5.81`.
+- 2026-04-05: В строке `Цел.коэф.` первая числовая колонка переведена в editable input (`.mep-strategy1-target-base-input`).
+- Добавлен setter `setStrategy1TargetBaseValue()` -> пишет `config.targetMultiplierValue`, переключает `targetMode=fixed`, сохраняет и ререндерит.
+- В guard `renderStrategy1ConditionBridge()` добавлен класс `mep-strategy1-target-base-input` (без потери фокуса при вводе).
+- В bind добавлено сохранение по `change` и commit по Enter для нового input.
+- Версии повышены: `crash.js 0.1.5.82` (header + `MEP.ver`) и `crash.css 0.1.5.82`.
+- 2026-04-05: Для `Цел.коэф.` input переведён на `type=number` (нумератор) с `min=0` и `step=0.01`.
+- Поведение сохранения/guard оставлено прежним: change/Enter -> save + rerender.
+- Версии повышены: `crash.js 0.1.5.83` (header + `MEP.ver`) и `crash.css 0.1.5.83`.
+- 2026-04-05: В Strategy1 service-блоке переставлен порядок строк: `Множ.ставок` поднят выше `Ставка фикс.` / `Ставка X%`.
+- Новый порядок после `Пул условий`: `Множ.ставок` -> `Ставка фикс.` -> `Ставка X%` -> `Множ.коэф` -> `Цел.коэф.`.
+- Логика/bind/save/guard/расчёты не менялись, изменён только порядок рендера HTML.
+- Версии повышены: `crash.js 0.1.5.84` (header + `MEP.ver`) и `crash.css 0.1.5.84`.
+- 2026-04-05: Перед `Множ.ставок` добавлена инфо-строка цикла `Раунд / Ставок / Минусов` в Strategy1 service-блоке.
+- В cycle добавлено поле `betCount`; оно увеличивается при фактическом `onExecutionAccepted()` (ставка реально отправлена).
+- При `startCycle()` значение `betCount` сбрасывается в `0` вместе с `roundCount/lossCount`.
+- `getStrategy1StakeServiceData()` расширен полями `cycleRoundCount`, `cycleBetCount`, `cycleLossCount`.
+- Версии повышены: `crash.js 0.1.5.85` (header + `MEP.ver`) и `crash.css 0.1.5.85`.
+- 2026-04-05: Добавлен сервисный `СтопМинус` input в конец Strategy1 service-блока (после `Цел.коэф.`).
+- В `Strategy1.config` добавлено поле `stopMinusCount` (default `0`, где `0` = отключено).
+- Проверка `lossCount >= stopMinusCount` встроена в `updateAfterRound()`; при срабатывании цикл завершается с `stop_minus_reached` и сразу запускается новый `startCycle()`.
+- В `startCycle()` инициализирован reset счётчиков цикла (в т.ч. `roundCount/betCount/lossCount`), `betCount` инкрементится только при `onExecutionAccepted()`.
+- Изменён стиль `.mep-strategy1-control-row` на `padding: 0px 0px 0;`.
+- Версии повышены: `crash.js 0.1.5.86` (header + `MEP.ver`) и `crash.css 0.1.5.86`.
+- 2026-04-05: Расчётные `nextStake` (fixed/% строки) и `nextTarget` (`Цел.коэф.`) сделаны кликабельными для автоподстановки в поля игры.
+- Добавлены helper'ы UI: `getGameAmountInput`, `getGameTargetInput`, `setNativeInputValue`, `formatGameNumericValue`, `applyGameAmountValue`, `applyGameTargetValue`.
+- По клику выполняется безопасная подстановка с `focus -> input/change events -> blur`, без автоклика кнопки ставки.
+- В service-row добавлены классы `.mep-strategy1-click-apply-stake/.mep-strategy1-click-apply-target` + hover/cursor стили.
+- Версии повышены: `crash.js 0.1.5.87` (header + `MEP.ver`) и `crash.css 0.1.5.87`.
+- 2026-04-05: В строке `Ставка фикс.` стартовая колонка переведена из текста в inline input для ручного редактирования базовой fixed-ставки.
+- Добавлен setter `setStrategy1StartStakeBaseValue(value)`: нормализация `>=0`, запись в `config.startStakeValue`, авто-переключение `config.startStakeMode = "fixed"`, затем `MEP.Storage.save()`, `checkConditions()`, `renderStrategy1MinimalUi()`.
+- Новый input `mep-strategy1-start-stake-base-input` добавлен в anti-rerender guard и bind-обработчики (`change`/`Enter->blur`), чтобы не терялся фокус и не затирался ввод при редактировании.
+- Добавлен форматтер `formatStrategyStakeBaseValue()` для спокойного отображения base-ставки в поле без агрессивного форматирования по каждому символу.
+- Версии повышены: `crash.js 0.1.5.88` (header + `MEP.ver`) и `crash.css 0.1.5.88`.
+- 2026-04-05: Обновлены формулы service-расчётов Strategy1 для `Ставка фикс.`, `Ставка X%`, `Цел.коэф.` с разделением режимов одиночного множителя и массива множителей.
+- Для `Множ.ставок`: если после парсинга 1 значение -> степенная формула `base * multiplier^lossCount`; если >1 -> циклический выбор `base * arr[lossCount % arr.length]`.
+- Для `Множ.коэф`: аналогично, `nextTarget` теперь считается от `targetBaseValue` по тем же правилам (single=степень, array=активный элемент), с использованием текущего `cycle.lossCount`.
+- В `getStrategy1StakeServiceData()` убран `lossCount + 1`: `nextFixed/nextPercent/targetNextValue` считаются строго по текущему `lossCount`.
+- `getStrategy1TargetBaseValue()` теперь возвращает базовый target из `config.targetMultiplierValue` независимо от режима массива, чтобы `Цел.коэф.` использовал стабильную стартовую базу.
+- Версии повышены: `crash.js 0.1.5.89` (header + `MEP.ver`) и `crash.css 0.1.5.89`.
+- 2026-04-05: В cycle-info Strategy1 добавлена 4-я секция `Циклов` и порядок обновлён на `Циклов | Раунд | Ставок | Минусов`.
+- В `Strategy1.cycle` добавлено поле `cycleNumber`; при каждом `startCycle()` оно увеличивается на `+1`, а `roundCount/betCount/lossCount` сбрасываются в `0`.
+- Для round-tracking без ставки: в DOM tracker (`addNewest`) добавлен вызов `Strategy1.updateAfterRound()` для каждого завершённого игрового раунда при `strategy1.enabled && cycle.isActive`, если нет `waitingRoundResult` execution-моста.
+- При выключении Strategy1 через toggle теперь сбрасываются `cycle.isActive=false`, `cycleNumber=0`, `roundCount=0`, `betCount=0`, `lossCount=0` (чтобы инфо-строка не показывала старые значения).
+- В `getStrategy1StakeServiceData()` добавлена выдача `cycleNumber`; при `strategy1.enabled === false` все cycle-счётчики (`cycleNumber/roundCount/betCount/lossCount`) принудительно отдаются как `0`.
+- Версии повышены: `crash.js 0.1.5.90` (header + `MEP.ver`) и `crash.css 0.1.5.90`.
+- 2026-04-05: При включении Strategy1 теперь сразу запускается `startNewCycle()` (через toggle handler), поэтому `Циклов` сразу становится `1` вместо `0`.
+- Добавлен авто-старт цикла и при init UI, если стратегия уже включена из сохранённого состояния и `cycle.isActive === false`.
+- Это обеспечивает корректный подсчёт раундов без ставок: `Tracker.addNewest -> updateAfterRound(dom_cycle_round)` теперь работает сразу после включения стратегии, т.к. цикл активен.
+- Версии повышены: `crash.js 0.1.5.91` (header + `MEP.ver`) и `crash.css 0.1.5.91`.
+- 2026-04-05: Вынесен единый DOM-bridge `Strategy1.handleRoundFinishedFromDom(entry)` для подсчёта раундов цикла по завершённым игровым раундам (и без ставок тоже).
+- Bridge теперь вызывается в двух путях трекера: `addNewest` и `reconcileLatestWindow` (для backfill-пропусков), чтобы roundCount не терялся при reconcile-сценариях.
+- Логика bridge: если `isExecuting && waitingRoundResult` -> `handleRoundFinishedForExecution`, иначе -> `updateAfterRound` с `stake=0/targetMultiplier=0` и `resultKind=dom_cycle_round`.
+- Это фиксит проблему, когда при включённой стратегии `Циклов=1`, но `Раунд` не увеличивался на новых DOM-раундах.
+- Версии повышены: `crash.js 0.1.5.92` (header + `MEP.ver`) и `crash.css 0.1.5.92`.
+- 2026-04-05: Добавлено ветвление condition-pool Strategy1 на две независимые ветки `plus` и `minus` с UI-вкладками `ПЛЮС/МИНУС`.
+- Миграция legacy: старый `config.conditionBlocks` переносится в `conditionBranches.plus`; `conditionBranches.minus` создаётся отдельным пулом с выключенными условиями (независимые toggle/mode/threshold).
+- Добавлено `config.conditionSelectedBranch` (persisted) и переключение вкладок в UI; редактирование условий теперь работает для выбранной вкладки.
+- Реализован раздельный evaluate: `evaluateConditionBlocks(st, branch)` + расчёт pool-state по каждой ветке (`plus/minus`) и `runtime.activeBranch` для runtime-подсветки вкладок.
+- Для обратной совместимости `config.conditionBlocks` поддерживается как зеркало ветки `plus`.
+- Версии повышены: `crash.js 0.1.5.93` (header + `MEP.ver`) и `crash.css 0.1.5.93`.
+- 2026-04-05: Исправлен выбор `runtime.activeBranch` для вкладок `ПЛЮС/МИНУС`: при `lossCount === 0` активной веткой всегда принудительно считается `plus`.
+- Добавлен helper `getRuntimeActiveBranch(st, plusPool, minusPool)`; он использует приоритет `plus` на старте цикла и далее опирается на `routeBranch()` при `lossCount > 0`.
+- Это убирает баг ранней неон-подсветки `МИНУС` при нулевых минусах в начале цикла.
+- Версии повышены: `crash.js 0.1.5.94` (header + `MEP.ver`) и `crash.css 0.1.5.94`.
+- 2026-04-05: Усилен visual-state summary-блока `Пул условий` в Strategy1.
+- Для `.mep-strategy1-cond-summary.is-true` добавлен яркий зелёный неоновый фон/граница/glow (виден издалека), при этом выравнивание и layout блока сохранены.
+- `.is-false` и `.is-idle` оставлены в спокойной тёмной основе с текущими цветовыми акцентами текста.
+- Стили обновлены и в inline-style `crash.js`, и в `crash.css` (`#mep-control-panel .mep-strategy1-cond-summary*`).
+- Версии повышены: `crash.js 0.1.5.95` (header + `MEP.ver`) и `crash.css 0.1.5.95`.
+- 2026-04-05: Под верхними табами Game добавлена новая трёхблочная status-row: `Игра | Запуск | Ставка` (между `Главная/Игра` и `Устав/Стратегия1/Стратегия2`).
+- Добавлены helper'ы UI: `getGameBetButton`, `normalizeGameBetButtonText`, `getGameBetButtonText`, `resolveGamePhaseFromBetButtonText`, `updateGamePhaseFromDom`, `renderGamePhaseRow`.
+- Источник кнопки ставки: приоритетно `button[data-testid=\"bet-button\"]` (с fallback через существующие sidebar/кнопочные селекторы).
+- Маппинг фаз: `Сделать ставку (след. раунд)` -> `game`, `Начинается...` -> `launch`, `Ставка` -> `bet`; неизвестный/пустой текст -> `\"\"` (idle без подсветки).
+- Состояние хранится в `MEP.State.gamePhase`, обновление фазы встроено в `renderStrategyMinimalUi()` (регулярный UI ticker).
+- Версии повышены: `crash.js 0.1.5.96` (header + `MEP.ver`) и `crash.css 0.1.5.96`.
+
+- 2026-04-05: Для `.mep-game-tab-panel` добавлен `padding-top: 0px` (в inline-style `crash.js` и в `crash.css`) для корректного верхнего отступа игровых подпанелей.
+- Поведение остальных отступов/рамок/фона не изменено.
+- Версии повышены: `crash.js 0.1.5.97` (header + `MEP.ver`) и `crash.css 0.1.5.97`.
+
+- 2026-04-05: Уменьшена высота кнопок переключения режимов игры (`Игра | Запуск | Ставка`) до `16px`.
+- Изменение внесено синхронно в inline-style `crash.js` и в `crash.css` для единообразного рендера.
+- Версии повышены: `crash.js 0.1.5.98` (header + `MEP.ver`) и `crash.css 0.1.5.98`.
+
+- 2026-04-05: Обновлены цвета активных кнопок ряда режимов игры (`Игра | Запуск | Ставка`).
+- `Игра` теперь красный акцент, `Запуск` — оранжевый неон, `Ставка` оставлена зелёной (как ранее).
+- Стили синхронизированы в inline-style `crash.js` и в `crash.css`; версии повышены до `0.1.5.99`.
+
+- 2026-04-05: Расширена строка фаз Game до 5 состояний: `Игра | Запуск | Ставка | Поставили | В игре`.
+- В `resolveGamePhaseFromBetButtonText()` добавлены фазы: `Отменить -> placed`, `Кэшаут -> in_game`; сравнение идёт по нормализованному тексту кнопки.
+- Добавлены новые неон-стили активных ячеек: `placed` (голубой) и `in_game` (жёлтый); обновлены стили тикера Strategy1 (`info-bar` и `info-ticker`) по заданным параметрам.
+- Версии повышены: `crash.js 0.1.5.100` (header + `MEP.ver`) и `crash.css 0.1.5.100`.
+
+- 2026-04-05: Исправлено распознавание фазы `В игре` по тексту кнопки ставки: `Кэшаут` теперь определяется не только точным равенством, но и с суффиксами (например `Кэшаут 1.23x`) и `cash out`.
+- Для `Отменить` также добавлен tolerant-вариант с возможным хвостом после пробела.
+- Версии повышены: `crash.js 0.1.5.101` (header + `MEP.ver`) и `crash.css 0.1.5.101`.
+
+- 2026-04-05: Усилено распознавание фаз `Поставили`/`В игре` из текста bet-кнопки.
+- `placed` теперь ловится по корню `отмен*`; `in_game` — по `кэшаут/кешаут` и `cash out/cashout`; для `game/launch` сохранён tolerant fallback через `includes`.
+- `getGameBetButtonText()` теперь также читает `aria-label` до `innerText/textContent`, что помогает на кнопках с нестандартной разметкой.
+- Версии повышены: `crash.js 0.1.5.102` (header + `MEP.ver`) и `crash.css 0.1.5.102`.
+
+- 2026-04-05: Починен выбор action-кнопки для фазы Game: `getGameBetButton()` теперь ищет не только `bet-button`, но и `cancel-button`/`cashout-button` и дополнительно сканирует `.game-sidebar button` по распознаваемому тексту.
+- Это исправляет кейс, когда при состоянии `Отменить/Кэшаут` выбиралась не та кнопка и фазы `Поставили`/`В игре` не подсвечивались.
+- Версии повышены: `crash.js 0.1.5.103` (header + `MEP.ver`) и `crash.css 0.1.5.103`.
+
+- 2026-04-05: Дополнительно исправлен выбор кнопки фазы для состояния `Поставили`: введён приоритет фаз при выборе кандидата (`in_game` > `placed` > `bet` > `launch` > `game`).
+- Теперь при одновременном наличии нескольких action-кнопок (или скрытых дублей в DOM) выбирается кнопка с наиболее приоритетной распознанной фазой, чтобы `Отменить` не перекрывался `Ставка`.
+- Версии повышены: `crash.js 0.1.5.104` (header + `MEP.ver`) и `crash.css 0.1.5.104`.
+
+- 2026-04-05: Вынесен точный селектор action-кнопки игры в константу `MEP.Config.GAME_ACTION_BUTTON_SELECTOR`.
+- `getGameBetButton()` теперь использует эту константу как приоритетный кандидат перед `cancel/cashout/bet` fallback-селекторами.
+- Версии повышены: `crash.js 0.1.5.105` (header + `MEP.ver`) и `crash.css 0.1.5.105`.
+
+- 2026-04-05: Уточнён `GAME_ACTION_BUTTON_SELECTOR` — убраны хвостовые svelte-классы из CSS-селектора кнопки (`#main-content > div.parent > div > div > div > div > div.content > div.game-sidebar > div > button`).
+- Это делает селектор более стабильным при смене хеш-классов сборки.
+- Версии повышены: `crash.js 0.1.5.106` (header + `MEP.ver`) и `crash.css 0.1.5.106`.
+
+- 2026-04-05: Исправлено распознавание фазы `Поставили`: убран regex-границы `\b` для кириллицы, проверка заменена на `t.includes("отмен")`.
+- Причина: `\b` в JS некорректно работает для границ русских букв, из-за чего `Отменить` мог не матчиться.
+- Версии повышены: `crash.js 0.1.5.107` (header + `MEP.ver`) и `crash.css 0.1.5.107`.
+
+- 2026-04-05: Добавлена button-aware фазовая идентификация: новый `resolveGamePhaseFromBetButton(btn)` учитывает атрибуты кнопки при тексте `Ставка`.
+- Для `Ставка` введено правило: если кнопка disabled/`data-test-action-enabled=false`/`data-test-action-bet=disabled`/`data-test-bet-next=false`, фаза считается `placed`; иначе `bet`.
+- `getGameBetButton()` и `updateGamePhaseFromDom()` переведены на `resolveGamePhaseFromBetButton(btn)`.
+- Версии повышены: `crash.js 0.1.5.108` (header + `MEP.ver`) и `crash.css 0.1.5.108`.
+
+- 2026-04-06: Смягчено правило `Ставка -> placed`: теперь для текста `Ставка` фаза `placed` выставляется только когда кнопка реально disabled/aria-disabled.
+- Убрана зависимость от `data-test-action-*`, т.к. эти атрибуты могут иметь `false/disabled` и в активном кликабельном режиме, что давало ложный `placed`.
+- В `getGameBetButton()` добавлен фильтр видимости кандидата (`offsetParent/getClientRects`) для отсечения скрытых дублей кнопок.
+- Версии повышены: `crash.js 0.1.5.109` (header + `MEP.ver`) и `crash.css 0.1.5.109`.
+
+- 2026-04-06: В строке фаз Game изменён визуальный порядок: `Запуск` перенесён после `Поставили`.
+- Новый порядок: `Игра | Ставка | Поставили | Запуск | В игре` (фазовые ключи и логика распознавания не изменены).
+- Версии повышены: `crash.js 0.1.5.110` (header + `MEP.ver`) и `crash.css 0.1.5.110`.
+
+- 2026-04-06: Добавлен execution state-machine слой для Strategy1, привязанный к `gamePhase` (`ready_to_bet -> clicking_bet -> waiting_placed -> waiting_in_game -> waiting_round_finish -> round_resolved/idle`).
+- Введён button-aware runtime flow для цепочки `Ставка -> Поставили -> В игре`, с обработкой технической ошибки постановки (`Ошибка ставки...`) при нарушении переходов по таймауту.
+- `betCount` теперь увеличивается при входе в `in_game`, а не в момент клика; добавлена фиксация `preCycleBalance/postBetBalance/balanceAfterRound` и сообщения: `Ставка сделана...`, `Профит ставки ...`, `Профит цикла ...`, `Минус ...`.
+- Версии повышены: `crash.js 0.1.5.111` (header + `MEP.ver`) и `crash.css 0.1.5.111`.
+
+- В `startCycle()` добавлен явный reset execution-временных полей (`preCycleBalance/postBetBalance/balanceAfterRound/waitingRoundResult/pendingExecutionPayload/executionState`) при старте нового цикла.
+
+- 2026-04-06: Исправлен цикл/зацикливание тикера при включении Strategy1: `processGamePhaseExecution()` переведён с `evaluateDecisionState()` на `evaluateBetPermission()` (без внутреннего re-render).
+- Добавлен re-entrancy guard `runtime.phaseMachineBusy`, чтобы phase-machine не входила сама в себя при UI тиках.
+- Это устраняет зависание бегущей строки на пол-фразе и ложные визуальные дергания статуса `Вкл/Откл` в пуле условий.
+- Версии повышены: `crash.js 0.1.5.112` (header + `MEP.ver`) и `crash.css 0.1.5.112`.
+
+- 2026-04-06: Починен боевой execute flow Strategy1: `syncBetInputsToDom()` переведён на `MEP.UI.applyGameAmountValue/applyGameTargetValue` (с fallback) и numeric-tolerance verify вместо жёсткого строкового равенства.
+- `clickBetButton()` переведён на `MEP.UI.getGameBetButton()` + проверку `phase === bet` и `!disabled`; убрана жёсткая зависимость от `readBetButtonState(data-test-action-*)`.
+- Это исправляет кейс, когда пул зелёный, но ставка/коэффициент не применяются и клик по `Ставка` не уходит.
+- Версии повышены: `crash.js 0.1.5.113` (header + `MEP.ver`) и `crash.css 0.1.5.113`.
+
+- 2026-04-06: Точечный фикс боевого execution Strategy1: в `processGamePhaseExecution()` перед `executeBet()` добавлен гарантированный `startCycle()` при `cycle.isActive !== true`.
+- Если запуск цикла не удался, ставка не отправляется и в тикер выводится `Ошибка запуска цикла...`; `executeBet()` в этом случае не вызывается.
+- Guard `cycle_inactive` внутри `executeBet()` оставлен без изменений.
+- Версии повышены: `crash.js 0.1.5.114` (header + `MEP.ver`) и `crash.css 0.1.5.114`.
+
+- 2026-04-06: Добавлена диагностическая трассировка Strategy1 live execution для фазы `bet`: коды/стадии/причины шагов (`exec_enter`, `permission_*`, `stakeplan_*`, `dom_sync_*`, `dom_click_*`, `waiting_placed`).
+- В runtime добавлены debug-поля (`lastExecutionDebugCode/Text/Stage`, `lastExecutionDebugMeta`, `lastLiveDebugSignature/Ts`) + антидубль console-group `[MEP][Strategy1][LIVE][BET]`.
+- В info-bar теперь выводится точная причина отказа в формате `Ошибка ставки: <code>` / `Нет боевого режима: <code>`.
+- Добавлен временный UI-блок `LIVE debug` под service-частью Strategy1 (phase/exec/reason/stage).
+- Версии повышены: `crash.js 0.1.5.115` (header + `MEP.ver`) и `crash.css 0.1.5.115`.
+
+- 2026-04-06: Исправлен рассинхрон permission vs pool в Strategy1: `evaluateBetPermission()` теперь использует `evaluateConditionBlocks + getConditionBranchPoolState + getRuntimeActiveBranch` (active pool branch), а не legacy `checkFirstBranch/checkSecondBranch` для боевого допуска.
+- Добавлен прозрачный mapping в permission-details (`pool.activeBranch`, `pool.result`, `pool.conditions`, `failedCondition`) и console-log `[permission mapping]`.
+- Усилен `buildStakePlan()` для debug риска: fallback источники баланса (`dom/cycle/counters/runtime`), `riskDebug` (balance/risk/cap/compare), и явный лог причин `max_stake_not_allowed/max_stake_exceeded`.
+- Версии повышены: `crash.js 0.1.5.116` (header + `MEP.ver`) и `crash.css 0.1.5.116`.
+
+- 2026-04-06: Добавлен armed/latch-state для Strategy1 live execution: `armedToBet` + snapshot (`armedBranch/AtTs/PoolConditions/BetAmount/Target/SourcePhase/Permission/Plan`) с timeout 5000ms.
+- В фазе `bet` execute-flow может использовать зафиксированное разрешение (`useArmedPermission`) вместо мгновенного пересчёта pool, чтобы кратковременный сигнал не протухал до клика.
+- Добавлены сбросы armed-state на `bet_sent`, ошибке execution, рестарте/финише цикла и timeout (`Armed timeout...` / `Сигнал протух...`).
+- Расширены LIVE debug-логи/box полями armed (`usingArmedPermission`, `armedToBet`, `armedBranch`, `armedBetAmount`, `armedTargetMultiplier`, `armedSourcePhase`, `armedStillValid`).
+- Версии повышены: `crash.js 0.1.5.117` (header + `MEP.ver`) и `crash.css 0.1.5.117`.
+
+- 2026-04-06: Исправлен async DOM sync в Strategy1 execution: `dom_sync_async_pending` больше не считается reject-ошибкой.
+- Добавлен промежуточный state `waiting_dom_sync` + `runtime.pendingDomSyncContext`; при async-resolve выполнение продолжается с `clickBetButton()` и `onExecutionAccepted()` без повторного полного `executeBet()`.
+- При async-fail только тогда вызывается реальный reject (`onExecutionRejected`) с reason из sync-result.
+- Добавлены явные логи: `async dom sync started/resolved`, `continue to clickBetButton`, `click result`.
+- Версии повышены: `crash.js 0.1.5.118` (header + `MEP.ver`) и `crash.css 0.1.5.118`.
+
+- 2026-04-06: Устранён рассинхрон real/service ставки Strategy1: `buildStakePlan()`, service-row и live execute переведены на единые формулы (`calcStakeGrowthByStep` / `calcTargetByStep`), без разных расчётных веток.
+- Добавлены parity-логи `service vs real` перед execute (`nextFixed/nextPercent/targetNextValue` vs `stakePlan.betAmount/targetMultiplier`).
+- Усилена обработка round-result для execution bridge: fallback/инференс `won/lost/balance` (по `rawMultiplier`, `pendingStake`, `pendingTarget`, `postBetBalance`) и расширенные cycle-math логи (`loss/win before/after`, `cycleProfit`, `finishReason`).
+- Это фиксит рост ставки после минуса и корректное завершение цикла после профита (`finishCycle(\"profit_reached\")`) при валидном round payload.
+- Версии повышены: `crash.js 0.1.5.119` (header + `MEP.ver`) и `crash.css 0.1.5.119`.
+
+- 2026-04-07: Полностью переработан UI debug-box Strategy1 в человеко-читаемую табличную сетку 4 колонки (`резерв | Ветка | События | Баланс`) с внутренними 2-колоночными мини-таблицами `параметр -> значение`.
+- Добавлены ровные вертикальные выравнивания значений через CSS grid (`minmax(...)/auto`), вертикальные dashed-разделители колонок, крупные cyan-заголовки и tabular-nums для чисел.
+- Старый dump-формат (`phase/exec/reason/stage/...`) заменён на структурированный блок по ТЗ; бизнес-логика execution/permission/cycle не менялась.
+- Версии повышены: `crash.js 0.1.5.120` (header + `MEP.ver`) и `crash.css 0.1.5.120`.
+
+- 2026-04-08: По UI-правке удалён раздел `резерв` из debug-box Strategy1; оставлены 3 секции (`Ветка | События | Баланс`).
+- Уменьшены шрифты и внутренние отступы debug-box, сетка переведена на 3 колонки, добавлены `width:100%/box-sizing/overflow:hidden/min-width:0`, чтобы блок не вылезал за ширину панели.
+- Сохранено табличное выравнивание label/value и вертикальные разделители между секциями.
+- Версии повышены: `crash.js 0.1.5.121` (header + `MEP.ver`) и `crash.css 0.1.5.121`.
+
+- 2026-04-08: Хотфикс рендера Strategy1 после пула: восстановлена переменная `liveDebugPhase` в debug-template (после удаления секции `резерв`), чтобы не падал рендер service/debug-блока.
+- Это возвращает видимость остальной части интерфейса Strategy1 после строки пула.
+- Версии повышены: `crash.js 0.1.5.122` (header + `MEP.ver`) и `crash.css 0.1.5.122`.
