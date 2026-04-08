@@ -10157,6 +10157,13 @@
                     const liveDebugPlan = s.runtime?.lastStakePlanResult || null;
                     const liveDebugClick = s.runtime?.lastClickResult || null;
                     const fmtBool = (v) => (v ? "true" : "false");
+                    const boolValueClass = (v) => (v ? "mep-strategy1-live-debug-value is-true" : "mep-strategy1-live-debug-value is-false");
+                    const diffValueClass = (v) => {
+                        const n = Number(v) || 0;
+                        if (n > 0) return "mep-strategy1-live-debug-value is-diff-pos";
+                        if (n < 0) return "mep-strategy1-live-debug-value is-diff-neg";
+                        return "mep-strategy1-live-debug-value is-diff-zero";
+                    };
                     const fmtBal = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(8).replace(/\.?0+$/, "") : "—");
                     stakeServiceWrapEl.innerHTML = `
 <div class="mep-strategy1-cycle-info-row">
@@ -10207,40 +10214,33 @@
 <div class="mep-strategy1-live-debug-box">
 <div class="mep-strategy1-live-debug-grid">
 <div class="mep-strategy1-live-debug-col">
-<div class="mep-strategy1-live-debug-title">резерв</div>
-<div class="mep-strategy1-live-debug-table">
-<div class="mep-strategy1-live-debug-row"><span>Фаза</span><span>${liveDebugPhase || "—"}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Armed</span><span>${fmtBool(!!s.runtime?.armedToBet)}</span></div>
-</div>
-</div>
-<div class="mep-strategy1-live-debug-col">
 <div class="mep-strategy1-live-debug-title">Ветка</div>
 <div class="mep-strategy1-live-debug-table">
-<div class="mep-strategy1-live-debug-row"><span>Плюс</span><span>${fmtBool(!!plusPool?.result)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Минус</span><span>${fmtBool(!!minusPool?.result)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Плюс</span><span class="${boolValueClass(!!plusPool?.result)}">${fmtBool(!!plusPool?.result)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Минус</span><span class="${boolValueClass(!!minusPool?.result)}">${fmtBool(!!minusPool?.result)}</span></div>
 </div>
 </div>
 <div class="mep-strategy1-live-debug-col">
 <div class="mep-strategy1-live-debug-title">События</div>
 <div class="mep-strategy1-live-debug-table">
-<div class="mep-strategy1-live-debug-row"><span>Пул</span><span>${fmtBool(liveDebugPool)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Ставка число</span><span>${fmtBool((Number(liveDebugPlan?.betAmount) || 0) > 0)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Цел.коэф.</span><span>${fmtBool((Number(liveDebugPlan?.targetMultiplier) || 0) > 1)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Ставка кнопка</span><span>${fmtBool(!!liveDebugClick?.applied)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>ПослеСтав.Бал.</span><span>${fmtBool(liveDebugPostBetBalance > 0)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>запуск игры</span><span>${fmtBool(liveDebugPhase === "launch")}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>в игре</span><span>${fmtBool(liveDebugPhase === "in_game")}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Конец игры</span><span>${fmtBool(liveDebugPhase === "game")}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Пул</span><span class="${boolValueClass(liveDebugPool)}">${fmtBool(liveDebugPool)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Ставка число</span><span class="${boolValueClass((Number(liveDebugPlan?.betAmount) || 0) > 0)}">${fmtBool((Number(liveDebugPlan?.betAmount) || 0) > 0)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Цел.коэф.</span><span class="${boolValueClass((Number(liveDebugPlan?.targetMultiplier) || 0) > 1)}">${fmtBool((Number(liveDebugPlan?.targetMultiplier) || 0) > 1)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Ставка кнопка</span><span class="${boolValueClass(!!liveDebugClick?.applied)}">${fmtBool(!!liveDebugClick?.applied)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПослеСтав.Бал.</span><span class="${boolValueClass(liveDebugPostBetBalance > 0)}">${fmtBool(liveDebugPostBetBalance > 0)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>запуск игры</span><span class="${boolValueClass(liveDebugPhase === "launch")}">${fmtBool(liveDebugPhase === "launch")}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>в игре</span><span class="${boolValueClass(liveDebugPhase === "in_game")}">${fmtBool(liveDebugPhase === "in_game")}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Конец игры</span><span class="${boolValueClass(liveDebugPhase === "game")}">${fmtBool(liveDebugPhase === "game")}</span></div>
 </div>
 </div>
 <div class="mep-strategy1-live-debug-col">
 <div class="mep-strategy1-live-debug-title">Баланс</div>
 <div class="mep-strategy1-live-debug-table">
-<div class="mep-strategy1-live-debug-row"><span>Текущий</span><span>${fmtBal(liveDebugCurrentBalance)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>ПредЦикл</span><span>${fmtBal(liveDebugPreCycleBalance)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>ПослеСтавка</span><span>${fmtBal(liveDebugPostBetBalance)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>ПослеРаунд</span><span>${fmtBal(liveDebugAfterRound)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>РазницаБПР</span><span>${fmtBal(liveDebugDiff)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Текущий</span><span class="mep-strategy1-live-debug-value">${fmtBal(liveDebugCurrentBalance)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПредЦикл</span><span class="mep-strategy1-live-debug-value">${fmtBal(liveDebugPreCycleBalance)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПослеСтавка</span><span class="mep-strategy1-live-debug-value">${fmtBal(liveDebugPostBetBalance)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПослеРаунд</span><span class="mep-strategy1-live-debug-value">${fmtBal(liveDebugAfterRound)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>РазницаБПР</span><span class="${diffValueClass(liveDebugDiff)}">${fmtBal(liveDebugDiff)}</span></div>
 </div>
 </div>
 </div>
