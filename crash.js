@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.6.01";
+		MEP.ver = "0.1.6.02";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -308,6 +308,17 @@
                 lastGamePhase: "",
                 phaseMachineBusy: false,
                 lastDomSyncAtTs: 0,
+                roundEventFlagsRoundKey: "",
+                roundEventFlags: {
+                    pool: false,
+                    betValueSet: false,
+                    targetSet: false,
+                    betButtonClicked: false,
+                    postBetBalanceCaptured: false,
+                    launchSeen: false,
+                    inGameSeen: false,
+                    roundFinished: false,
+                },
                 lastExecutionDebugCode: "",
                 lastExecutionDebugText: "",
                 lastExecutionDebugStage: "",
@@ -5760,6 +5771,55 @@
                 return MEP.State?.strategies?.strategy1 || null;
             },
 
+            createDefaultRoundEventFlags() {
+                return {
+                    pool: false,
+                    betValueSet: false,
+                    targetSet: false,
+                    betButtonClicked: false,
+                    postBetBalanceCaptured: false,
+                    launchSeen: false,
+                    inGameSeen: false,
+                    roundFinished: false,
+                };
+            },
+
+            ensureRoundEventFlags(runtime = null) {
+                const rt = runtime && typeof runtime === "object" ? runtime : (this.getState()?.runtime || null);
+                if (!rt) return this.createDefaultRoundEventFlags();
+                const d = this.createDefaultRoundEventFlags();
+                const src = rt.roundEventFlags && typeof rt.roundEventFlags === "object" ? rt.roundEventFlags : {};
+                rt.roundEventFlags = {
+                    pool: !!src.pool,
+                    betValueSet: !!src.betValueSet,
+                    targetSet: !!src.targetSet,
+                    betButtonClicked: !!src.betButtonClicked,
+                    postBetBalanceCaptured: !!src.postBetBalanceCaptured,
+                    launchSeen: !!src.launchSeen,
+                    inGameSeen: !!src.inGameSeen,
+                    roundFinished: !!src.roundFinished,
+                };
+                if (!rt.roundEventFlagsRoundKey) rt.roundEventFlagsRoundKey = "";
+                return rt.roundEventFlags;
+            },
+
+            resetRoundEventFlags(roundKey = "") {
+                const st = this.getState();
+                if (!st?.runtime) return null;
+                st.runtime.roundEventFlags = this.createDefaultRoundEventFlags();
+                st.runtime.roundEventFlagsRoundKey = (roundKey || "").toString();
+                return st.runtime.roundEventFlags;
+            },
+
+            markRoundEventFlag(flagKey = "", value = true) {
+                const st = this.getState();
+                if (!st?.runtime) return false;
+                const flags = this.ensureRoundEventFlags(st.runtime);
+                if (!Object.prototype.hasOwnProperty.call(flags, flagKey)) return false;
+                flags[flagKey] = !!value;
+                return true;
+            },
+
             ensureConditionBlocks(st = null, branch = "plus") {
                 const state = st || this.getState();
                 if (!state) return buildStrategy1ConditionBlocksDefault();
@@ -6695,6 +6755,8 @@
                     this.executionWarn("[MEP][Strategy1][sync] result", out);
                     return out;
                 }
+                this.markRoundEventFlag("betValueSet", true);
+                this.markRoundEventFlag("targetSet", true);
                 if (st?.runtime) st.runtime.lastDomSyncAtTs = Date.now();
                 debugSync.stage = "dom_synced";
                 const out = { applied: true, reason: "", stage: "dom_synced", betValue, targetValue, debugSync };
@@ -6735,6 +6797,7 @@
                 try {
                     btn.click();
                     debugClick.clickPerformed = true;
+                    this.markRoundEventFlag("betButtonClicked", true);
                     const out = { applied: true, reason: "", stage: "clicked", debugClick };
                     if (st?.runtime) st.runtime.lastClickResult = out;
                     this.executionDebug("[MEP][Strategy1][clickBetButton result]", out);
@@ -7099,6 +7162,12 @@
                     const phase = (MEP.State?.gamePhase || "").toString();
                     const prevPhase = (st.runtime.lastGamePhase || "").toString();
                     st.runtime.lastGamePhase = phase;
+                    this.ensureRoundEventFlags(st.runtime);
+                    const isRoundBoundary = phase === "bet" && prevPhase && prevPhase !== "bet";
+                    if (isRoundBoundary) {
+                        const nextRoundKey = `phase_bet_${Date.now()}`;
+                        this.resetRoundEventFlags(nextRoundKey);
+                    }
 
                     const execState = (st.runtime.executionState || "idle").toString();
                     const sinceTs = Number(st.runtime.executionPhaseSinceTs) || 0;
@@ -7151,6 +7220,7 @@
                             );
                         }
                         if (phase === "bet" && (canUseArmed || permission?.allowed)) {
+                            this.markRoundEventFlag("pool", true);
                             if (st.cycle?.isActive !== true) {
                                 const started = !!this.startCycle();
                                 this.setExecutionDebugState(started ? "cycle_started" : "cycle_start_failed", "cycle", started ? "startCycle done" : "startCycle failed");
@@ -7260,12 +7330,19 @@
                     }
 
                 if (execState === "waiting_placed") {
+                    if (phase === "launch") {
+                        this.markRoundEventFlag("launchSeen", true);
+                    }
                     if (phase === "placed") {
                         st.runtime.postBetBalance = Number(this.getCurrentBalance()) || 0;
+                        this.markRoundEventFlag("postBetBalanceCaptured", Number(st.runtime.postBetBalance) > 0);
                         st.runtime.waitingRoundResult = true;
                         this.setExecutionState("waiting_in_game", "placed_confirmed");
                     } else if (phase === "in_game") {
+                        this.markRoundEventFlag("launchSeen", true);
+                        this.markRoundEventFlag("inGameSeen", true);
                         st.runtime.postBetBalance = Number(this.getCurrentBalance()) || Number(st.runtime.postBetBalance) || 0;
+                        this.markRoundEventFlag("postBetBalanceCaptured", Number(st.runtime.postBetBalance) > 0);
                         st.runtime.waitingRoundResult = true;
                         if (!st.runtime.betAcceptedInFlight) {
                             st.runtime.betAcceptedInFlight = true;
@@ -7289,6 +7366,7 @@
 
                 if (execState === "waiting_in_game") {
                     if (phase === "in_game") {
+                        this.markRoundEventFlag("inGameSeen", true);
                         if (!st.runtime.betAcceptedInFlight) {
                             st.runtime.betAcceptedInFlight = true;
                             st.cycle.betCount = (Number(st.cycle.betCount) || 0) + 1;
@@ -7304,6 +7382,7 @@
                 }
 
                 if (execState === "waiting_round_finish" && prevPhase === "in_game" && phase === "game") {
+                    this.markRoundEventFlag("roundFinished", true);
                     // round finish will be finalized by DOM bridge; this only marks transition
                     this.setExecutionState("round_resolved", "phase_game_returned");
                 }
@@ -7609,6 +7688,7 @@
                 const st = this.getState();
                 if (!st) return;
                 this.ensureConditionBlocks(st);
+                this.ensureRoundEventFlags(st.runtime);
                 this.buildStakePlan();
                 this.evaluateDecisionState();
                 this.updateUiCounters();
@@ -7622,6 +7702,7 @@
                 st.counters = { ...d.counters };
                 st.timers = { ...d.timers };
                 st.runtime.waitingRoundResult = false;
+                this.resetRoundEventFlags("cycle_reset");
                 st.runtime.lastCycleAction = "resetCycle";
                 if (MEP.State.activeStrategyId === st.id && !st.cycle.isActive) {
                     MEP.State.activeStrategyId = null;
@@ -8173,6 +8254,7 @@
                 st.runtime.balanceAfterRound = 0;
                 st.runtime.betAcceptedInFlight = false;
                 st.runtime.waitingRoundResult = false;
+                this.resetRoundEventFlags(`round_${st.cycle.cycleId || now}`);
                 st.runtime.pendingExecutionPayload = null;
                 st.runtime.pendingBetAmount = 0;
                 st.runtime.pendingTargetMultiplier = 0;
@@ -8217,6 +8299,7 @@
                 if (MEP.State.activeStrategyId === st.id) MEP.State.activeStrategyId = null;
                 this.pushEvent("cycle_finish", now);
                 st.runtime.lastCycleAction = "finishCycle";
+                this.resetRoundEventFlags("cycle_finished");
                 this.clearArmedPermission("armed_cycle_finished");
                 this.clearPendingDomSyncContext();
                 const finishCodeMap = {
@@ -8931,6 +9014,7 @@
 
                 if (normalized.roundId) st.runtime.lastProcessedRoundId = normalized.roundId;
                 st.runtime.waitingRoundResult = false;
+                this.markRoundEventFlag("roundFinished", true);
                 st.runtime.lastCycleAction = "updateAfterRound";
                 st.runtime.lastRoundOutcome = outcome.outcomeCode;
                 st.runtime.lastRoundResult = { ...normalized };
@@ -10153,9 +10237,16 @@
                     const liveDebugPostBetBalance = Number(s.runtime?.postBetBalance) || 0;
                     const liveDebugAfterRound = Number(s.runtime?.balanceAfterRound) || 0;
                     const liveDebugDiff = liveDebugAfterRound - liveDebugPreCycleBalance;
-                    const liveDebugPool = !!currentPool?.result;
-                    const liveDebugPlan = s.runtime?.lastStakePlanResult || null;
-                    const liveDebugClick = s.runtime?.lastClickResult || null;
+                    const liveRoundEvents = MEP.Strategy1?.ensureRoundEventFlags?.(s.runtime) || {
+                        pool: false,
+                        betValueSet: false,
+                        targetSet: false,
+                        betButtonClicked: false,
+                        postBetBalanceCaptured: false,
+                        launchSeen: false,
+                        inGameSeen: false,
+                        roundFinished: false,
+                    };
                     const fmtBool = (v) => (v ? "true" : "false");
                     const boolValueClass = (v) => (v ? "mep-strategy1-live-debug-value is-true" : "mep-strategy1-live-debug-value is-false");
                     const diffValueClass = (v) => {
@@ -10223,14 +10314,14 @@
 <div class="mep-strategy1-live-debug-col">
 <div class="mep-strategy1-live-debug-title">События</div>
 <div class="mep-strategy1-live-debug-table">
-<div class="mep-strategy1-live-debug-row"><span>Пул</span><span class="${boolValueClass(liveDebugPool)}">${fmtBool(liveDebugPool)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Ставка число</span><span class="${boolValueClass((Number(liveDebugPlan?.betAmount) || 0) > 0)}">${fmtBool((Number(liveDebugPlan?.betAmount) || 0) > 0)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Цел.коэф.</span><span class="${boolValueClass((Number(liveDebugPlan?.targetMultiplier) || 0) > 1)}">${fmtBool((Number(liveDebugPlan?.targetMultiplier) || 0) > 1)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Ставка кнопка</span><span class="${boolValueClass(!!liveDebugClick?.applied)}">${fmtBool(!!liveDebugClick?.applied)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>ПослеСтав.Бал.</span><span class="${boolValueClass(liveDebugPostBetBalance > 0)}">${fmtBool(liveDebugPostBetBalance > 0)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>запуск игры</span><span class="${boolValueClass(liveDebugPhase === "launch")}">${fmtBool(liveDebugPhase === "launch")}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>в игре</span><span class="${boolValueClass(liveDebugPhase === "in_game")}">${fmtBool(liveDebugPhase === "in_game")}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Конец игры</span><span class="${boolValueClass(liveDebugPhase === "game")}">${fmtBool(liveDebugPhase === "game")}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Пул</span><span class="${boolValueClass(!!liveRoundEvents.pool)}">${fmtBool(!!liveRoundEvents.pool)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Ставка число</span><span class="${boolValueClass(!!liveRoundEvents.betValueSet)}">${fmtBool(!!liveRoundEvents.betValueSet)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Цел.коэф.</span><span class="${boolValueClass(!!liveRoundEvents.targetSet)}">${fmtBool(!!liveRoundEvents.targetSet)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Ставка кнопка</span><span class="${boolValueClass(!!liveRoundEvents.betButtonClicked)}">${fmtBool(!!liveRoundEvents.betButtonClicked)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>ПослеСтав.Бал.</span><span class="${boolValueClass(!!liveRoundEvents.postBetBalanceCaptured)}">${fmtBool(!!liveRoundEvents.postBetBalanceCaptured)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>запуск игры</span><span class="${boolValueClass(!!liveRoundEvents.launchSeen)}">${fmtBool(!!liveRoundEvents.launchSeen)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>в игре</span><span class="${boolValueClass(!!liveRoundEvents.inGameSeen)}">${fmtBool(!!liveRoundEvents.inGameSeen)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Конец игры</span><span class="${boolValueClass(!!liveRoundEvents.roundFinished)}">${fmtBool(!!liveRoundEvents.roundFinished)}</span></div>
 </div>
 </div>
 <div class="mep-strategy1-live-debug-col">
@@ -11589,6 +11680,7 @@
                                 s1.timers.enabledAtTs = Date.now();
                                 s1.runtime = s1.runtime && typeof s1.runtime === "object" ? s1.runtime : {};
                                 s1.runtime.startBalanceSnapshot = MEP.UI.readCurrentBalanceFromDom().amount || 0;
+                                MEP.Strategy1?.resetRoundEventFlags?.("toggle_enabled");
                                 MEP.State.activeStrategyId = "strategy1";
                                 MEP.Strategy1?.startNewCycle?.();
                             } else {
@@ -11602,6 +11694,7 @@
                                 s1.cycle.roundCount = 0;
                                 s1.cycle.betCount = 0;
                                 s1.cycle.lossCount = 0;
+                                MEP.Strategy1?.resetRoundEventFlags?.("toggle_disabled");
                                 if (MEP.State.activeStrategyId === "strategy1" && !s1.isExecuting) MEP.State.activeStrategyId = null;
                             }
                             MEP.Storage.save();

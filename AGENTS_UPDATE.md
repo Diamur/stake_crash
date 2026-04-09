@@ -617,3 +617,9 @@
 - Сохранены dashed-рамка, cyan-заголовки, тёмный фон и вертикальные разделители между колонками.
 - Добавлена цветовая индикация значений: boolean `true` = зелёный glow, `false` = нейтральный.
 - Для строки `РазницаБПР` добавлена логика цвета по знаку: `>0` зелёный glow, `<0` розовый glow, `=0` нейтральный.
+- 2026-04-08: Strategy1 debug-события переведены на runtime `roundEventFlags` (pipeline текущего раунда) вместо разрозненных текущих полей.
+- Добавлены флаги: `pool`, `betValueSet`, `targetSet`, `betButtonClicked`, `postBetBalanceCaptured`, `launchSeen`, `inGameSeen`, `roundFinished` + helper'ы ensure/reset/mark.
+- Реализован reset event-флагов на границе нового раунда (`phase != bet -> bet`) и при start/reset/finish/toggle цикла.
+- По шагам выставляются true-флаги: pool-допуск, успешный DOM sync суммы/target, реальный click ставки, postBetBalance capture, launch/in_game/game переходы.
+- Усилена визуальная подсветка `true` (более яркий зелёный glow + weight), без изменения бизнес-логики решений/ставок.
+- Версии повышены: `crash.js 0.1.6.02` и `crash.css 0.1.6.02`.
