@@ -5,7 +5,7 @@
     try {
         const MEP = (window.MEP = window.MEP || {});
         
-		MEP.ver = "0.1.6.02";
+		MEP.ver = "0.1.6.03";
         // -------------------------
         // Static code-priority settings
         // -------------------------
@@ -3125,6 +3125,12 @@
         flex-direction:column;
         gap:6px;
         }
+        .mep-strategy1-conditions-wrap.is-branch-minus{
+        background:rgba(56,10,22,.55);
+        border:1px dashed rgba(160,70,95,.55);
+        box-shadow:inset 0 0 16px rgba(95,20,40,.35);
+        padding:6px;
+        }
         .mep-strategy1-branch-tabs{display:flex;gap:6px;}
         .mep-strategy1-branch-tab{
         min-width:74px;height:24px;border-radius:6px;
@@ -5787,7 +5793,6 @@
             ensureRoundEventFlags(runtime = null) {
                 const rt = runtime && typeof runtime === "object" ? runtime : (this.getState()?.runtime || null);
                 if (!rt) return this.createDefaultRoundEventFlags();
-                const d = this.createDefaultRoundEventFlags();
                 const src = rt.roundEventFlags && typeof rt.roundEventFlags === "object" ? rt.roundEventFlags : {};
                 rt.roundEventFlags = {
                     pool: !!src.pool,
@@ -5799,8 +5804,19 @@
                     inGameSeen: !!src.inGameSeen,
                     roundFinished: !!src.roundFinished,
                 };
+                this.reconcileRoundEventFlags(rt.roundEventFlags);
                 if (!rt.roundEventFlagsRoundKey) rt.roundEventFlagsRoundKey = "";
                 return rt.roundEventFlags;
+            },
+
+            reconcileRoundEventFlags(flags = null) {
+                const f = flags && typeof flags === "object" ? flags : null;
+                if (!f) return this.createDefaultRoundEventFlags();
+                const hasRealBet = !!(f.postBetBalanceCaptured || f.betButtonClicked || f.pool);
+                if (f.inGameSeen || (f.roundFinished && hasRealBet)) {
+                    f.launchSeen = true;
+                }
+                return f;
             },
 
             resetRoundEventFlags(roundKey = "") {
@@ -5817,7 +5833,33 @@
                 const flags = this.ensureRoundEventFlags(st.runtime);
                 if (!Object.prototype.hasOwnProperty.call(flags, flagKey)) return false;
                 flags[flagKey] = !!value;
+                this.reconcileRoundEventFlags(flags);
                 return true;
+            },
+
+            setRuntimeActiveBranch(nextBranch = "", reason = "") {
+                const st = this.getState();
+                if (!st?.runtime) return "";
+                const prev = (st.runtime.activeBranch || "").toString().trim().toLowerCase();
+                const safe = (nextBranch || "").toString().trim().toLowerCase() === "minus" ? "minus" : (nextBranch || "").toString().trim().toLowerCase() === "plus" ? "plus" : "";
+                st.runtime.activeBranch = safe;
+                if (prev !== safe) {
+                    const suffix = reason ? ` (${reason})` : "";
+                    this.executionDebug(`[MEP][Strategy1] switch branch -> ${safe || "none"}${suffix}`, {
+                        prevBranch: prev || "",
+                        nextBranch: safe || "",
+                        reason: (reason || "").toString(),
+                    });
+                }
+                if ((safe === "plus" || safe === "minus") && MEP.UI?.ui?.strategy1CondWrapEl) {
+                    const uiState = MEP.UI.getStrategyState?.("strategy1");
+                    const cfg = uiState?.config && typeof uiState.config === "object" ? uiState.config : null;
+                    if (cfg && cfg.conditionSelectedBranch !== safe) {
+                        cfg.conditionSelectedBranch = safe;
+                        MEP.UI.renderStrategy1MinimalUi(uiState);
+                    }
+                }
+                return safe;
             },
 
             ensureConditionBlocks(st = null, branch = "plus") {
@@ -7366,6 +7408,7 @@
 
                 if (execState === "waiting_in_game") {
                     if (phase === "in_game") {
+                        this.markRoundEventFlag("launchSeen", true);
                         this.markRoundEventFlag("inGameSeen", true);
                         if (!st.runtime.betAcceptedInFlight) {
                             st.runtime.betAcceptedInFlight = true;
@@ -7411,10 +7454,14 @@
                 const rawMultiplier = Number(p.rawMultiplier);
                 const inferredWon = p.won === true || (!Number.isNaN(rawMultiplier) && Number.isFinite(rawMultiplier) && pendingTarget > 1 && rawMultiplier >= pendingTarget);
                 const inferredLost = p.lost === true || (!Number.isNaN(rawMultiplier) && Number.isFinite(rawMultiplier) && pendingTarget > 1 && rawMultiplier < pendingTarget);
-                let resolvedBalance = Number.isFinite(Number(p.balance)) ? Number(p.balance) : currentBalance;
-                if (!(resolvedBalance > 0)) {
+                const hasPayloadBalance = Number.isFinite(Number(p.balance));
+                let resolvedBalance = hasPayloadBalance ? Number(p.balance) : currentBalance;
+                if (!hasPayloadBalance) {
                     if (inferredWon && pendingStake > 0 && pendingTarget > 1) resolvedBalance = postBetBalance + pendingStake * pendingTarget;
                     else if (inferredLost) resolvedBalance = postBetBalance;
+                }
+                if (!(resolvedBalance > 0)) {
+                    resolvedBalance = currentBalance;
                 }
                 this.executionDebug("[MEP][Strategy1][handleRoundFinishedForExecution payload]", {
                     roundId,
@@ -8671,7 +8718,8 @@
                     st.conditions.lastResult.shouldEndCycle = false;
                     st.conditions.lastResult.reason = (result.reason || "").toString();
                 }
-                st.runtime.activeBranch = this.getRuntimeActiveBranch(st, plusPool, minusPool);
+                st.runtime.lastConditionPoolRaw = { plus: { ...plusPool }, minus: { ...minusPool } };
+                this.setRuntimeActiveBranch(this.getRuntimeActiveBranch(st, plusPool, minusPool), "checkConditions");
                 st.runtime.lastConditionBranchResults = { plus: plusPool, minus: minusPool };
                 st.runtime.lastConditionResult = result;
                 st.runtime.lastCycleAction = "checkConditions";
@@ -8991,6 +9039,7 @@
                 }
 
                 const previousCycleBalance = Number(st.cycle.currentBalance) || 0;
+                const activeBranchBeforeRound = this.getRuntimeActiveBranch(st);
                 const outcome = this.deriveRoundOutcome(normalized, previousCycleBalance);
 
                 st.cycle.currentBalance = normalized.balance;
@@ -9001,6 +9050,17 @@
                 st.cycle.totalStakeSum = (Number(st.cycle.totalStakeSum) || 0) + normalized.stake;
                 if (outcome.isLoss) st.cycle.lossCount = (Number(st.cycle.lossCount) || 0) + 1;
                 if (outcome.isWin) st.cycle.winCount = (Number(st.cycle.winCount) || 0) + 1;
+                if (outcome.isWin && activeBranchBeforeRound === "minus") {
+                    this.executionDebug("[MEP][Strategy1] minus branch profit detected", {
+                        branchBeforeRound: activeBranchBeforeRound,
+                        lossCountBeforeReset: Number(st.cycle.lossCount) || 0,
+                    });
+                    st.cycle.lossCount = 0;
+                    st.cycle.stepIndex = 0;
+                    this.executionDebug("[MEP][Strategy1] return to plus branch", {
+                        reason: "minus branch profit detected",
+                    });
+                }
                 st.cycle.stepIndex = Math.max(0, Number(st.cycle.lossCount) || 0);
 
                 st.counters.currentBalanceAfterRound = normalized.balance;
@@ -9075,6 +9135,8 @@
                     this.refreshWaitingBalanceRecovery();
                 }
                 const permission = this.evaluateDecisionState();
+                const activeBranchAfterRound = this.getRuntimeActiveBranch(st);
+                this.setRuntimeActiveBranch(activeBranchAfterRound, outcome.isWin && activeBranchBeforeRound === "minus" ? "post_round_minus_profit" : "post_round_refresh");
                 this.pushSystemMessage({
                     level: "ok",
                     action: "updateAfterRound",
@@ -9227,6 +9289,8 @@
                             const branchInfo = this.routeBranch();
                             const poolEval = this.getPermissionPoolEvaluation(st);
                             const activePoolBranch = poolEval.activePoolBranch === "minus" ? "minus" : "plus";
+                            st.runtime.lastConditionPoolRaw = { plus: { ...(poolEval.plusPool || {}) }, minus: { ...(poolEval.minusPool || {}) } };
+                            this.setRuntimeActiveBranch(activePoolBranch, "evaluateBetPermission");
                             const branch = activePoolBranch === "minus" ? "second" : "first";
                             const activePool = poolEval.activePool || { activeCount: 0, hasFalse: false, result: false };
                             const activeConditions = Array.isArray(poolEval.activeEvaluated)
@@ -10086,9 +10150,8 @@
                 for (const it of evaluated) byKey[it.key] = it;
                 const plusPool = MEP.Strategy1?.getConditionBranchPoolState?.(evaluatedPlus) || { activeCount: 0, hasFalse: false, result: false };
                 const minusPool = MEP.Strategy1?.getConditionBranchPoolState?.(evaluatedMinus) || { activeCount: 0, hasFalse: false, result: false };
-                const activeBranch = MEP.Strategy1?.getRuntimeActiveBranch?.(s, plusPool, minusPool) || "";
+                const activeBranch = MEP.Strategy1?.setRuntimeActiveBranch?.(MEP.Strategy1?.getRuntimeActiveBranch?.(s, plusPool, minusPool) || "", "render_bridge") || "";
                 s.runtime = s.runtime && typeof s.runtime === "object" ? s.runtime : {};
-                s.runtime.activeBranch = activeBranch;
                 const currentPool = selectedBranch === "minus" ? minusPool : plusPool;
                 const rows = [];
                 const threshold = Math.max(0, Math.floor(Number(blocks?.streak_lt?.params?.threshold) || 0));
@@ -10199,6 +10262,7 @@
                 ui.strategy1CondSummaryEl.textContent = summaryText;
                 ui.strategy1CondSummaryEl.classList.remove("is-true", "is-false", "is-idle");
                 ui.strategy1CondSummaryEl.classList.add(summaryClass);
+                ui.strategy1CondWrapEl?.classList?.toggle("is-branch-minus", selectedBranch === "minus");
                 if (ui.strategy1CondBranchTabsEl) {
                     const plusBtn = ui.strategy1CondBranchTabsEl.querySelector(".mep-strategy1-branch-tab-plus");
                     const minusBtn = ui.strategy1CondBranchTabsEl.querySelector(".mep-strategy1-branch-tab-minus");
@@ -10307,8 +10371,8 @@
 <div class="mep-strategy1-live-debug-col">
 <div class="mep-strategy1-live-debug-title">Ветка</div>
 <div class="mep-strategy1-live-debug-table">
-<div class="mep-strategy1-live-debug-row"><span>Плюс</span><span class="${boolValueClass(!!plusPool?.result)}">${fmtBool(!!plusPool?.result)}</span></div>
-<div class="mep-strategy1-live-debug-row"><span>Минус</span><span class="${boolValueClass(!!minusPool?.result)}">${fmtBool(!!minusPool?.result)}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Плюс</span><span class="${boolValueClass(activeBranch === "plus")}">${fmtBool(activeBranch === "plus")}</span></div>
+<div class="mep-strategy1-live-debug-row"><span>Минус</span><span class="${boolValueClass(activeBranch === "minus")}">${fmtBool(activeBranch === "minus")}</span></div>
 </div>
 </div>
 <div class="mep-strategy1-live-debug-col">

@@ -612,3 +612,9 @@
 - Старый dump-формат (`phase/exec/reason/stage/...`) заменён на структурированный блок по ТЗ; бизнес-логика execution/permission/cycle не менялась.
 - Версии повышены: `crash.js 0.1.6.01` (header + `MEP.ver`) и `crash.css 0.1.6.01`.
 
+
+- 2026-04-11: Strategy1 fixed live-debug and branch routing semantics: `launchSeen` now auto-reconciles as mandatory predecessor for `inGameSeen/roundFinished-after-real-bet`; в колонке «Ветка» отображается runtime-active branch (plus/minus mutually exclusive), raw pool сохранён в runtime meta.
+- Добавлен runtime branch-switch helper с явными debug-логами (`switch branch -> minus/plus`, `minus branch profit detected`, `return to plus branch`) и авто-синхронизацией UI-вкладки `ПЛЮС/МИНУС` с фактической execution-веткой.
+- Исправлен post-round execution math: при отсутствии payload balance используется корректный infer по `postBetBalance/pendingStake/target`, плюс-детект в minus-ветке теперь возвращает маршрут на plus (lossCount reset -> activeBranch plus).
+- Для вкладки `МИНУС` добавлен отдельный тёмно-багровый визуальный режим блока условий (`.mep-strategy1-conditions-wrap.is-branch-minus`).
+- Версии повышены: `crash.js 0.1.6.03` (header + `MEP.ver`) и `crash.css 0.1.6.03`.

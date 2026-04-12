@@ -1,4 +1,4 @@
-/*== CSS ver 0.1.6.02 ==*/
+/*== CSS ver 0.1.6.03 ==*/
 /* === MEP: Tracking section === */
 
 #mep-control-panel .mep-divider{
@@ -1021,6 +1021,12 @@ body.mep-panel-open .group.svelte-13egg44 { width: 80%; }
 }
 #mep-control-panel .mep-strategy1-cycle-info-cell b{color:#fff;font-weight:700;}
 #mep-control-panel .mep-strategy1-branch-tabs{display:flex;gap:6px;}
+#mep-control-panel .mep-strategy1-conditions-wrap.is-branch-minus{
+  background:rgba(56,10,22,.55);
+  border:1px dashed rgba(160,70,95,.55);
+  box-shadow:inset 0 0 16px rgba(95,20,40,.35);
+  padding:6px;
+}
 #mep-control-panel .mep-strategy1-branch-tab{
   min-width:74px;height:24px;border-radius:6px;
   border:1px solid rgba(255,255,255,.22);
